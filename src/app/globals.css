@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #1f2937;
+
+  --primary: #7c3aed;
+  --primary-soft: #f5f3ff;
+
+  --border-soft: #e5e7eb;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ==========================================
+   ANIMACIONES
+========================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* ==========================================
+   INPUTS GLOBALES
+========================================== */
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border: 1px solid var(--border-soft);
+
+  background-color: #ffffff;
+  color: #374151;
+
+  border-radius: 12px;
+
+  padding: 12px 16px;
+  width: 100%;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+/* Placeholder */
+
+input:not([type="checkbox"]):not([type="radio"])::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* Focus */
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+
+  border-color: var(--primary);
+
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.12);
+
+  transform: translateY(-1px);
+}
+
+/* Hover */
+
+input:not([type="checkbox"]):not([type="radio"]):hover,
+select:hover,
+textarea:hover {
+  border-color: #c4b5fd;
+}
+
+/* ==========================================
+   CHECKBOX / RADIO
+========================================== */
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  padding: 0;
+
+  border: none;
+  box-shadow: none;
+
+  cursor: pointer;
+
+  accent-color: var(--primary);
+}
+
+/* ==========================================
+   BOTONES
+========================================== */
+
+button {
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    opacity 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+/* ==========================================
+   UTILIDADES UI SYSLOGISTICS
+========================================== */
+
+.card-soft {
+  background: #ffffff;
+
+  border: 1px solid var(--border-soft);
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04);
+
+  padding: 20px;
+}
+
+.section-title {
+  color: var(--primary);
+
+  font-size: 14px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-soft {
+  background: var(--primary-soft);
+
+  color: var(--primary);
+
+  border-radius: 999px;
+
+  padding: 4px 10px;
+
+  font-size: 12px;
+  font-weight: 600;
+}
