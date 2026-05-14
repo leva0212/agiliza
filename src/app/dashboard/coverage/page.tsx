@@ -89,6 +89,157 @@ export default function CoveragePage() {
   );
 
   async function loadCoverage(
+  provinceName: string
+) {
+
+  try {
+
+    const provinceMap =
+      BarriosService
+        .barriosMap[
+          provinceName
+        ];
+
+    if (
+      !provinceMap
+    ) {
+
+      setCoverageData(
+        []
+      );
+
+      return;
+
+    }
+
+    let districtIndex =
+      1;
+
+    const localDistricts:
+      CoverageRow[] = [];
+
+    Object.entries(
+      provinceMap
+    ).forEach(
+      ([
+        cantonName,
+        districtsMap,
+      ]) => {
+
+        Object.keys(
+          districtsMap
+        ).forEach(
+          (
+            districtName
+          ) => {
+
+            localDistricts.push({
+
+              // temporal
+              district_id:
+                districtIndex,
+
+              canton:
+                cantonName,
+
+              district:
+                districtName,
+
+              covered_count:
+                0,
+
+              estimated_hours:
+                null,
+
+            });
+
+            districtIndex++;
+
+          }
+        );
+
+      }
+    );
+
+    const counts =
+      await getProvinceCoverageCounts(
+        provinceName
+      );
+
+    const merged =
+      localDistricts.map(
+        (
+          district
+        ) => {
+
+          const match =
+            counts.find(
+              (
+                item: any
+              ) =>
+
+                item.canton ===
+                  district.canton
+
+                &&
+
+                item.district ===
+                  district.district
+
+            );
+
+          return {
+
+            ...district,
+
+            // si existe en BD,
+            // usar el ID real
+            district_id:
+
+              match?.district_id
+
+              ||
+
+              district.district_id,
+
+            covered_count:
+
+              Number(
+
+                match?.covered_count || 0
+
+              ),
+
+            estimated_hours:
+
+              match?.estimated_hours
+
+              ??
+
+              null,
+
+          };
+
+        }
+      );
+
+    setCoverageData(
+      merged
+    );
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+/*
+  async function loadCoverage(
     provinceName: string
   ) {
 
@@ -218,7 +369,7 @@ export default function CoveragePage() {
 
     }
 
-  }
+  }*/
 
   async function handleViewDistrict(
 
