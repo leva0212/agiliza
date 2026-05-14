@@ -1,71 +1,70 @@
 import {
-
   cookies,
-
 } from "next/headers";
 
 import {
-
   NextResponse,
-
 } from "next/server";
 
 import {
-
   createClient,
-
 } from "@supabase/supabase-js";
 
-const supabase =
-  createClient(
-
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-  );
-
 export async function POST(
-
   request: Request
-
 ) {
 
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (
+    !supabaseUrl ||
+    !supabaseKey
+  ) {
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Variables de entorno faltantes",
+      },
+      {
+        status: 500,
+      }
+    );
+
+  }
+
+  const supabase =
+    createClient(
+      supabaseUrl,
+      supabaseKey
+    );
+
   const {
-
     email,
-
     password,
-
   } = await request.json();
 
-  // buscar usuario por correo
-
   const {
-
     data: user,
-
   } = await supabase
-
     .from(
       "admin_users"
     )
-
     .select("*")
-
     .eq(
       "email",
       email
     )
-
     .eq(
       "active",
       true
     )
-
     .maybeSingle();
-
-  // usuario no existe
 
   if (
     !user
@@ -83,13 +82,9 @@ export async function POST(
 
   }
 
-  // contraseña incorrecta
-
   if (
-
     user.password !==
     password
-
   ) {
 
     return NextResponse.json({
@@ -103,8 +98,6 @@ export async function POST(
     });
 
   }
-
-  // login exitoso
 
   const cookieStore =
     await cookies();
@@ -123,6 +116,12 @@ export async function POST(
       path:
         "/",
 
+      secure:
+        true,
+
+      sameSite:
+        "lax",
+
     }
 
   );
@@ -132,6 +131,6 @@ export async function POST(
     success:
       true,
 
-    });
+  });
 
 }
