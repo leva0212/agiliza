@@ -1,5 +1,6 @@
 "use client";
 
+import { AppVersion } from "@/shared/components/app-version";
 import Link from "next/link";
 
 import {
@@ -142,6 +143,15 @@ export function DashboardSidebar() {
           </Link>
 
         </nav>
+
+        <div   className="
+    mt-4
+    flex
+    justify-center py-35
+  ">
+ <AppVersion />
+        </div>
+       
 
       </aside>
 

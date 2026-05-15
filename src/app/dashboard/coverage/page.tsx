@@ -26,6 +26,7 @@ import {
 } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 
 import Image from "next/image";
+import { AppVersion } from "@/shared/components/app-version";
 
 type CoverageRow = {
 
@@ -610,6 +611,11 @@ null
       />
 
     </div>
+
+    <div className="mt-4 text-left flex justify-start">
+        <AppVersion /> 
+    </div>
+ 
 
     {/* DIALOG */}
 
