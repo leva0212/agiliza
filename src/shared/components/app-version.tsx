@@ -9,15 +9,6 @@ export function AppVersion() {
 
     "local";
 
-  const deployDate =
-
-    process.env
-      .NEXT_PUBLIC_VERCEL_DEPLOYMENT_CREATED_AT
-
-    ||
-
-    null;
-
   const shortVersion =
 
     version.slice(
@@ -25,17 +16,13 @@ export function AppVersion() {
       7
     );
 
-  const formattedDate =
+  // fecha del build actual
+  const buildDate =
 
-    deployDate
-
-      ? new Date(
-          deployDate
-        ).toLocaleString(
-          "es-CR"
-        )
-
-      : "local";
+    new Date()
+      .toLocaleString(
+        "es-CR"
+      );
 
   return (
 
@@ -47,14 +34,14 @@ export function AppVersion() {
       "
     >
 
-      v{
+      version: {
         shortVersion
       }
 
       {" • "}
 
       {
-        formattedDate
+        buildDate
       }
 
     </div>
