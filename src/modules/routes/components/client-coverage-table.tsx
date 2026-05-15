@@ -17,6 +17,7 @@ type CoverageItem = {
   covered_count: number;
 
   estimated_hours: number | null;
+  visit_days: string[];
 
 };
 
@@ -33,6 +34,133 @@ export function ClientCoverageTable({
 }: Props) {
   const columns = useMemo<MRT_ColumnDef<CoverageItem>[]>(
     () => [
+      {
+  accessorKey:
+    "visit_days",
+
+  header:
+    "Visitas",
+
+  Cell: ({
+    row,
+  }) => {
+
+    const days =
+      row.original
+        .visit_days || [];
+
+    const labels = [
+
+      {
+        key:
+          "sunday",
+
+        label:
+          "D",
+      },
+
+      {
+        key:
+          "monday",
+
+        label:
+          "L",
+      },
+
+      {
+        key:
+          "tuesday",
+
+        label:
+          "M",
+      },
+
+      {
+        key:
+          "wednesday",
+
+        label:
+          "M",
+      },
+
+      {
+        key:
+          "thursday",
+
+        label:
+          "J",
+      },
+
+      {
+        key:
+          "friday",
+
+        label:
+          "V",
+      },
+
+      {
+        key:
+          "saturday",
+
+        label:
+          "S",
+      },
+
+    ];
+
+    return (
+
+      <div className="flex gap-1">
+
+        {
+          labels.map(
+            (
+              day
+            ) => (
+
+              <span
+
+                key={
+                  day.key
+                }
+
+                className={`
+                  text-xs
+                  font-bold
+                  w-5
+                  text-center
+
+                  ${
+                    days.includes(
+                      day.key
+                    )
+
+                      ? "text-green-600"
+
+                      : "text-gray-400"
+
+                  }
+                `}
+              >
+
+                {
+                  day.label
+                }
+
+              </span>
+
+            )
+          )
+        }
+
+      </div>
+
+    );
+
+  },
+
+},
       {
         accessorKey: "canton",
 

@@ -25,6 +25,8 @@ import {
   CoverageNeighborhoodsDialog,
 } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 
+import Image from "next/image";
+
 type CoverageRow = {
 
   district_id: number;
@@ -36,6 +38,8 @@ type CoverageRow = {
   covered_count: number;
 
   estimated_hours: number | null;
+
+  visit_days: string[];
 
 };
 
@@ -151,6 +155,9 @@ export default function CoveragePage() {
               estimated_hours:
                 null,
 
+              visit_days:
+                [],
+
             });
 
             districtIndex++;
@@ -190,35 +197,27 @@ export default function CoveragePage() {
 
           return {
 
-            ...district,
+  ...district,
 
-            // si existe en BD,
-            // usar el ID real
-            district_id:
+  district_id:
+    match?.district_id
+    ||
+    district.district_id,
 
-              match?.district_id
+  covered_count:
+    Number(
+      match?.covered_count || 0
+    ),
 
-              ||
+  estimated_hours:
+    match?.estimated_hours
+    ?? null,
 
-              district.district_id,
+  visit_days:
+    match?.visit_days
+    || [],
 
-            covered_count:
-
-              Number(
-
-                match?.covered_count || 0
-
-              ),
-
-            estimated_hours:
-
-              match?.estimated_hours
-
-              ??
-
-              null,
-
-          };
+};
 
         }
       );
@@ -469,38 +468,105 @@ null
 
   return (
 
-    <div className="p-6">
+  <div className="min-h-screen bg-slate-50 p-4 md:p-6">
 
-      <h1 className="text-2xl font-bold mb-6">
+    {/* HEADER BRAND */}
 
-        Consulta de cobertura
+    <div
+      className="
+        bg-white
+        border
+        rounded-2xl
+        shadow-sm
+        p-4
+        md:p-6
+        mb-6
+      "
+    >
 
-      </h1>
+      <div
+        className="
+          flex
+          flex-col
+          md:flex-row
+          items-center
+          gap-4
+        "
+      >
+
+        <Image
+          src="/images/agiliza-logo.jpg"
+          alt="Agiliza"
+          width={120}
+          height={120}
+          className="object-contain"
+        />
+
+        <div className="text-center md:text-left">
+
+          <h1
+            className="
+              text-3xl
+              font-bold
+              text-blue-900
+            "
+          >
+            Cobertura Agiliza
+          </h1>
+
+          <p
+            className="
+              text-sm
+              text-slate-600
+              mt-1
+            "
+          >
+            Gestión territorial y análisis de cobertura logística.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    {/* FILTRO */}
+
+    <div
+      className="
+        bg-white
+        border
+        rounded-2xl
+        shadow-sm
+        p-4
+        mb-6
+      "
+    >
 
       <select
 
-        value={
-          selectedProvince
-        }
+        value={selectedProvince}
 
-        className="border min-w-[250px] rounded-lg p-3 mb-6"
+        className="
+          border
+          rounded-xl
+          p-3
+          min-w-[260px]
+          focus:ring-2
+          focus:ring-blue-500
+          outline-none
+        "
 
-        onChange={(
-          e
-        ) =>
-
+        onChange={(e) =>
           setSelectedProvince(
             e.target.value
           )
-
         }
 
       >
 
         <option value="">
-
           Seleccione provincia
-
         </option>
 
         {
@@ -510,21 +576,10 @@ null
             ) => (
 
               <option
-
-                key={
-                  province
-                }
-
-                value={
-                  province
-                }
-
+                key={province}
+                value={province}
               >
-
-                {
-                  province
-                }
-
+                {province}
               </option>
 
             )
@@ -533,48 +588,43 @@ null
 
       </select>
 
+    </div>
+
+    {/* TABLA */}
+
+    <div
+      className="
+        bg-white
+        border
+        rounded-2xl
+        shadow-sm
+        p-2
+      "
+    >
+
       <ClientCoverageTable
-
-        data={
-          coverageData
-        }
-
+        data={coverageData}
         onViewDistrict={
           handleViewDistrict
         }
-
-      />
-
-      <CoverageNeighborhoodsDialog
-
-        open={
-          dialogOpen
-        }
-
-        title={
-          dialogTitle
-        }
-
-        covered={
-          coveredNeighborhoods
-        }
-
-        uncovered={
-          uncoveredNeighborhoods
-        }
-
-        onClose={() =>
-
-          setDialogOpen(
-            false
-          )
-
-        }
-
       />
 
     </div>
 
-  );
+    {/* DIALOG */}
+
+    <CoverageNeighborhoodsDialog
+      open={dialogOpen}
+      title={dialogTitle}
+      covered={coveredNeighborhoods}
+      uncovered={uncoveredNeighborhoods}
+      onClose={() =>
+        setDialogOpen(false)
+      }
+    />
+
+  </div>
+
+);
 
 }
