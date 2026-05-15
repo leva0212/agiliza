@@ -477,6 +477,7 @@ null
       className="
         bg-white
         border
+        border-sky-600
         rounded-2xl
         shadow-sm
         p-4
@@ -522,7 +523,7 @@ null
               mt-1
             "
           >
-            Gestión territorial y análisis de cobertura logística.
+            Cobertura por zonas, días de visita y barrios atendidos.
           </p>
 
         </div>
@@ -535,13 +536,14 @@ null
 
     <div
       className="
-        bg-white
-        border
-        rounded-2xl
-        shadow-sm
-        p-4
-        mb-6
-      "
+  bg-white
+  border
+  border-sky-600
+  rounded-2xl
+  shadow-sm
+  p-4
+  mb-6
+"
     >
 
       <select
@@ -552,7 +554,7 @@ null
           border
           rounded-xl
           p-3
-          min-w-[260px]
+          max-w-[260px]
           focus:ring-2
           focus:ring-blue-500
           outline-none
@@ -566,7 +568,7 @@ null
 
       >
 
-        <option value="">
+        <option value="" >
           Seleccione provincia
         </option>
 
@@ -597,6 +599,7 @@ null
       className="
         bg-white
         border
+        border-sky-600
         rounded-2xl
         shadow-sm
         p-2
