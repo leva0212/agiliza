@@ -268,46 +268,8 @@ await supabase
 
   }
 
-  // TIEMPOS POR DISTRITO
-
-  if (
-    districtDeliveryTimes.length > 0
-  ) {
-
-    await supabase
-
-      .from(
-        "route_district_delivery_times"
-      )
-
-      .insert(
-
-        districtDeliveryTimes.map(
-          (
-            item
-          ) => ({
-
-            route_id:
-              currentRouteId,
-
-            district_id:
-              item.district_id,
-
-            min_hours:
-              item.min_hours,
-
-            max_hours:
-              item.max_hours,
-
-          })
-        )
-
-      );
-
-  }
 
  // HORAS POR DISTRITO
-
 if (
   districtDeliveryTimes.length > 0
 ) {
@@ -318,7 +280,7 @@ if (
       "route_district_delivery_times"
     )
 
-    .insert(
+    .upsert(
 
       districtDeliveryTimes.map(
 
@@ -340,12 +302,18 @@ if (
 
         })
 
-      )
+      ),
+
+      {
+
+        onConflict:
+          "route_id,district_id",
+
+      }
 
     );
 
 }
-
 // DÍAS POR DISTRITO
 
 if (

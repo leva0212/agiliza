@@ -85,6 +85,195 @@ export default function RoutesPage() {
   >([]);
 
   useEffect(() => {
+
+  if (
+    !selectedDistrict
+  ) {
+
+    return;
+
+  }
+
+  setDistrictDeliveryTimes(
+
+    (
+      previous
+    ) => {
+
+      const exists =
+
+        previous.some(
+
+          (
+            item
+          ) =>
+
+            item.district_id === selectedDistrict
+
+        );
+
+      const updatedItem = {
+
+        district_id:
+          selectedDistrict,
+
+        min_hours:
+          districtMinHours,
+
+        max_hours:
+
+          districtMinHours === 0
+
+            ? 0
+
+            : districtMaxHours,
+
+      };
+
+      if (
+        exists
+      ) {
+
+        return previous.map(
+
+          (
+            item
+          ) =>
+
+            item.district_id === selectedDistrict
+
+              ? updatedItem
+
+              : item
+
+        );
+
+      }
+
+      return [
+
+        ...previous,
+
+        updatedItem,
+
+      ];
+
+    }
+
+  );
+
+}, [
+
+  selectedDistrict,
+
+  districtMinHours,
+
+  districtMaxHours,
+
+]);
+
+useEffect(() => {
+
+  if (
+    !selectedDistrict
+  ) {
+
+    return;
+
+  }
+
+  setDistrictVisitDays(
+
+    (
+      previous
+    ) => {
+
+      // buscar config actual del distrito
+
+      const currentDistrict =
+
+        previous.find(
+
+          (
+            item
+          ) =>
+
+            item.district_id === selectedDistrict
+
+        );
+
+      // si no existe, copiar días base
+
+      const currentDays =
+
+        currentDistrict?.days ||
+
+        [...selectedDays];
+
+      const updatedItem = {
+
+        district_id:
+          selectedDistrict,
+
+        days: [
+
+          ...currentDays,
+
+        ],
+
+      };
+
+      const exists =
+
+        previous.some(
+
+          (
+            item
+          ) =>
+
+            item.district_id === selectedDistrict
+
+        );
+
+      if (
+        exists
+      ) {
+
+        return previous.map(
+
+          (
+            item
+          ) =>
+
+            item.district_id === selectedDistrict
+
+              ? updatedItem
+
+              : item
+
+        );
+
+      }
+
+      return [
+
+        ...previous,
+
+        updatedItem,
+
+      ];
+
+    }
+
+  );
+
+}, [
+
+  selectedDistrict,
+
+]);
+
+  useEffect(() => {
     async function loadRoute() {
       if (!routeId) {
         return;
@@ -541,64 +730,86 @@ export default function RoutesPage() {
   }
 
   function handleToggleDistrict() {
-    if (neighborhoods.length === 0) {
-      return;
-    }
 
-    // IDs de barrios del distrito
+  if (
+    neighborhoods.length === 0
+  ) {
 
-    const districtNeighborhoodIds = neighborhoods.map(
-      (neighborhood: any) => neighborhood.id,
-    );
+    return;
 
-    // ¿ya están todos?
-
-    const allSelected = districtNeighborhoodIds.every((id: number) =>
-      selectedNeighborhoods.includes(id),
-    );
-
-    if (allSelected) {
-      // quitar barrios
-
-      setSelectedNeighborhoods(
-        selectedNeighborhoods.filter(
-          (id) => !districtNeighborhoodIds.includes(id),
-        ),
-      );
-
-      // quitar tiempo del distrito
-
-      if (selectedDistrict) {
-        setDistrictDeliveryTimes((previous) =>
-          previous.filter((item) => item.district_id !== selectedDistrict),
-        );
-      }
-    } else {
-      // agregar barrios
-
-      setSelectedNeighborhoods(
-        Array.from(
-          new Set([...selectedNeighborhoods, ...districtNeighborhoodIds]),
-        ),
-      );
-
-      // guardar tiempo del distrito
-
-      if (selectedDistrict) {
-        setDistrictDeliveryTimes((previous) => [
-          ...previous.filter((item) => item.district_id !== selectedDistrict),
-
-          {
-            district_id: selectedDistrict,
-
-            min_hours: districtMinHours,
-
-            max_hours: districtMinHours === 0 ? 0 : districtMaxHours,
-          },
-        ]);
-      }
-    }
   }
+
+  const districtNeighborhoodIds =
+
+    neighborhoods.map(
+
+      (
+        neighborhood: any
+      ) =>
+
+        neighborhood.id
+
+    );
+
+  setSelectedNeighborhoods(
+
+    (
+      previous
+    ) => {
+
+      const allSelected =
+
+        districtNeighborhoodIds.every(
+
+          (
+            id: number
+          ) =>
+
+            previous.includes(
+              id
+            )
+
+        );
+
+      // quitar
+
+      if (
+        allSelected
+      ) {
+
+        return previous.filter(
+
+          (
+            id
+          ) =>
+
+            !districtNeighborhoodIds.includes(
+              id
+            )
+
+        );
+
+      }
+
+      // agregar
+
+      return Array.from(
+
+        new Set([
+
+          ...previous,
+
+          ...districtNeighborhoodIds,
+
+        ])
+
+      );
+
+    }
+
+  );
+
+}
 
   function toggleNeighborhood(neighborhoodId: number) {
     // barrios
