@@ -18,7 +18,6 @@ static  provinciasLista: string[] = [
     "GUANACASTE",
     "PUNTARENAS",
     "LIMÓN",
-    "SIN DEFINIR",
   ];
 
   //static  Map<String, Map<String, Map<String, List<String>>>> barriosMap ={

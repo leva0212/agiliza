@@ -16,7 +16,11 @@ type CoverageItem = {
 
   covered_count: number;
 
-  estimated_hours: number | null;
+    min_hours: number;
+
+  max_hours: number;
+
+  
   visit_days: string[];
 
 };
@@ -224,31 +228,55 @@ export function ClientCoverageTable({
 
       {
   accessorKey:
-    "estimated_hours",
+    "min_hours",
 
   header:
     "Entrega",
 
   Cell: ({
-    cell,
+    row,
   }) => {
 
-    const value =
-      cell.getValue<number>();
+    const min =
+      row.original
+        .min_hours ?? 0;
+
+    const max =
+      row.original
+        .max_hours ?? 0;
+
+    // cronograma
 
     if (
-      value === 0
+      min === 0
     ) {
-      return "Cronograma";
+
+      return (
+        "Cronograma"
+      );
+
     }
+
+    // una sola hora
 
     if (
-      value == null
+      max === 0
     ) {
-      return "-";
+
+      return (
+        `${min}h`
+      );
+
     }
 
-    return `${value}h`;
+    // rango
+
+    return (
+
+      `${min} a ${max}h`
+
+    );
+
   },
 
 }

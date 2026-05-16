@@ -38,7 +38,9 @@ type CoverageRow = {
 
   covered_count: number;
 
-  estimated_hours: number | null;
+  min_hours: number;
+
+  max_hours: number;
 
   visit_days: string[];
 
@@ -153,8 +155,11 @@ export default function CoveragePage() {
               covered_count:
                 0,
 
-              estimated_hours:
-                null,
+              min_hours:
+                0,
+
+              max_hours:
+                0,
 
               visit_days:
                 [],
@@ -210,9 +215,11 @@ export default function CoveragePage() {
       match?.covered_count || 0
     ),
 
-  estimated_hours:
-    match?.estimated_hours
-    ?? null,
+  min_hours:
+  match?.min_hours ?? 0,
+
+max_hours:
+  match?.max_hours ?? 0,
 
   visit_days:
     match?.visit_days

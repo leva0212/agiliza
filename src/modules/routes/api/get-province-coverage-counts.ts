@@ -16,7 +16,7 @@ export async function getProvinceCoverageCounts(
 
     {
 
-      p_province_name:
+      p_province:
         provinceName,
 
     }
