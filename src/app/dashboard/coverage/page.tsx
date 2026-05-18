@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarriosService } from "@/barrios_service";
+import { LocalidadesService } from "@/services/localidades_service";
 import { getProvinceCoverageCounts } from "@/modules/routes/api/get-province-coverage-counts";
 import { getDistrictNeighborhoods } from "@/modules/routes/api/get-district-neighborhoods";
 import { ClientCoverageTable } from "@/modules/routes/components/client-coverage-table";
 import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 import Image from "next/image";
 import { AppVersion } from "@/shared/components/app-version";
+import { Button } from "@mui/material";
 
 type CoverageRow = {
   district_id: number;
@@ -20,7 +21,8 @@ type CoverageRow = {
 };
 
 export default function CoveragePage() {
-  const provinces = BarriosService.provinciasLista;
+  const provinces =
+  LocalidadesService.provinciasLista;
 
   const [selectedProvince, setSelectedProvince] = useState("");
   const [coverageData, setCoverageData] = useState<CoverageRow[]>([]);
@@ -31,7 +33,10 @@ export default function CoveragePage() {
 
   async function loadCoverage(provinceName: string) {
     try {
-      const provinceMap = BarriosService.barriosMap[provinceName];
+ const provinceMap =
+  LocalidadesService.localidadesMap[
+    provinceName
+  ];
       if (!provinceMap) {
         setCoverageData([]);
         return;
@@ -94,6 +99,13 @@ export default function CoveragePage() {
     const result = await getDistrictNeighborhoods(row.district_id, null);
 
     setDialogTitle(`${row.canton} → ${row.district}`);
+    setSelectedCanton(
+  row.canton,
+);
+
+setSelectedDistrict(
+  row.district,
+);
     setCoveredNeighborhoods(
       result.filter((item: any) => item.has_coverage).map((item: any) => item.name),
     );
@@ -102,6 +114,25 @@ export default function CoveragePage() {
     );
     setDialogOpen(true);
   }
+const [
+
+  selectedCanton,
+
+  setSelectedCanton,
+
+] = useState(
+  "",
+);
+
+const [
+
+  selectedDistrict,
+
+  setSelectedDistrict,
+
+] = useState(
+  "",
+);
 
   useEffect(() => {
     if (!selectedProvince) return;
@@ -109,7 +140,11 @@ export default function CoveragePage() {
   }, [selectedProvince]);
 
   return (
+
+   
+    
     <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      
 
       {/* HEADER */}
       <div className="bg-white border border-sky-600 rounded-2xl shadow-sm p-4 md:p-6 mb-6">
@@ -156,13 +191,19 @@ export default function CoveragePage() {
       </div>
 
       {/* DIALOG */}
-      <CoverageNeighborhoodsDialog
+      
+<CoverageNeighborhoodsDialog
+      province={selectedProvince}
+      canton={selectedCanton}
+      district={selectedDistrict}
         open={dialogOpen}
         title={dialogTitle}
         covered={coveredNeighborhoods}
         uncovered={uncoveredNeighborhoods}
         onClose={() => setDialogOpen(false)}
       />
+     
+      
     </div>
   );
 }

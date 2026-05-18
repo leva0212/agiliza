@@ -1,55 +1,118 @@
 "use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Copy, MapPinned } from "lucide-react";
+import { toast } from "sonner";
+
 import { UiMessage } from "@/shared/components/ui-message";
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
 import { getRouteById } from "@/modules/routes/api/get-route-by-id";
-import { CoverageGroupedTable } from "@/modules/routes/components/coverage-grouped-table";
 import { saveRoute } from "@/modules/routes/api/save-route";
 import { getRouteDistrictCoverage } from "@/modules/routes/api/get-route-district-coverage";
-import { useProvinces } from "@/modules/routes/hooks/use-provinces";
 import { getCantons } from "@/modules/routes/api/get-cantons";
 import { getDistricts } from "@/modules/routes/api/get-districts";
 import { getNeighborhoods } from "@/modules/routes/api/get-neighborhoods";
 import { getDistrictNeighborhoods } from "@/modules/routes/api/get-district-neighborhoods";
-import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 import { getRouteDistrictVisitDays } from "@/modules/routes/api/get-route-district-visit-days";
+import { useProvinces } from "@/modules/routes/hooks/use-provinces";
+import { CoverageGroupedTable } from "@/modules/routes/components/coverage-grouped-table";
+import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
+import { LocalidadesService } from "@/services/localidades_service";
+
+const WEEK_DAYS = [
+  { value: "monday", label: "Lunes" },
+  { value: "tuesday", label: "Martes" },
+  { value: "wednesday", label: "Miércoles" },
+  { value: "thursday", label: "Jueves" },
+  { value: "friday", label: "Viernes" },
+  { value: "saturday", label: "Sábado" },
+  { value: "sunday", label: "Domingo" },
+];
+
+const DISTRICT_DAYS = [
+  { label: "L", value: "monday" },
+  { label: "M", value: "tuesday" },
+  { label: "M", value: "wednesday" },
+  { label: "J", value: "thursday" },
+  { label: "V", value: "friday" },
+  { label: "S", value: "saturday" },
+  { label: "D", value: "sunday" },
+];
 
 export default function RoutesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const routeId = searchParams.get("id");
+  const { data: provinces } = useProvinces();
 
+  // ─── Selección territorial
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedCanton, setSelectedCanton] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
+  const [selectedDistrictName, setSelectedDistrictName] = useState("");
+
+  const [cantons, setCantons] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
+  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<number[]>([]);
+
+  // selectedProvince / selectedCanton guardan IDs.
+  // LocalidadesService indexa por NOMBRE → derivamos los nombres aquí.
+  const selectedProvinceName =
+    provinces?.find((p: any) => String(p.id) === selectedProvince)?.name || "";
+  const selectedCantonName =
+    cantons.find((c: any) => String(c.id) === selectedCanton)?.name || "";
+
+  // ─── Datos de ruta
+  const [routeName, setRouteName] = useState("");
+  const [estimatedHours, setEstimatedHours] = useState(24);
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+
+  // ─── Horas por defecto
   const [defaultMinHours, setDefaultMinHours] = useState(24);
   const [defaultMaxHours, setDefaultMaxHours] = useState(0);
 
+  // ─── Horas por distrito
   const [districtMinHours, setDistrictMinHours] = useState(24);
   const [districtMaxHours, setDistrictMaxHours] = useState(0);
 
   const [districtVisitDays, setDistrictVisitDays] = useState<
     { district_id: number; days: string[] }[]
   >([]);
-
   const [districtDeliveryTimes, setDistrictDeliveryTimes] = useState<
     { district_id: number; min_hours: number; max_hours: number }[]
   >([]);
 
+  // ─── Cobranzas
+  const [companyDeliveryCharge, setCompanyDeliveryCharge] = useState(0);
+  const [courierDeliveryPay, setCourierDeliveryPay] = useState(0);
+  const [companyFailedCharge, setCompanyFailedCharge] = useState(0);
+  const [courierFailedPay, setCourierFailedPay] = useState(0);
+
+  // ─── Cobertura / tabla
+  const [coverageView, setCoverageView] = useState<any[]>([]);
+  const [coverageTotal, setCoverageTotal] = useState(0);
   const [coveragePagination, setCoveragePagination] = useState({
     pageIndex: 0,
     pageSize: 100,
   });
-  const [coverageTotal, setCoverageTotal] = useState(0);
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedCanton, setSelectedCanton] = useState("");
-  const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
 
-  const searchParams = useSearchParams();
-  const routeId = searchParams.get("id");
-
-  const [coverageView, setCoverageView] = useState<any[]>([]);
+  // ─── Diálogo de barrios cubiertos
   const [neighborhoodsDialogOpen, setNeighborhoodsDialogOpen] = useState(false);
   const [neighborhoodsDialogTitle, setNeighborhoodsDialogTitle] = useState("");
+  const [dialogProvince, setDialogProvince] = useState("");
+  const [dialogCanton, setDialogCanton] = useState("");
+  const [dialogDistrict, setDialogDistrict] = useState("");
   const [coveredNeighborhoods, setCoveredNeighborhoods] = useState<string[]>([]);
   const [uncoveredNeighborhoods, setUncoveredNeighborhoods] = useState<string[]>([]);
+
+  // ─── Mensajes UI
+  const [uiMessage, setUiMessage] = useState({
+    open: false,
+    type: "info" as "success" | "error" | "warning" | "info" | "question",
+    title: "",
+    message: "",
+  });
 
   // ─── BUG FIX: ref para acceder al valor actualizado de selectedDays
   // dentro de callbacks sin stale closure
@@ -58,36 +121,6 @@ export default function RoutesPage() {
   // ─── BUG FIX: ref para saber si el efecto de districtDeliveryTimes
   // debe ignorar la ejecución (evita race condition con handleDistrictChange)
   const skipDeliveryEffect = useRef(false);
-
-  const weekDays = [
-    { value: "monday", label: "Lunes" },
-    { value: "tuesday", label: "Martes" },
-    { value: "wednesday", label: "Miércoles" },
-    { value: "thursday", label: "Jueves" },
-    { value: "friday", label: "Viernes" },
-    { value: "saturday", label: "Sábado" },
-    { value: "sunday", label: "Domingo" },
-  ];
-
-  const [estimatedHours, setEstimatedHours] = useState(24);
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const { data: provinces } = useProvinces();
-  const [routeName, setRouteName] = useState("");
-  const [cantons, setCantons] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
-  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<number[]>([]);
-  const [companyDeliveryCharge, setCompanyDeliveryCharge] = useState(0);
-  const [courierDeliveryPay, setCourierDeliveryPay] = useState(0);
-  const [companyFailedCharge, setCompanyFailedCharge] = useState(0);
-  const [courierFailedPay, setCourierFailedPay] = useState(0);
-
-  const [uiMessage, setUiMessage] = useState({
-    open: false,
-    type: "info" as "success" | "error" | "warning" | "info" | "question",
-    title: "",
-    message: "",
-  });
 
   // Mantener ref sincronizado con el state
   useEffect(() => {
@@ -107,7 +140,9 @@ export default function RoutesPage() {
     }
 
     setDistrictDeliveryTimes((previous) => {
-      const exists = previous.some((item) => item.district_id === selectedDistrict);
+      const exists = previous.some(
+        (item) => item.district_id === selectedDistrict,
+      );
       const updatedItem = {
         district_id: selectedDistrict,
         min_hours: districtMinHours,
@@ -133,10 +168,14 @@ export default function RoutesPage() {
       const currentDistrict = previous.find(
         (item) => item.district_id === selectedDistrict,
       );
-      // usa ref para evitar stale closure sobre selectedDays
       const currentDays = currentDistrict?.days ?? [...selectedDaysRef.current];
-      const updatedItem = { district_id: selectedDistrict, days: [...currentDays] };
-      const exists = previous.some((item) => item.district_id === selectedDistrict);
+      const updatedItem = {
+        district_id: selectedDistrict,
+        days: [...currentDays],
+      };
+      const exists = previous.some(
+        (item) => item.district_id === selectedDistrict,
+      );
       if (exists) {
         return previous.map((item) =>
           item.district_id === selectedDistrict ? updatedItem : item,
@@ -180,9 +219,10 @@ export default function RoutesPage() {
         );
 
         const districtDays = await getRouteDistrictVisitDays(routeId);
-
         const groupedDays = districtDays.reduce((acc: any, item: any) => {
-          const existing = acc.find((x: any) => x.district_id === item.district_id);
+          const existing = acc.find(
+            (x: any) => x.district_id === item.district_id,
+          );
           if (existing) {
             existing.days.push(item.day);
           } else {
@@ -200,7 +240,7 @@ export default function RoutesPage() {
     }
 
     loadRoute();
-  }, [routeId]); // ← solo routeId, no coveragePagination
+  }, [routeId]);
 
   function handleClear() {
     setSelectedProvince("");
@@ -239,13 +279,18 @@ export default function RoutesPage() {
         (item) => item.district_id !== selectedDistrict,
       );
 
-      return [...otherDistricts, { district_id: selectedDistrict, days: updatedDays }];
+      return [
+        ...otherDistricts,
+        { district_id: selectedDistrict, days: updatedDays },
+      ];
     });
   }
 
   function toggleDay(day: string) {
     setSelectedDays((prev) => {
-      const next = prev.includes(day) ? prev.filter((x) => x !== day) : [...prev, day];
+      const next = prev.includes(day)
+        ? prev.filter((x) => x !== day)
+        : [...prev, day];
       selectedDaysRef.current = next;
       return next;
     });
@@ -328,35 +373,91 @@ export default function RoutesPage() {
   }
 
   async function handleDistrictChange(districtId: number) {
+    // Guardar nombre real del distrito (para maps / localidades_service)
+    const districtName =
+      districts.find((district: any) => district.id === districtId)?.name || "";
+    setSelectedDistrictName(districtName);
+    console.log("handleDistrictChange, selectedDistrictName:", districtName);
+
+    // ─── BARRIOS
     const data = await getNeighborhoods(districtId);
     setNeighborhoods(data || []);
 
-    // ─── BUG FIX: marcar flag para que el useEffect de districtDeliveryTimes
-    // no sobreescriba las horas que vamos a setear justo abajo.
-    skipDeliveryEffect.current = true;
-
-    const existingDistrict = coverageView.find(
-      (item: any) => item.district_id === districtId,
+    const currentDistrictNeighborhoodIds = data.map(
+      (neighborhood: any) => neighborhood.id,
     );
 
-    if (existingDistrict) {
-      setDistrictMinHours(existingDistrict.min_hours ?? 0);
-      setDistrictMaxHours(existingDistrict.max_hours ?? 0);
-    } else {
-      setDistrictMinHours(defaultMinHours);
-      setDistrictMaxHours(defaultMaxHours);
+    // Primero revisar memoria
+    const localDistrictIds = selectedNeighborhoods.filter((neighborhoodId) =>
+      currentDistrictNeighborhoodIds.includes(neighborhoodId),
+    );
+
+    // Si no está en memoria, buscar BD
+    if (localDistrictIds.length === 0 && routeId) {
+      const coverage = await getDistrictNeighborhoods(districtId, routeId);
+      const coveredIds = coverage
+        .filter((item: any) => item.has_coverage)
+        .map((item: any) => item.id);
+
+      setSelectedNeighborhoods((previous) => {
+        const otherDistricts = previous.filter(
+          (neighborhoodId) =>
+            !currentDistrictNeighborhoodIds.includes(neighborhoodId),
+        );
+        return [...otherDistricts, ...coveredIds];
+      });
     }
 
-    const existingVisitDays = districtVisitDays.find(
+    // ─── HORAS (prioridad: memoria → BD → defaults)
+    let minToUse = defaultMinHours;
+    let maxToUse = defaultMaxHours;
+
+    const tempHours = districtDeliveryTimes.find(
       (item) => item.district_id === districtId,
     );
-    const daysToUse = existingVisitDays?.days?.length
-      ? existingVisitDays.days
-      : selectedDaysRef.current; // usa ref en lugar de selectedDays
+
+    if (tempHours) {
+      minToUse = tempHours.min_hours;
+      maxToUse = tempHours.max_hours;
+    } else {
+      const savedHours = coverageView.find(
+        (item: any) => item.district_id === districtId,
+      );
+      if (savedHours) {
+        minToUse = savedHours.min_hours ?? 0;
+        maxToUse = savedHours.max_hours ?? 0;
+      }
+    }
+
+    setDistrictMinHours(minToUse);
+    setDistrictMaxHours(maxToUse);
+
+    setDistrictDeliveryTimes((previous) => [
+      ...previous.filter((item) => item.district_id !== districtId),
+      {
+        district_id: districtId,
+        min_hours: minToUse,
+        max_hours: minToUse === 0 ? 0 : maxToUse,
+      },
+    ]);
+
+    // ─── DÍAS (prioridad: memoria → BD → defaults)
+    let daysToUse = [...selectedDaysRef.current];
+
+    const tempDays = districtVisitDays.find(
+      (item) => item.district_id === districtId,
+    );
+
+    if (tempDays?.days?.length) {
+      daysToUse = [...tempDays.days];
+    }
 
     setDistrictVisitDays((previous) => [
       ...previous.filter((item) => item.district_id !== districtId),
-      { district_id: districtId, days: [...daysToUse] },
+      {
+        district_id: districtId,
+        days: [...daysToUse],
+      },
     ]);
   }
 
@@ -394,7 +495,9 @@ export default function RoutesPage() {
 
     if (selectedDistrict) {
       setDistrictDeliveryTimes((previous) => {
-        const exists = previous.some((item) => item.district_id === selectedDistrict);
+        const exists = previous.some(
+          (item) => item.district_id === selectedDistrict,
+        );
         if (exists) {
           return previous.map((item) =>
             item.district_id === selectedDistrict
@@ -421,9 +524,15 @@ export default function RoutesPage() {
   async function handleViewDistrict(row: any) {
     if (!routeId) return;
 
+    setDialogProvince(row.province);
+    setDialogCanton(row.canton);
+    setDialogDistrict(row.district);
+
     const result = await getDistrictNeighborhoods(row.district_id, routeId);
 
-    setCoveredNeighborhoods(result.filter((x: any) => x.has_coverage).map((x: any) => x.name));
+    setCoveredNeighborhoods(
+      result.filter((x: any) => x.has_coverage).map((x: any) => x.name),
+    );
     setUncoveredNeighborhoods(
       result.filter((x: any) => !x.has_coverage).map((x: any) => x.name),
     );
@@ -471,7 +580,8 @@ export default function RoutesPage() {
                 <select
                   value={defaultMaxHours === 0 ? "" : defaultMaxHours}
                   onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : Number(e.target.value);
+                    const value =
+                      e.target.value === "" ? 0 : Number(e.target.value);
                     setDefaultMaxHours(value);
                   }}
                   className="max-w-[150px] border rounded px-2 py-1"
@@ -489,18 +599,16 @@ export default function RoutesPage() {
 
         {/* DÍAS BASE */}
         <div className="flex gap-2 flex-wrap mb-6">
-          {weekDays.map((day) => (
+          {WEEK_DAYS.map((day) => (
             <button
               key={day.value}
               type="button"
               onClick={() => toggleDay(day.value)}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition
-                ${
-                  selectedDays.includes(day.value)
-                    ? "bg-violet-600 text-white border-violet-600"
-                    : "bg-white hover:bg-violet-50"
-                }
-              `}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                selectedDays.includes(day.value)
+                  ? "bg-violet-600 text-white border-violet-600"
+                  : "bg-white hover:bg-violet-50"
+              }`}
             >
               {day.label}
             </button>
@@ -600,7 +708,8 @@ export default function RoutesPage() {
                   value={districtMaxHours === 0 ? "" : districtMaxHours}
                   className="max-w-[150px] border rounded-lg p-3"
                   onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : Number(e.target.value);
+                    const value =
+                      e.target.value === "" ? 0 : Number(e.target.value);
                     setDistrictMaxHours(value);
                   }}
                 >
@@ -625,15 +734,7 @@ export default function RoutesPage() {
 
             {/* DÍAS POR DISTRITO */}
             <div className="flex gap-2 flex-wrap mt-2">
-              {[
-                { label: "L", value: "monday" },
-                { label: "M", value: "tuesday" },
-                { label: "M", value: "wednesday" },
-                { label: "J", value: "thursday" },
-                { label: "V", value: "friday" },
-                { label: "S", value: "saturday" },
-                { label: "D", value: "sunday" },
-              ].map((day) => {
+              {DISTRICT_DAYS.map((day) => {
                 const districtConfig = districtVisitDays.find(
                   (item) => item.district_id === selectedDistrict,
                 );
@@ -645,13 +746,11 @@ export default function RoutesPage() {
                     key={day.value}
                     type="button"
                     onClick={() => toggleDistrictVisitDay(day.value)}
-                    className={`w-8 h-8 rounded-full border text-sm font-medium
-                      ${
-                        isSelected
-                          ? "bg-green-600 text-white border-green-600"
-                          : "bg-white text-gray-700 border-gray-300"
-                      }
-                    `}
+                    className={`w-8 h-8 rounded-full border text-sm font-medium ${
+                      isSelected
+                        ? "bg-green-600 text-white border-green-600"
+                        : "bg-white text-gray-700 border-gray-300"
+                    }`}
                   >
                     {day.label}
                   </button>
@@ -664,23 +763,91 @@ export default function RoutesPage() {
         {/* BARRIOS */}
         <div className="mt-6 border rounded-xl p-4 max-h-96 overflow-y-auto">
           <h2 className="font-semibold mb-4">Barrios</h2>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {neighborhoods.map((neighborhood) => (
-              <label
-                key={neighborhood.id}
-                className="flex items-center gap-3 border rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedNeighborhoods.includes(neighborhood.id)}
-                  onChange={() => toggleNeighborhood(neighborhood.id)}
-                  className="h-4 w-4 shrink-0 cursor-pointer"
-                />
-                <span className="flex-1 text-sm text-gray-700 select-none">
-                  {neighborhood.name}
-                </span>
-              </label>
-            ))}
+            {neighborhoods.map((neighborhood) => {
+              const localidad = LocalidadesService.getLocalidades(
+                selectedProvinceName,
+                selectedCantonName,
+                selectedDistrictName,
+              ).find(
+                (item) =>
+                  item.nombre.toLowerCase() === neighborhood.name.toLowerCase(),
+              );
+
+              return (
+                <div
+                  key={neighborhood.id}
+                  className="flex items-center justify-between border rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
+                >
+                  <label className="flex items-start gap-3 cursor-pointer flex-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedNeighborhoods.includes(neighborhood.id)}
+                      onChange={() => toggleNeighborhood(neighborhood.id)}
+                      className="h-4 w-4 shrink-0 cursor-pointer mt-1"
+                    />
+
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-700 select-none">
+                        {neighborhood.name}
+                      </span>
+
+                      {localidad && (
+                        <span className="text-xs text-gray-500">
+                          {localidad.tipo}
+                        </span>
+                      )}
+                    </div>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      title="Ver ubicación"
+                      onClick={() => {
+                        const url = LocalidadesService.getGoogleMapsUrl(
+                          selectedProvinceName,
+                          selectedCantonName,
+                          selectedDistrictName,
+                          neighborhood.name,
+                        );
+                        if (!url) {
+                          toast.error("Ubicación no encontrada");
+                          return;
+                        }
+                        window.open(url, "_blank");
+                      }}
+                    >
+                      <MapPinned size={25} />
+                    </button>
+
+                    <button
+                      type="button"
+                      title="Copiar coordenadas"
+                      onClick={async () => {
+                        const coords = LocalidadesService.getCoordsLocalidad(
+                          selectedProvinceName,
+                          selectedCantonName,
+                          selectedDistrictName,
+                          neighborhood.name,
+                        );
+                        if (!coords) {
+                          toast.error("Ubicación no encontrada");
+                          return;
+                        }
+                        await navigator.clipboard.writeText(
+                          `${coords.lat}, ${coords.lng}`,
+                        );
+                        toast.success("Ubicación copiada");
+                      }}
+                    >
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -726,7 +893,14 @@ export default function RoutesPage() {
                         : item,
                     );
                   }
-                  return [...previous, { district_id: districtId, min_hours: minHours, max_hours: maxHours }];
+                  return [
+                    ...previous,
+                    {
+                      district_id: districtId,
+                      min_hours: minHours,
+                      max_hours: maxHours,
+                    },
+                  ];
                 });
 
                 setCoverageView((previous) =>
@@ -743,6 +917,9 @@ export default function RoutesPage() {
       </div>
 
       <CoverageNeighborhoodsDialog
+        province={dialogProvince}
+        canton={dialogCanton}
+        district={dialogDistrict}
         open={neighborhoodsDialogOpen}
         title={neighborhoodsDialogTitle}
         covered={coveredNeighborhoods}

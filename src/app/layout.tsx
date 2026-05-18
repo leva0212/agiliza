@@ -1,12 +1,11 @@
-import {
-  VersionCheck,
-} from "@/app/version-check";
+import { VersionCheck } from "@/app/version-check";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 //import "@/app/globals.css";
 
 import { Providers } from "@/app/providers";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,9 +26,7 @@ type RootLayoutProps = Readonly<{
   children: React.ReactNode;
 }>;
 
-export default function RootLayout({
-  children,
-}: RootLayoutProps) {
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html
       lang="es"
@@ -42,9 +39,8 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-white text-black">
         <VersionCheck />
-        <Providers>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
+        <Toaster richColors position="top-center" duration={2000} closeButton />
       </body>
     </html>
   );

@@ -1,0 +1,628 @@
+[6:05:49 p. m.] ===== INICIO IMPORTACION =====
+[6:05:49 p. m.] Limpiando BD...
+[6:05:52 p. m.] Reiniciando secuencias...
+[6:05:52 p. m.] Insertando...
+[6:05:52 p. m.] Provincia: PUNTARENAS
+[6:05:52 p. m.]   Canton: CORREDORES
+[6:05:53 p. m.]     Distrito: LA CUESTA -> 13 localidades
+[6:05:53 p. m.]     Distrito: LAUREL -> 39 localidades
+[6:05:53 p. m.]     Distrito: CANOAS -> 32 localidades
+[6:05:54 p. m.]     Distrito: CORREDOR -> 68 localidades
+[6:05:54 p. m.]   Canton: PUERTO JIMÉNEZ
+[6:05:54 p. m.]     Distrito: PUERTO JIMÉNEZ -> 60 localidades
+[6:05:54 p. m.]   Canton: GOLFITO
+[6:05:55 p. m.]     Distrito: GOLFITO -> 77 localidades
+[6:05:55 p. m.]     Distrito: GUAYCARA -> 44 localidades
+[6:05:55 p. m.]       DUPLICADO DETECTADO: Alto Río Claro (T) POS 2
+[6:05:56 p. m.]     Distrito: PAVÓN -> 47 localidades
+[6:05:56 p. m.]     Distrito: GUAYCARÁ -> 5 localidades
+[6:05:56 p. m.]   Canton: COTO BRUS
+[6:05:57 p. m.]     Distrito: AGUABUENA -> 22 localidades
+[6:05:57 p. m.]     Distrito: SAN VITO -> 24 localidades
+[6:05:57 p. m.]     Distrito: LIMONCITO -> 26 localidades
+[6:05:58 p. m.]     Distrito: SABALITO -> 36 localidades
+[6:05:58 p. m.]     Distrito: GUTIÉRREZ BRAUN -> 16 localidades
+[6:05:58 p. m.]     Distrito: PITTIER -> 13 localidades
+[6:05:58 p. m.]   Canton: OSA
+[6:05:59 p. m.]     Distrito: BAHÍA DRAKE -> 20 localidades
+[6:05:59 p. m.]     Distrito: SIERPE -> 45 localidades
+[6:06:00 p. m.]     Distrito: PIEDRAS BLANCAS -> 35 localidades
+[6:06:00 p. m.]     Distrito: PALMAR -> 52 localidades
+[6:06:00 p. m.]     Distrito: PUERTO CORTÉS -> 55 localidades
+[6:06:01 p. m.]       DUPLICADO DETECTADO: Brisas (P) POS 2
+[6:06:01 p. m.]     Distrito: BAHÍA BALLENA -> 32 localidades
+[6:06:01 p. m.]   Canton: BUENOS AIRES
+[6:06:01 p. m.]     Distrito: CHÁNGUENA -> 26 localidades
+[6:06:02 p. m.]     Distrito: COLINAS -> 29 localidades
+[6:06:02 p. m.]     Distrito: BORUCA -> 29 localidades
+[6:06:03 p. m.]     Distrito: POTRERO GRANDE -> 54 localidades
+[6:06:03 p. m.]     Distrito: PILAS -> 20 localidades
+[6:06:03 p. m.]     Distrito: BIOLLEY -> 17 localidades
+[6:06:04 p. m.]     Distrito: CABAGRA -> 21 localidades
+[6:06:04 p. m.]     Distrito: BRUNKA -> 18 localidades
+[6:06:04 p. m.]     Distrito: VOLCÁN -> 21 localidades
+[6:06:05 p. m.]     Distrito: BUENOS AIRES -> 97 localidades
+[6:06:05 p. m.]   Canton: QUEPOS
+[6:06:05 p. m.]     Distrito: SAVEGRE -> 36 localidades
+[6:06:06 p. m.]     Distrito: NARANJITO -> 17 localidades
+[6:06:06 p. m.]     Distrito: QUEPOS -> 58 localidades
+[6:06:06 p. m.]   Canton: PARRITA
+[6:06:06 p. m.]       DUPLICADO DETECTADO: Chirraca Abajo (P) POS 2
+[6:06:07 p. m.]     Distrito: PARRITA -> 114 localidades
+[6:06:07 p. m.]   Canton: GARABITO
+[6:06:07 p. m.]       DUPLICADO DETECTADO: Las Palmas (CH) POS 2
+[6:06:07 p. m.]     Distrito: JACÓ -> 68 localidades
+[6:06:08 p. m.]     Distrito: TÁRCOLES -> 28 localidades
+[6:06:08 p. m.]     Distrito: LAGUNILLAS -> 24 localidades
+[6:06:08 p. m.]   Canton: PUNTARENAS
+[6:06:08 p. m.]     Distrito: CÓBANO -> 54 localidades
+[6:06:09 p. m.]     Distrito: PAQUERA -> 66 localidades
+[6:06:09 p. m.]     Distrito: EL ROBLE -> 18 localidades
+[6:06:10 p. m.]     Distrito: CHACARITA -> 14 localidades
+[6:06:10 p. m.]       DUPLICADO DETECTADO: San Rafael (P) POS 2
+[6:06:10 p. m.]     Distrito: LEPANTO -> 76 localidades
+[6:06:10 p. m.]     Distrito: BARRANCA -> 37 localidades
+[6:06:11 p. m.]     Distrito: PITAHAYA -> 22 localidades
+[6:06:11 p. m.]     Distrito: ACAPULCO -> 12 localidades
+[6:06:11 p. m.]     Distrito: CHIRA -> 17 localidades
+[6:06:12 p. m.]     Distrito: CHOMES -> 26 localidades
+[6:06:12 p. m.]     Distrito: MANZANILLO -> 8 localidades
+[6:06:13 p. m.]     Distrito: ARANCIBIA -> 9 localidades
+[6:06:13 p. m.]     Distrito: GUACIMAL -> 13 localidades
+[6:06:13 p. m.]     Distrito: PUNTARENAS -> 13 localidades
+[6:06:13 p. m.]   Canton: ESPARZA
+[6:06:14 p. m.]     Distrito: CALDERA -> 33 localidades
+[6:06:14 p. m.]     Distrito: SAN JUAN GRANDE -> 11 localidades
+[6:06:15 p. m.]     Distrito: ESPÍRITU SANTO -> 34 localidades
+[6:06:15 p. m.]     Distrito: SAN RAFAEL -> 11 localidades
+[6:06:15 p. m.]     Distrito: MACACONA -> 21 localidades
+[6:06:16 p. m.]     Distrito: SAN JERÓNIMO -> 13 localidades
+[6:06:16 p. m.]   Canton: MONTES DE ORO
+[6:06:16 p. m.]     Distrito: SAN ISIDRO -> 18 localidades
+[6:06:17 p. m.]     Distrito: MIRAMAR -> 29 localidades
+[6:06:17 p. m.]     Distrito: LA UNIÓN -> 12 localidades
+[6:06:17 p. m.]   Canton: MONTEVERDE
+[6:06:17 p. m.]     Distrito: MONTEVERDE -> 20 localidades
+[6:06:17 p. m.] Provincia: SAN JOSÉ
+[6:06:18 p. m.]   Canton: PÉREZ ZELEDÓN
+[6:06:18 p. m.]     Distrito: PEJIBAYE -> 33 localidades
+[6:06:19 p. m.]     Distrito: LA  AMISTAD -> 13 localidades
+[6:06:19 p. m.]     Distrito: PLATANARES -> 24 localidades
+[6:06:19 p. m.]     Distrito: DANIEL FLORES -> 62 localidades
+[6:06:20 p. m.]     Distrito: BARÚ -> 33 localidades
+[6:06:20 p. m.]     Distrito: CAJÓN -> 28 localidades
+[6:06:20 p. m.]     Distrito: EL GENERAL -> 30 localidades
+[6:06:21 p. m.]     Distrito: SAN PEDRO -> 33 localidades
+[6:06:21 p. m.]       DUPLICADO DETECTADO: Prado (B) POS 2
+[6:06:21 p. m.]     Distrito: SAN ISIDRO DE EL GENERAL -> 126 localidades
+[6:06:22 p. m.]     Distrito: RIVAS -> 44 localidades
+[6:06:22 p. m.]     Distrito: RÍO NUEVO -> 22 localidades
+[6:06:22 p. m.]     Distrito: PÁRAMO -> 24 localidades
+[6:06:22 p. m.]   Canton: PURISCAL
+[6:06:23 p. m.]     Distrito: CHIRES -> 31 localidades
+[6:06:23 p. m.]     Distrito: CANDELARITA -> 10 localidades
+[6:06:24 p. m.]     Distrito: MERCEDES SUR -> 29 localidades
+[6:06:24 p. m.]     Distrito: SAN RAFAEL -> 7 localidades
+[6:06:24 p. m.]     Distrito: BARBACOAS -> 10 localidades
+[6:06:25 p. m.]     Distrito: SANTIAGO -> 26 localidades
+[6:06:25 p. m.]     Distrito: SAN ANTONIO -> 13 localidades
+[6:06:25 p. m.]     Distrito: DESAMPARADITOS -> 6 localidades
+[6:06:26 p. m.]     Distrito: GRIFO ALTO -> 8 localidades
+[6:06:26 p. m.]   Canton: TARRAZÚ
+[6:06:26 p. m.]     Distrito: SAN LORENZO -> 35 localidades
+[6:06:27 p. m.]     Distrito: SAN MARCOS -> 35 localidades
+[6:06:27 p. m.]     Distrito: SAN CARLOS -> 13 localidades
+[6:06:27 p. m.]   Canton: DOTA
+[6:06:28 p. m.]     Distrito: COPEY -> 20 localidades
+[6:06:28 p. m.]     Distrito: SANTA MARÍA -> 17 localidades
+[6:06:28 p. m.]     Distrito: JARDÍN -> 6 localidades
+[6:06:28 p. m.]   Canton: LEÓN CORTÉS CASTRO
+[6:06:29 p. m.]     Distrito: SAN ISIDRO -> 12 localidades
+[6:06:29 p. m.]     Distrito: SAN PABLO -> 18 localidades
+[6:06:30 p. m.]     Distrito: LLANO BONITO -> 11 localidades
+[6:06:30 p. m.]     Distrito: SANTA CRUZ -> 6 localidades
+[6:06:30 p. m.]     Distrito: SAN ANTONIO -> 3 localidades
+[6:06:31 p. m.]       DUPLICADO DETECTADO: Ojo de Agua (P) POS 2
+[6:06:31 p. m.]     Distrito: SAN ANDRÉS -> 15 localidades
+[6:06:31 p. m.]   Canton: ASERRÍ
+[6:06:31 p. m.]     Distrito: LEGUA -> 13 localidades
+[6:06:32 p. m.]     Distrito: MONTERREY -> 3 localidades
+[6:06:32 p. m.]     Distrito: VUELTA DE JORCO -> 19 localidades
+[6:06:32 p. m.]     Distrito: SAN GABRIEL -> 23 localidades
+[6:06:33 p. m.]     Distrito: TARBACA -> 7 localidades
+[6:06:33 p. m.]     Distrito: SALITRILLOS -> 32 localidades
+[6:06:33 p. m.]       DUPLICADO DETECTADO: María Auxiliadora (B) POS 2
+[6:06:34 p. m.]     Distrito: ASERRÍ -> 43 localidades
+[6:06:34 p. m.]   Canton: DESAMPARADOS
+[6:06:34 p. m.]     Distrito: FRAILES -> 14 localidades
+[6:06:34 p. m.]     Distrito: SAN CRISTOBAL -> 7 localidades
+[6:06:35 p. m.]     Distrito: SAN MIGUEL -> 41 localidades
+[6:06:35 p. m.]     Distrito: ROSARIO -> 11 localidades
+[6:06:36 p. m.]     Distrito: LOS GUIDO -> 20 localidades
+[6:06:36 p. m.]     Distrito: PATARRÁ -> 30 localidades
+[6:06:36 p. m.]     Distrito: SAN JUAN DE DIOS -> 17 localidades
+[6:06:37 p. m.]     Distrito: SAN RAFAEL ARRIBA -> 24 localidades
+[6:06:37 p. m.]     Distrito: DAMAS -> 19 localidades
+[6:06:37 p. m.]     Distrito: GRAVILIAS -> 18 localidades
+[6:06:38 p. m.]     Distrito: SAN ANTONIO -> 26 localidades
+[6:06:38 p. m.]     Distrito: SAN RAFAEL ABAJO -> 33 localidades
+[6:06:39 p. m.]     Distrito: DESAMPARADOS -> 51 localidades
+[6:06:39 p. m.]   Canton: ACOSTA
+[6:06:39 p. m.]     Distrito: SABANILLAS -> 20 localidades
+[6:06:39 p. m.]     Distrito: CANGREJAL -> 15 localidades
+[6:06:40 p. m.]     Distrito: GUAITIL -> 18 localidades
+[6:06:40 p. m.]     Distrito: SAN IGNACIO -> 26 localidades
+[6:06:41 p. m.]     Distrito: PALMICHAL -> 26 localidades
+[6:06:41 p. m.]   Canton: TURRUBARES
+[6:06:41 p. m.]     Distrito: CARARA -> 25 localidades
+[6:06:41 p. m.]     Distrito: SAN LUIS -> 10 localidades
+[6:06:42 p. m.]     Distrito: SAN JUAN DE MATA -> 18 localidades
+[6:06:42 p. m.]     Distrito: SAN PEDRO -> 9 localidades
+[6:06:43 p. m.]     Distrito: SAN PABLO -> 14 localidades
+[6:06:43 p. m.]   Canton: MORA
+[6:06:43 p. m.]     Distrito: GUAYABO -> 10 localidades
+[6:06:43 p. m.]     Distrito: JARIS -> 3 localidades
+[6:06:44 p. m.]     Distrito: TABARCIA -> 12 localidades
+[6:06:44 p. m.]     Distrito: PIEDRAS NEGRAS -> 4 localidades
+[6:06:45 p. m.]     Distrito: COLÓN -> 55 localidades
+[6:06:45 p. m.]     Distrito: PICAGRES -> 6 localidades
+[6:06:45 p. m.]     Distrito: QUITIRRISÍ -> 3 localidades
+[6:06:45 p. m.]   Canton: ALAJUELITA
+[6:06:46 p. m.]     Distrito: SAN ANTONIO -> 10 localidades
+[6:06:46 p. m.]     Distrito: SAN JOSECITO -> 19 localidades
+[6:06:47 p. m.]     Distrito: CONCEPCIÓN -> 21 localidades
+[6:06:47 p. m.]     Distrito: ALAJUELITA -> 15 localidades
+[6:06:47 p. m.]     Distrito: SAN FELIPE -> 24 localidades
+[6:06:47 p. m.]   Canton: CURRIDABAT
+[6:06:48 p. m.]     Distrito: TIRRASES -> 15 localidades
+[6:06:48 p. m.]       DUPLICADO DETECTADO: Jose Maria Zeledon (U) POS 2
+[6:06:48 p. m.]       DUPLICADO DETECTADO: Don Carlos (CH) POS 2
+[6:06:48 p. m.]       DUPLICADO DETECTADO: Pucara (CH) POS 2
+[6:06:48 p. m.]     Distrito: CURRIDABAT -> 80 localidades
+[6:06:49 p. m.]       DUPLICADO DETECTADO: Lomas De Ayarco Norte (R) POS 2
+[6:06:49 p. m.]     Distrito: SÁNCHEZ -> 36 localidades
+[6:06:49 p. m.]     Distrito: GRANADILLA -> 43 localidades
+[6:06:49 p. m.]   Canton: ESCAZÚ
+[6:06:50 p. m.]     Distrito: SAN ANTONIO -> 52 localidades
+[6:06:50 p. m.]     Distrito: ESCAZÚ -> 81 localidades
+[6:06:50 p. m.]       DUPLICADO DETECTADO: Provenza (CH) POS 2
+[6:06:50 p. m.]       DUPLICADO DETECTADO: Cortijo (CH) POS 2
+[6:06:50 p. m.]     Distrito: SAN RAFAEL -> 215 localidades
+[6:06:50 p. m.]   Canton: SANTA ANA
+[6:06:51 p. m.]     Distrito: SALITRAL -> 9 localidades
+[6:06:51 p. m.]     Distrito: SANTA ANA -> 55 localidades
+[6:06:52 p. m.]     Distrito: PIEDADES -> 25 localidades
+[6:06:52 p. m.]     Distrito: URUCA -> 22 localidades
+[6:06:52 p. m.]     Distrito: BRASIL -> 13 localidades
+[6:06:53 p. m.]       DUPLICADO DETECTADO: Cuevas (B) POS 2
+[6:06:53 p. m.]     Distrito: POZOS -> 68 localidades
+[6:06:53 p. m.]   Canton: SAN JOSÉ
+[6:06:53 p. m.]     Distrito: ZAPOTE -> 38 localidades
+[6:06:54 p. m.]     Distrito: CARMEN -> 10 localidades
+[6:06:54 p. m.]     Distrito: CATEDRAL -> 18 localidades
+[6:06:55 p. m.]     Distrito: HOSPITAL -> 16 localidades
+[6:06:55 p. m.]     Distrito: SAN FRANCISCO DE DOS RÍOS -> 26 localidades
+[6:06:55 p. m.]     Distrito: MERCED -> 13 localidades
+[6:06:56 p. m.]     Distrito: MATA REDONDA -> 50 localidades
+[6:06:56 p. m.]     Distrito: PAVAS -> 38 localidades
+[6:06:56 p. m.]     Distrito: URUCA -> 25 localidades
+[6:06:57 p. m.]     Distrito: SAN SEBASTIÁN -> 36 localidades
+[6:06:57 p. m.]     Distrito: HATILLO -> 24 localidades
+[6:06:57 p. m.]   Canton: MONTES DE OCA
+[6:06:58 p. m.]     Distrito: SAN PEDRO -> 54 localidades
+[6:06:58 p. m.]     Distrito: MERCEDES -> 13 localidades
+[6:06:58 p. m.]     Distrito: SABANILLA -> 40 localidades
+[6:06:59 p. m.]     Distrito: SAN RAFAEL -> 35 localidades
+[6:06:59 p. m.]   Canton: GOICOECHEA
+[6:06:59 p. m.]     Distrito: SAN FRANCISCO -> 6 localidades
+[6:07:00 p. m.]     Distrito: GUADALUPE -> 34 localidades
+[6:07:00 p. m.]     Distrito: MATA DE PLÁTANO -> 49 localidades
+[6:07:00 p. m.]     Distrito: PURRAL -> 40 localidades
+[6:07:01 p. m.]     Distrito: IPÍS -> 34 localidades
+[6:07:01 p. m.]     Distrito: RANCHO REDONDO -> 11 localidades
+[6:07:02 p. m.]     Distrito: CALLE BLANCOS -> 21 localidades
+[6:07:02 p. m.]   Canton: TIBÁS
+[6:07:02 p. m.]     Distrito: CINCO ESQUINAS -> 10 localidades
+[6:07:02 p. m.]     Distrito: ANSELMO LLORENTE -> 27 localidades
+[6:07:03 p. m.]     Distrito: LEÓN XIII -> 4 localidades
+[6:07:03 p. m.]     Distrito: COLIMA -> 17 localidades
+[6:07:04 p. m.]     Distrito: SAN JUAN -> 36 localidades
+[6:07:04 p. m.]   Canton: MORAVIA
+[6:07:04 p. m.]     Distrito: SAN VICENTE -> 78 localidades
+[6:07:05 p. m.]     Distrito: LA TRINIDAD -> 55 localidades
+[6:07:05 p. m.]     Distrito: SAN JERÓNIMO -> 7 localidades
+[6:07:05 p. m.]   Canton: VÁZQUEZ DE CORONADO
+[6:07:05 p. m.]     Distrito: SAN ISIDRO -> 45 localidades
+[6:07:06 p. m.]     Distrito: PATALILLO -> 48 localidades
+[6:07:06 p. m.]     Distrito: SAN RAFAEL -> 19 localidades
+[6:07:07 p. m.]     Distrito: DULCE NOMBRE DE JESÚS -> 30 localidades
+[6:07:07 p. m.]     Distrito: CASCAJAL -> 23 localidades
+[6:07:07 p. m.] Provincia: LIMÓN
+[6:07:07 p. m.]   Canton: TALAMANCA
+[6:07:08 p. m.]     Distrito: SIXAOLA -> 34 localidades
+[6:07:08 p. m.]     Distrito: BRATSI -> 23 localidades
+[6:07:08 p. m.]     Distrito: TELIRE -> 65 localidades
+[6:07:09 p. m.]     Distrito: CAHUITA -> 39 localidades
+[6:07:09 p. m.]   Canton: LIMÓN
+[6:07:09 p. m.]       DUPLICADO DETECTADO: Miramar (P) POS 2
+[6:07:09 p. m.]     Distrito: VALLE LA ESTRELLA -> 101 localidades
+[6:07:10 p. m.]     Distrito: MATAMA -> 30 localidades
+[6:07:10 p. m.]     Distrito: RÍO BLANCO -> 22 localidades
+[6:07:10 p. m.]     Distrito: LIMÓN -> 72 localidades
+[6:07:10 p. m.]   Canton: SIQUIRRES
+[6:07:11 p. m.]       DUPLICADO DETECTADO: Nubes (C) POS 2
+[6:07:11 p. m.]     Distrito: FLORIDA -> 24 localidades
+[6:07:11 p. m.]     Distrito: ALEGRÍA -> 16 localidades
+[6:07:12 p. m.]     Distrito: GERMANIA -> 14 localidades
+[6:07:12 p. m.]     Distrito: REVENTAZÓN -> 19 localidades
+[6:07:12 p. m.]     Distrito: PACUARITO -> 40 localidades
+[6:07:13 p. m.]     Distrito: EL CAIRO -> 33 localidades
+[6:07:13 p. m.]     Distrito: SIQUIRRES -> 70 localidades
+[6:07:13 p. m.]   Canton: MATINA
+[6:07:14 p. m.]     Distrito: CARRANDI -> 45 localidades
+[6:07:14 p. m.]     Distrito: MATINA -> 36 localidades
+[6:07:15 p. m.]     Distrito: BATÁN -> 63 localidades
+[6:07:15 p. m.]   Canton: GUÁCIMO
+[6:07:15 p. m.]     Distrito: MERCEDES -> 7 localidades
+[6:07:15 p. m.]     Distrito: POCORA -> 22 localidades
+[6:07:16 p. m.]     Distrito: GUÁCIMO -> 52 localidades
+[6:07:16 p. m.]     Distrito: RÍO JIMÉNEZ -> 40 localidades
+[6:07:17 p. m.]     Distrito: DUACARÍ -> 19 localidades
+[6:07:17 p. m.]   Canton: POCOCÍ
+[6:07:17 p. m.]     Distrito: JIMÉNEZ -> 22 localidades
+[6:07:17 p. m.]     Distrito: LA COLONIA -> 27 localidades
+[6:07:18 p. m.]     Distrito: RITA -> 69 localidades
+[6:07:18 p. m.]     Distrito: GUÁPILES -> 76 localidades
+[6:07:19 p. m.]     Distrito: ROXANA -> 37 localidades
+[6:07:19 p. m.]     Distrito: CARIARI -> 59 localidades
+[6:07:19 p. m.]     Distrito: COLORADO -> 19 localidades
+[6:07:19 p. m.] Provincia: CARTAGO
+[6:07:19 p. m.]   Canton: EL GUARCO
+[6:07:20 p. m.]     Distrito: PATIO DE AGUA -> 4 localidades
+[6:07:20 p. m.]     Distrito: SAN ISIDRO -> 49 localidades
+[6:07:21 p. m.]     Distrito: TOBOSI -> 16 localidades
+[6:07:21 p. m.]     Distrito: EL TEJAR -> 42 localidades
+[6:07:21 p. m.]   Canton: CARTAGO
+[6:07:22 p. m.]     Distrito: CORRALILLO -> 37 localidades
+[6:07:22 p. m.]     Distrito: QUEBRADILLA -> 16 localidades
+[6:07:22 p. m.]     Distrito: AGUACALIENTE O SAN FRANCISCO -> 54 localidades
+[6:07:23 p. m.]     Distrito: DULCE NOMBRE -> 34 localidades
+[6:07:23 p. m.]     Distrito: ORIENTAL -> 17 localidades
+[6:07:24 p. m.]     Distrito: GUADALUPE O ARENILLA -> 13 localidades
+[6:07:24 p. m.]     Distrito: CARMEN -> 25 localidades
+[6:07:24 p. m.]     Distrito: SAN NICOLÁS -> 43 localidades
+[6:07:25 p. m.]     Distrito: LLANO GRANDE -> 12 localidades
+[6:07:25 p. m.]     Distrito: TIERRA BLANCA -> 10 localidades
+[6:07:25 p. m.]     Distrito: OCCIDENTAL -> 11 localidades
+[6:07:25 p. m.]   Canton: PARAÍSO
+[6:07:26 p. m.]     Distrito: OROSI -> 51 localidades
+[6:07:26 p. m.]     Distrito: LLANOS DE SANTA LUCÍA -> 20 localidades
+[6:07:27 p. m.]     Distrito: CACHÍ -> 24 localidades
+[6:07:27 p. m.]     Distrito: PARAÍSO -> 39 localidades
+[6:07:27 p. m.]     Distrito: SANTIAGO -> 25 localidades
+[6:07:28 p. m.]     Distrito: BIRRISITO -> 10 localidades
+[6:07:28 p. m.]   Canton: JIMÉNEZ
+[6:07:28 p. m.]     Distrito: PEJIVALLE -> 40 localidades
+[6:07:29 p. m.]     Distrito: TUCURRIQUE -> 20 localidades
+[6:07:29 p. m.]     Distrito: JUAN VIÑAS -> 21 localidades
+[6:07:29 p. m.]     Distrito: LA VICTORIA -> 5 localidades
+[6:07:29 p. m.]   Canton: TURRIALBA
+[6:07:30 p. m.]     Distrito: TAYUTIC -> 17 localidades
+[6:07:30 p. m.]     Distrito: CHIRRIPÓ -> 48 localidades
+[6:07:31 p. m.]     Distrito: TUIS -> 18 localidades
+[6:07:31 p. m.]     Distrito: LA SUIZA -> 30 localidades
+[6:07:31 p. m.]     Distrito: TURRIALBA -> 50 localidades
+[6:07:32 p. m.]     Distrito: LA ISABEL -> 12 localidades
+[6:07:32 p. m.]     Distrito: PAVONES -> 13 localidades
+[6:07:33 p. m.]     Distrito: SANTA ROSA -> 11 localidades
+[6:07:33 p. m.]     Distrito: TRES EQUIS -> 12 localidades
+[6:07:33 p. m.]     Distrito: PERALTA -> 5 localidades
+[6:07:34 p. m.]     Distrito: SANTA TERESITA -> 27 localidades
+[6:07:34 p. m.]     Distrito: SANTA CRUZ -> 32 localidades
+[6:07:34 p. m.]   Canton: OREAMUNO
+[6:07:35 p. m.]     Distrito: SAN RAFAEL -> 49 localidades
+[6:07:35 p. m.]     Distrito: CIPRESES -> 7 localidades
+[6:07:35 p. m.]     Distrito: COT -> 18 localidades
+[6:07:36 p. m.]     Distrito: POTRERO CERRADO -> 12 localidades
+[6:07:36 p. m.]     Distrito: SANTA ROSA -> 15 localidades
+[6:07:36 p. m.]   Canton: LA UNIÓN
+[6:07:37 p. m.]     Distrito: RÍO AZUL -> 15 localidades
+[6:07:37 p. m.]     Distrito: SAN DIEGO -> 27 localidades
+[6:07:37 p. m.]     Distrito: TRES RÍOS -> 17 localidades
+[6:07:38 p. m.]     Distrito: SAN RAFAEL -> 26 localidades
+[6:07:38 p. m.]     Distrito: SAN JUAN -> 41 localidades
+[6:07:38 p. m.]     Distrito: CONCEPCIÓN -> 29 localidades
+[6:07:39 p. m.]     Distrito: SAN RAMÓN -> 20 localidades
+[6:07:39 p. m.]     Distrito: DULCE NOMBRE -> 11 localidades
+[6:07:39 p. m.]   Canton: ALVARADO
+[6:07:40 p. m.]     Distrito: CERVANTES -> 18 localidades
+[6:07:40 p. m.]     Distrito: PACAYAS -> 17 localidades
+[6:07:40 p. m.]     Distrito: CAPELLADES -> 10 localidades
+[6:07:40 p. m.] Provincia: ALAJUELA
+[6:07:41 p. m.]   Canton: OROTINA
+[6:07:41 p. m.]     Distrito: COYOLAR -> 31 localidades
+[6:07:41 p. m.]     Distrito: OROTINA -> 35 localidades
+[6:07:42 p. m.]     Distrito: EL MASTATE -> 6 localidades
+[6:07:42 p. m.]     Distrito: LA CEIBA -> 31 localidades
+[6:07:43 p. m.]     Distrito: HACIENDA VIEJA -> 8 localidades
+[6:07:43 p. m.]   Canton: SAN MATEO
+[6:07:43 p. m.]     Distrito: LABRADOR -> 8 localidades
+[6:07:43 p. m.]     Distrito: JESÚS MARÍA -> 7 localidades
+[6:07:44 p. m.]     Distrito: DESMONTE -> 10 localidades
+[6:07:44 p. m.]     Distrito: SAN MATEO -> 22 localidades
+[6:07:44 p. m.]   Canton: ATENAS
+[6:07:45 p. m.]     Distrito: ESCOBAL -> 11 localidades
+[6:07:45 p. m.]     Distrito: CONCEPCIÓN -> 11 localidades
+[6:07:45 p. m.]     Distrito: JESÚS -> 16 localidades
+[6:07:46 p. m.]     Distrito: ATENAS -> 24 localidades
+[6:07:46 p. m.]     Distrito: MERCEDES -> 9 localidades
+[6:07:47 p. m.]     Distrito: SAN ISIDRO -> 10 localidades
+[6:07:47 p. m.]     Distrito: SANTA EULALIA -> 7 localidades
+[6:07:47 p. m.]     Distrito: SAN JOSÉ -> 11 localidades
+[6:07:47 p. m.]   Canton: ALAJUELA
+[6:07:48 p. m.]     Distrito: TURRÚCARES -> 32 localidades
+[6:07:48 p. m.]       DUPLICADO DETECTADO: La Paz (B) POS 2
+[6:07:48 p. m.]     Distrito: SAN RAFAEL -> 41 localidades
+[6:07:49 p. m.]     Distrito: GUÁCIMA -> 51 localidades
+[6:07:49 p. m.]       DUPLICADO DETECTADO: Lotes Madrigal (U) POS 2
+[6:07:49 p. m.]     Distrito: SAN ANTONIO -> 43 localidades
+[6:07:49 p. m.]     Distrito: RÍO SEGUNDO -> 33 localidades
+[6:07:50 p. m.]     Distrito: GARITA -> 28 localidades
+[6:07:50 p. m.]     Distrito: SAN JOSÉ -> 69 localidades
+[6:07:50 p. m.]     Distrito: ALAJUELA -> 66 localidades
+[6:07:51 p. m.]     Distrito: TAMBOR -> 25 localidades
+[6:07:51 p. m.]     Distrito: DESAMPARADOS -> 47 localidades
+[6:07:52 p. m.]     Distrito: CARRIZAL -> 12 localidades
+[6:07:52 p. m.]     Distrito: SAN ISIDRO -> 41 localidades
+[6:07:52 p. m.]       DUPLICADO DETECTADO: Linda Vista (U) POS 2
+[6:07:52 p. m.]     Distrito: SABANILLA -> 22 localidades
+[6:07:53 p. m.]     Distrito: SARAPIQUÍ -> 18 localidades
+[6:07:53 p. m.]   Canton: PALMARES
+[6:07:53 p. m.]     Distrito: SANTIAGO -> 6 localidades
+[6:07:54 p. m.]     Distrito: CANDELARIA -> 8 localidades
+[6:07:54 p. m.]     Distrito: ZARAGOZA -> 22 localidades
+[6:07:54 p. m.]     Distrito: PALMARES -> 9 localidades
+[6:07:55 p. m.]     Distrito: LA GRANJA -> 13 localidades
+[6:07:55 p. m.]     Distrito: ESQUIPULAS -> 19 localidades
+[6:07:55 p. m.]     Distrito: BUENOS AIRES -> 22 localidades
+[6:07:55 p. m.]   Canton: POÁS
+[6:07:56 p. m.]     Distrito: CARRILLOS -> 16 localidades
+[6:07:56 p. m.]     Distrito: SAN PEDRO -> 18 localidades
+[6:07:57 p. m.]     Distrito: SAN RAFAEL -> 13 localidades
+[6:07:57 p. m.]     Distrito: SAN JUAN -> 17 localidades
+[6:07:57 p. m.]     Distrito: SABANA REDONDA -> 9 localidades
+[6:07:57 p. m.]   Canton: GRECIA
+[6:07:58 p. m.]     Distrito: PUENTE DE PIEDRA -> 32 localidades
+[6:07:58 p. m.]     Distrito: TACARES -> 33 localidades
+[6:07:59 p. m.]     Distrito: GRECIA -> 45 localidades
+[6:07:59 p. m.]     Distrito: SAN JOSÉ -> 23 localidades
+[6:07:59 p. m.]     Distrito: SAN ROQUE -> 27 localidades
+[6:08:00 p. m.]     Distrito: SAN ISIDRO -> 18 localidades
+[6:08:00 p. m.]     Distrito: BOLIVAR -> 17 localidades
+[6:08:00 p. m.]   Canton: NARANJO
+[6:08:01 p. m.]     Distrito: EL ROSARIO -> 16 localidades
+[6:08:01 p. m.]     Distrito: SAN MIGUEL -> 17 localidades
+[6:08:01 p. m.]     Distrito: PALMITOS -> 12 localidades
+[6:08:02 p. m.]       DUPLICADO DETECTADO: Río Grande (U) POS 2
+[6:08:02 p. m.]     Distrito: SAN JUAN -> 14 localidades
+[6:08:02 p. m.]     Distrito: NARANJO -> 39 localidades
+[6:08:03 p. m.]     Distrito: SAN JERÓNIMO -> 9 localidades
+[6:08:03 p. m.]     Distrito: SAN JOSÉ -> 14 localidades
+[6:08:03 p. m.]       DUPLICADO DETECTADO: Los Geranios (U) POS 2
+[6:08:03 p. m.]     Distrito: CIRRÍ SUR -> 21 localidades
+[6:08:03 p. m.]   Canton: SAN RAMÓN
+[6:08:04 p. m.]     Distrito: SANTIAGO -> 20 localidades
+[6:08:04 p. m.]     Distrito: SAN RAFAEL -> 23 localidades
+[6:08:05 p. m.]     Distrito: SAN RAMÓN -> 7 localidades
+[6:08:05 p. m.]     Distrito: SAN ISIDRO -> 11 localidades
+[6:08:05 p. m.]     Distrito: ALFARO -> 13 localidades
+[6:08:06 p. m.]     Distrito: SAN JUAN -> 16 localidades
+[6:08:06 p. m.]     Distrito: CONCEPCIÓN -> 6 localidades
+[6:08:06 p. m.]       DUPLICADO DETECTADO: Bajo Barranca (P) POS 2
+[6:08:06 p. m.]     Distrito: PIEDADES SUR -> 23 localidades
+[6:08:07 p. m.]     Distrito: PIEDADES NORTE -> 23 localidades
+[6:08:07 p. m.]     Distrito: ÁNGELES -> 10 localidades
+[6:08:07 p. m.]     Distrito: VOLIO -> 7 localidades
+[6:08:08 p. m.]     Distrito: ZAPOTAL -> 11 localidades
+[6:08:08 p. m.]     Distrito: SAN LORENZO -> 16 localidades
+[6:08:09 p. m.]     Distrito: PEÑAS BLANCAS -> 33 localidades
+[6:08:09 p. m.]   Canton: SARCHÍ
+[6:08:09 p. m.]     Distrito: SARCHÍ SUR -> 17 localidades
+[6:08:09 p. m.]     Distrito: RODRÍGUEZ -> 7 localidades
+[6:08:10 p. m.]     Distrito: SARCHÍ NORTE -> 20 localidades
+[6:08:10 p. m.]     Distrito: SAN PEDRO -> 10 localidades
+[6:08:11 p. m.]     Distrito: TORO AMARILLO -> 4 localidades
+[6:08:11 p. m.]   Canton: ZARCERO
+[6:08:11 p. m.]     Distrito: ZARCERO -> 12 localidades
+[6:08:12 p. m.]     Distrito: GUADALUPE -> 5 localidades
+[6:08:12 p. m.]     Distrito: TAPESCO -> 5 localidades
+[6:08:12 p. m.]     Distrito: PALMIRA -> 4 localidades
+[6:08:13 p. m.]     Distrito: LAGUNA -> 4 localidades
+[6:08:13 p. m.]     Distrito: BRISAS -> 7 localidades
+[6:08:13 p. m.]     Distrito: ZAPOTE -> 5 localidades
+[6:08:13 p. m.]   Canton: SAN CARLOS
+[6:08:14 p. m.]     Distrito: BUENAVISTA -> 4 localidades
+[6:08:14 p. m.]     Distrito: LA TIGRA -> 21 localidades
+[6:08:15 p. m.]     Distrito: VENECIA -> 33 localidades
+[6:08:15 p. m.]       DUPLICADO DETECTADO: Santa Fe (B) POS 2
+[6:08:15 p. m.]     Distrito: QUESADA -> 104 localidades
+[6:08:15 p. m.]     Distrito: FLORENCIA -> 44 localidades
+[6:08:16 p. m.]     Distrito: LA PALMERA -> 31 localidades
+[6:08:16 p. m.]       DUPLICADO DETECTADO: Santa Catalina (U) POS 2
+[6:08:16 p. m.]     Distrito: LA FORTUNA -> 53 localidades
+[6:08:17 p. m.]     Distrito: AGUAS ZARCAS -> 48 localidades
+[6:08:17 p. m.]     Distrito: VENADO -> 17 localidades
+[6:08:17 p. m.]     Distrito: MONTERREY -> 20 localidades
+[6:08:18 p. m.]     Distrito: PITAL -> 47 localidades
+[6:08:18 p. m.]     Distrito: CUTRIS -> 55 localidades
+[6:08:18 p. m.]       DUPLICADO DETECTADO: Rosas (B) POS 2
+[6:08:18 p. m.]     Distrito: POCOSOL -> 67 localidades
+[6:08:18 p. m.]   Canton: RÍO CUARTO
+[6:08:19 p. m.]     Distrito: RÍO CUARTO -> 18 localidades
+[6:08:19 p. m.]     Distrito: SANTA ISABEL -> 9 localidades
+[6:08:20 p. m.]     Distrito: SANTA RITA -> 16 localidades
+[6:08:20 p. m.]   Canton: GUATUSO
+[6:08:20 p. m.]     Distrito: SAN RAFAEL -> 49 localidades
+[6:08:21 p. m.]     Distrito: COTE -> 7 localidades
+[6:08:21 p. m.]     Distrito: KATIRA -> 17 localidades
+[6:08:21 p. m.]     Distrito: BUENAVISTA -> 12 localidades
+[6:08:21 p. m.]   Canton: LOS CHILES
+[6:08:22 p. m.]     Distrito: SAN JORGE -> 20 localidades
+[6:08:22 p. m.]     Distrito: EL AMPARO -> 30 localidades
+[6:08:23 p. m.]     Distrito: CAÑO NEGRO -> 18 localidades
+[6:08:23 p. m.]       DUPLICADO DETECTADO: Sitio San Rafael (S) POS 2
+[6:08:23 p. m.]       DUPLICADO DETECTADO: El Jobo (P) POS 2
+[6:08:23 p. m.]     Distrito: LOS CHILES -> 74 localidades
+[6:08:23 p. m.]   Canton: UPALA
+[6:08:24 p. m.]     Distrito: BIJAGUA -> 21 localidades
+[6:08:24 p. m.]     Distrito: CANALETE -> 16 localidades
+[6:08:24 p. m.]     Distrito: UPALA -> 35 localidades
+[6:08:25 p. m.]     Distrito: DELICIAS -> 17 localidades
+[6:08:25 p. m.]     Distrito: YOLILLAL -> 20 localidades
+[6:08:25 p. m.]     Distrito: AGUAS CLARAS -> 24 localidades
+[6:08:26 p. m.]     Distrito: DOS RÍOS -> 16 localidades
+[6:08:26 p. m.]     Distrito: SAN JOSÉ O PIZOTE -> 32 localidades
+[6:08:26 p. m.] Provincia: GUANACASTE
+[6:08:26 p. m.]   Canton: NANDAYURE
+[6:08:27 p. m.]     Distrito: BEJUCO -> 39 localidades
+[6:08:27 p. m.]     Distrito: PORVENIR -> 9 localidades
+[6:08:28 p. m.]     Distrito: ZAPOTAL -> 15 localidades
+[6:08:28 p. m.]     Distrito: CARMONA -> 14 localidades
+[6:08:28 p. m.]     Distrito: SAN PABLO -> 13 localidades
+[6:08:29 p. m.]     Distrito: SANTA RITA -> 11 localidades
+[6:08:29 p. m.]   Canton: NICOYA
+[6:08:29 p. m.]       DUPLICADO DETECTADO: Prados del Sol (CH) POS 2
+[6:08:29 p. m.]     Distrito: SÁMARA -> 40 localidades
+[6:08:30 p. m.]     Distrito: NOSARA -> 36 localidades
+[6:08:30 p. m.]     Distrito: BELÉN DE NOSARITA -> 21 localidades
+[6:08:30 p. m.]     Distrito: MANSIÓN -> 36 localidades
+[6:08:31 p. m.]     Distrito: NICOYA -> 91 localidades
+[6:08:31 p. m.]     Distrito: SAN ANTONIO -> 52 localidades
+[6:08:32 p. m.]     Distrito: QUEBRADA HONDA -> 20 localidades
+[6:08:32 p. m.]   Canton: HOJANCHA
+[6:08:32 p. m.]     Distrito: PUERTO CARRILLO -> 16 localidades
+[6:08:32 p. m.]     Distrito: MONTE ROMO -> 14 localidades
+[6:08:33 p. m.]     Distrito: HUACAS -> 8 localidades
+[6:08:33 p. m.]       DUPLICADO DETECTADO: Palo de Jabón (P) POS 2
+[6:08:33 p. m.]     Distrito: HOJANCHA -> 21 localidades
+[6:08:34 p. m.]     Distrito: MATAMBÚ -> 3 localidades
+[6:08:34 p. m.]   Canton: SANTA CRUZ
+[6:08:34 p. m.]     Distrito: CUAJINIQUIL -> 47 localidades
+[6:08:35 p. m.]     Distrito: VEINTISIETE DE ABRIL -> 81 localidades
+[6:08:35 p. m.]     Distrito: DIRIÁ -> 22 localidades
+[6:08:35 p. m.]     Distrito: SANTA CRUZ -> 68 localidades
+[6:08:36 p. m.]     Distrito: TAMARINDO -> 53 localidades
+[6:08:36 p. m.]     Distrito: BOLSÓN -> 18 localidades
+[6:08:36 p. m.]     Distrito: CARTAGENA -> 27 localidades
+[6:08:37 p. m.]     Distrito: CABO VELAS -> 34 localidades
+[6:08:37 p. m.]     Distrito: TEMPATE -> 33 localidades
+[6:08:37 p. m.]   Canton: ABANGARES
+[6:08:38 p. m.]     Distrito: LAS JUNTAS -> 48 localidades
+[6:08:38 p. m.]     Distrito: SAN JUAN -> 12 localidades
+[6:08:38 p. m.]     Distrito: COLORADO -> 26 localidades
+[6:08:39 p. m.]     Distrito: SIERRA -> 16 localidades
+[6:08:39 p. m.]   Canton: CAÑAS
+[6:08:39 p. m.]     Distrito: POROZAL -> 14 localidades
+[6:08:40 p. m.]     Distrito: SAN MIGUEL -> 15 localidades
+[6:08:40 p. m.]     Distrito: BEBEDERO -> 10 localidades
+[6:08:40 p. m.]     Distrito: CAÑAS -> 58 localidades
+[6:08:41 p. m.]     Distrito: PALMIRA -> 20 localidades
+[6:08:41 p. m.]   Canton: TILARÁN
+[6:08:41 p. m.]     Distrito: CABECERAS -> 8 localidades
+[6:08:42 p. m.]     Distrito: QUEBRADA GRANDE -> 8 localidades
+[6:08:42 p. m.]     Distrito: LÍBANO -> 8 localidades
+[6:08:42 p. m.]     Distrito: TRONADORA -> 16 localidades
+[6:08:43 p. m.]     Distrito: TILARÁN -> 31 localidades
+[6:08:43 p. m.]     Distrito: TIERRAS MORENAS -> 10 localidades
+[6:08:44 p. m.]     Distrito: SANTA ROSA -> 16 localidades
+[6:08:44 p. m.]     Distrito: ARENAL -> 19 localidades
+[6:08:44 p. m.]   Canton: CARRILLO
+[6:08:45 p. m.]     Distrito: FILADELFIA -> 35 localidades
+[6:08:45 p. m.]     Distrito: BELÉN -> 46 localidades
+[6:08:45 p. m.]     Distrito: PALMIRA -> 17 localidades
+[6:08:46 p. m.]     Distrito: SARDINAL -> 95 localidades
+[6:08:46 p. m.]   Canton: LIBERIA
+[6:08:46 p. m.]       DUPLICADO DETECTADO: Sitio Rejoya (S) POS 2
+[6:08:46 p. m.]       DUPLICADO DETECTADO: Sitio Cabuyal (S) POS 2
+[6:08:46 p. m.]       DUPLICADO DETECTADO: Salto Viejo (C) POS 2
+[6:08:46 p. m.]     Distrito: LIBERIA -> 137 localidades
+[6:08:47 p. m.]     Distrito: CURUBANDÉ -> 11 localidades
+[6:08:47 p. m.]       DUPLICADO DETECTADO: Sitio Mesas (S) POS 2
+[6:08:47 p. m.]     Distrito: CAÑAS DULCES -> 40 localidades
+[6:08:47 p. m.]     Distrito: NACASCOLO -> 33 localidades
+[6:08:48 p. m.]     Distrito: MAYORGA -> 18 localidades
+[6:08:48 p. m.]   Canton: BAGACES
+[6:08:48 p. m.]     Distrito: BAGACES -> 111 localidades
+[6:08:49 p. m.]     Distrito: PIJIJE -> 11 localidades
+[6:08:49 p. m.]     Distrito: RÍO NARANJO -> 4 localidades
+[6:08:49 p. m.]     Distrito: LA FORTUNA -> 26 localidades
+[6:08:50 p. m.]     Distrito: MOGOTE -> 23 localidades
+[6:08:50 p. m.]   Canton: LA CRUZ
+[6:08:50 p. m.]     Distrito: SANTA ELENA -> 28 localidades
+[6:08:51 p. m.]     Distrito: SANTA CECILIA -> 32 localidades
+[6:08:51 p. m.]     Distrito: LA GARITA -> 27 localidades
+[6:08:51 p. m.]     Distrito: LA CRUZ -> 56 localidades
+[6:08:51 p. m.] Provincia: HEREDIA
+[6:08:52 p. m.]   Canton: SANTO DOMINGO
+[6:08:52 p. m.]     Distrito: SANTO DOMINGO -> 2 localidades
+[6:08:53 p. m.]     Distrito: SANTA ROSA -> 20 localidades
+[6:08:53 p. m.]     Distrito: SANTO TOMÁS -> 17 localidades
+[6:08:53 p. m.]     Distrito: SAN VICENTE -> 16 localidades
+[6:08:54 p. m.]     Distrito: SAN MIGUEL -> 13 localidades
+[6:08:54 p. m.]     Distrito: TURES -> 4 localidades
+[6:08:54 p. m.]     Distrito: PARACITO -> 5 localidades
+[6:08:55 p. m.]     Distrito: PARÁ -> 4 localidades
+[6:08:55 p. m.]   Canton: HEREDIA
+[6:08:55 p. m.]     Distrito: ULLOA -> 69 localidades
+[6:08:55 p. m.]       DUPLICADO DETECTADO: Santa Cecilia (U) POS 2
+[6:08:55 p. m.]       DUPLICADO DETECTADO: Jardines del Oeste (U) POS 2
+[6:08:56 p. m.]     Distrito: SAN FRANCISCO -> 85 localidades
+[6:08:56 p. m.]     Distrito: HEREDIA -> 28 localidades
+[6:08:56 p. m.]     Distrito: MERCEDES -> 59 localidades
+[6:08:57 p. m.]     Distrito: VARABLANCA -> 11 localidades
+[6:08:57 p. m.]   Canton: BELÉN
+[6:08:57 p. m.]     Distrito: SAN ANTONIO -> 28 localidades
+[6:08:58 p. m.]     Distrito: LA RIBERA -> 16 localidades
+[6:08:58 p. m.]     Distrito: LA ASUNCIÓN -> 22 localidades
+[6:08:58 p. m.]   Canton: SAN PABLO
+[6:08:59 p. m.]     Distrito: RINCÓN DE SABANILLA -> 20 localidades
+[6:08:59 p. m.]     Distrito: SAN PABLO -> 57 localidades
+[6:08:59 p. m.]   Canton: FLORES
+[6:09:00 p. m.]     Distrito: LLORENTE -> 16 localidades
+[6:09:00 p. m.]     Distrito: SAN JOAQUÍN -> 20 localidades
+[6:09:00 p. m.]     Distrito: BARRANTES -> 17 localidades
+[6:09:00 p. m.]   Canton: SAN RAFAEL
+[6:09:01 p. m.]     Distrito: SANTIAGO -> 22 localidades
+[6:09:01 p. m.]     Distrito: SAN JOSECITO -> 27 localidades
+[6:09:02 p. m.]     Distrito: SAN RAFAEL -> 19 localidades
+[6:09:02 p. m.]     Distrito: ÁNGELES -> 30 localidades
+[6:09:02 p. m.]     Distrito: CONCEPCIÓN -> 26 localidades
+[6:09:02 p. m.]   Canton: BARVA
+[6:09:03 p. m.]     Distrito: SAN ROQUE -> 12 localidades
+[6:09:03 p. m.]     Distrito: BARVA -> 9 localidades
+[6:09:04 p. m.]     Distrito: SANTA LUCÍA -> 13 localidades
+[6:09:04 p. m.]     Distrito: SAN PEDRO -> 11 localidades
+[6:09:04 p. m.]     Distrito: PUENTE SALAS -> 16 localidades
+[6:09:05 p. m.]     Distrito: SAN PABLO -> 16 localidades
+[6:09:05 p. m.]     Distrito: SAN JOSÉ DE LA MONTAÑA -> 34 localidades
+[6:09:05 p. m.]   Canton: SAN ISIDRO
+[6:09:06 p. m.]     Distrito: SAN FRANCISCO -> 14 localidades
+[6:09:06 p. m.]     Distrito: SAN ISIDRO -> 21 localidades
+[6:09:06 p. m.]     Distrito: SAN JOSÉ -> 15 localidades
+[6:09:07 p. m.]     Distrito: CONCEPCIÓN -> 7 localidades
+[6:09:07 p. m.]   Canton: SANTA BÁRBARA
+[6:09:07 p. m.]     Distrito: SAN JUAN -> 15 localidades
+[6:09:08 p. m.]     Distrito: SAN PEDRO -> 9 localidades
+[6:09:08 p. m.]     Distrito: SANTA BÁRBARA -> 6 localidades
+[6:09:08 p. m.]     Distrito: JESÚS -> 19 localidades
+[6:09:09 p. m.]     Distrito: PURABÁ -> 12 localidades
+[6:09:09 p. m.]     Distrito: SANTO DOMINGO -> 12 localidades
+[6:09:09 p. m.]   Canton: SARAPIQUÍ
+[6:09:10 p. m.]     Distrito: LAS HORQUETAS -> 62 localidades
+[6:09:10 p. m.]     Distrito: LA VIRGEN -> 47 localidades
+[6:09:11 p. m.]     Distrito: PUERTO VIEJO -> 53 localidades
+[6:09:11 p. m.]     Distrito: LLANURAS DEL GASPAR -> 14 localidades
+[6:09:11 p. m.]     Distrito: CUREÑA -> 14 localidades
+[6:09:11 p. m.] ===== FIN =====
+[6:09:11 p. m.] Distritos: 494
+[6:09:11 p. m.] Localidades insertadas: 13445
