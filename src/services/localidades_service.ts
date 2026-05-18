@@ -32,14 +32,14 @@ export class LocalidadesService {
 
   // ── Lista de provincias ──────────────────────────────────
   static provinciasLista: string[] = [
-    "PUNTARENAS",
-    "SAN JOSÉ",
-    "LIMÓN",
-    "CARTAGO",
-    "ALAJUELA",
-    "GUANACASTE",
-    "HEREDIA",
-  ];
+  "SAN JOSÉ",
+  "ALAJUELA", 
+  "CARTAGO",
+  "HEREDIA",
+  "GUANACASTE",
+  "PUNTARENAS",
+  "LIMÓN",
+];
 
   // ── Mapa completo ─────────────────────────────────────────
   static localidadesMap: LocalidadesMap = {

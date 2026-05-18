@@ -31,6 +31,15 @@ export default function CoveragePage() {
   const [coveredNeighborhoods, setCoveredNeighborhoods] = useState<string[]>([]);
   const [uncoveredNeighborhoods, setUncoveredNeighborhoods] = useState<string[]>([]);
 
+
+  // Agrega esta función arriba en el componente/hook
+function loose(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+}
   async function loadCoverage(provinceName: string) {
     try {
  const provinceMap =
@@ -70,10 +79,12 @@ export default function CoveragePage() {
       // El botón "Ver barrios" en ClientCoverageTable solo debe habilitarse (o su handler
       // debe guardar) cuando district_id > 0.
       const merged: CoverageRow[] = localDistricts.map((district) => {
-        const match = counts.find(
-          (item: any) =>
-            item.canton === district.canton && item.district === district.district,
-        );
+        // Y cambia el find:
+const match = counts.find(
+  (item: any) =>
+    loose(item.canton) === loose(district.canton) &&
+    loose(item.district) === loose(district.district),
+);
 
         return {
           ...district,

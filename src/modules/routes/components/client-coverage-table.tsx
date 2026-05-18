@@ -7,7 +7,6 @@ import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
 
 type CoverageItem = {
-
   district_id: number;
 
   canton: string;
@@ -16,13 +15,11 @@ type CoverageItem = {
 
   covered_count: number;
 
-    min_hours: number;
+  min_hours: number;
 
   max_hours: number;
 
-  
   visit_days: string[];
-
 };
 
 type Props = {
@@ -39,132 +36,78 @@ export function ClientCoverageTable({
   const columns = useMemo<MRT_ColumnDef<CoverageItem>[]>(
     () => [
       {
-  accessorKey:
-    "visit_days",
+        accessorKey: "visit_days",
 
-  header:
-    "Visitas",
+        header: "Visitas",
 
-  Cell: ({
-    row,
-  }) => {
+        Cell: ({ row }) => {
+          const days = row.original.visit_days || [];
 
-    const days =
-      row.original
-        .visit_days || [];
+          const labels = [
+            {
+              key: "sunday",
 
-    const labels = [
+              label: "D",
+            },
 
-      {
-        key:
-          "sunday",
+            {
+              key: "monday",
 
-        label:
-          "D",
-      },
+              label: "L",
+            },
 
-      {
-        key:
-          "monday",
+            {
+              key: "tuesday",
 
-        label:
-          "L",
-      },
+              label: "M",
+            },
 
-      {
-        key:
-          "tuesday",
+            {
+              key: "wednesday",
 
-        label:
-          "M",
-      },
+              label: "M",
+            },
 
-      {
-        key:
-          "wednesday",
+            {
+              key: "thursday",
 
-        label:
-          "M",
-      },
+              label: "J",
+            },
 
-      {
-        key:
-          "thursday",
+            {
+              key: "friday",
 
-        label:
-          "J",
-      },
+              label: "V",
+            },
 
-      {
-        key:
-          "friday",
+            {
+              key: "saturday",
 
-        label:
-          "V",
-      },
+              label: "S",
+            },
+          ];
 
-      {
-        key:
-          "saturday",
-
-        label:
-          "S",
-      },
-
-    ];
-
-    return (
-
-      <div className="flex gap-1">
-
-        {
-          labels.map(
-            (
-              day
-            ) => (
-
-              <span
-
-                key={
-                  day.key
-                }
-
-                className={`
+          return (
+            <div className="flex gap-1">
+              {labels.map((day) => (
+                <span
+                  key={day.key}
+                  className={`
                   text-xs
                   font-bold
                   w-5
                   text-center
 
-                  ${
-                    days.includes(
-                      day.key
-                    )
-
-                      ? "text-green-600"
-
-                      : "text-gray-400"
-
-                  }
+                  ${days.includes(day.key) ? "text-green-600" : "text-gray-400"}
                 `}
-              >
-
-                {
-                  day.label
-                }
-
-              </span>
-
-            )
-          )
-        }
-
-      </div>
-
-    );
-
-  },
-
-},
+                >
+                  {day.label}
+                </span>
+              ))}
+            </div>
+          );
+        },
+      },
       {
         accessorKey: "canton",
 
@@ -225,61 +168,43 @@ export function ClientCoverageTable({
         },
       },
 
-
       {
-  accessorKey:
-    "min_hours",
+        accessorKey: "min_hours",
 
-  header:
-    "Entrega",
+        header: "Entrega",
 
-  Cell: ({
-    row,
-  }) => {
+        Cell: ({ row }) => {
+          const covered = row.original.covered_count ?? 0;
 
-    const min =
-      row.original
-        .min_hours ?? 0;
+          if (covered === 0) {
+            return (
+              <span className="text-red-500 text-xs font-medium">
+                Sin cobertura
+              </span>
+            );
+          }
 
-    const max =
-      row.original
-        .max_hours ?? 0;
+          const min = row.original.min_hours ?? 0;
 
-    // cronograma
+          const max = row.original.max_hours ?? 0;
 
-    if (
-      min === 0
-    ) {
+          // cronograma
 
-      return (
-        "Cronograma"
-      );
+          if (min === 0) {
+            return "Cronograma";
+          }
 
-    }
+          // una sola hora
 
-    // una sola hora
+          if (max === 0) {
+            return `${min}h`;
+          }
 
-    if (
-      max === 0
-    ) {
+          // rango
 
-      return (
-        `${min}h`
-      );
-
-    }
-
-    // rango
-
-    return (
-
-      `${min} a ${max}h`
-
-    );
-
-  },
-
-}
+          return `${min} a ${max}h`;
+        },
+      },
     ],
     [],
   );
@@ -353,7 +278,7 @@ export function ClientCoverageTable({
 
       }}*/
 
-     /* muiTableBodyRowProps={({ row }) => {
+      /* muiTableBodyRowProps={({ row }) => {
         // solo filas agrupadas (cantones)
 
         if (!row.getIsGrouped()) {
@@ -376,8 +301,6 @@ export function ClientCoverageTable({
           },
         };
       }*/
-
-    
     />
   );
 }
