@@ -1,15 +1,10 @@
-Importación corrida: 2026-05-18T09:09:48.643Z
-Provincias: sanjose
+Importación corrida: 2026-05-18T20:16:01.278Z
+Provincias: guanacaste, alajuela, cartago, heredia, limon, puntarenas, sanjose
 ────────────────────────────────────────────────────────────
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → SAN ISIDRO DE EL GENERAL — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → EL GENERAL — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → DANIEL FLORES — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → RIVAS — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → SAN PEDRO — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → PLATANARES — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → PEJIBAYE — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → CAJÓN — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → BARÚ — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → RÍO NUEVO — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → PÁRAMO — requiere días de visita por distrito; revisar a mano
-[CRONOGRAMA NO SOPORTADO] SAN JOSÉ → PÉREZ ZELEDÓN → LA  AMISTAD — requiere días de visita por distrito; revisar a mano
+[DISTRITO NO EN BD] Guanacaste → NICOYA → Moracia (ruta: "24 a 72 HRS")
+[DISTRITO NO EN BD] Guanacaste → NICOYA → Corralillo (ruta: "24 a 72 HRS")
+[DISTRITO NO EN BD] Guanacaste → NICOYA → San Vicente (ruta: "24 a 72 HRS")
+[DISTRITO NO EN BD] Guanacaste → NICOYA → Santa Barbara (ruta: "24 a 72 HRS")
+[DISTRITO NO EN BD] Guanacaste → TILARÁN → Tilarán Centro (ruta: "24 a 72 HRS")
+[DISTRITO NO EN BD] ALAJUELA → ALAJUELA → GUÁTUSO (ruta: "Maximo 24HRS")
+[DISTRITO NO EN BD] ALAJUELA → ALAJUELA → LA GARITA (ruta: "Maximo 24HRS")

@@ -18,6 +18,7 @@ import { useProvinces } from "@/modules/routes/hooks/use-provinces";
 import { CoverageGroupedTable } from "@/modules/routes/components/coverage-grouped-table";
 import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 import { LocalidadesService } from "@/services/localidades_service";
+import { supabase } from "@/services/supabase/client";
 
 const WEEK_DAYS = [
   { value: "monday", label: "Lunes" },
@@ -114,24 +115,25 @@ export default function RoutesPage() {
     message: "",
   });
 
-  // ─── BUG FIX: ref para acceder al valor actualizado de selectedDays
-  // dentro de callbacks sin stale closure
+  // ─── Ref para selectedDays sin stale closure
   const selectedDaysRef = useRef<string[]>([]);
 
-  // ─── BUG FIX: ref para saber si el efecto de districtDeliveryTimes
-  // debe ignorar la ejecución (evita race condition con handleDistrictChange)
+  // ─── Ref para evitar race condition en el effect de districtDeliveryTimes
   const skipDeliveryEffect = useRef(false);
 
-  // Mantener ref sincronizado con el state
+  // ─── FIX: Ref que rastrea qué distritos ya fueron cargados desde BD.
+  // Cuando loadRoute inicializa selectedNeighborhoods con TODOS los barrios
+  // de la ruta, marcamos esos distritos aquí para que handleDistrictChange
+  // no los vuelva a buscar en BD (lo que pisaría cambios en memoria).
+  const loadedDistrictsRef = useRef<Set<number>>(new Set());
+
+  // Mantener selectedDaysRef sincronizado
   useEffect(() => {
     selectedDaysRef.current = selectedDays;
   }, [selectedDays]);
 
-  // ─── BUG FIX: districtDeliveryTimes effect
-  // Antes: se disparaba con los valores de horas del distrito ANTERIOR antes de que
-  // handleDistrictChange terminara de actualizarlos → race condition.
-  // Ahora: handleDistrictChange marca skipDeliveryEffect = true antes de
-  // setear districtMinHours/MaxHours, para que este efecto no pise esos valores.
+  // ─── Effect de districtDeliveryTimes
+  // skipDeliveryEffect previene race condition con handleDistrictChange.
   useEffect(() => {
     if (!selectedDistrict) return;
     if (skipDeliveryEffect.current) {
@@ -157,10 +159,7 @@ export default function RoutesPage() {
     });
   }, [selectedDistrict, districtMinHours, districtMaxHours]);
 
-  // ─── BUG FIX: districtVisitDays effect
-  // Antes: usaba selectedDays directamente → stale closure, leía el valor
-  // al momento de definir el effect, no el valor actual.
-  // Ahora: usa selectedDaysRef.current para leer siempre el valor más reciente.
+  // ─── Effect de districtVisitDays
   useEffect(() => {
     if (!selectedDistrict) return;
 
@@ -185,12 +184,13 @@ export default function RoutesPage() {
     });
   }, [selectedDistrict]);
 
-  // ─── BUG FIX: coveragePagination eliminado de las dependencias
-  // Antes: cualquier cambio de página en la tabla recargaba toda la ruta desde BD.
-  // Ahora: solo carga cuando cambia routeId.
+  // ─── Carga inicial de la ruta al editar
   useEffect(() => {
     async function loadRoute() {
       if (!routeId) return;
+
+      // Limpiar el set de distritos cargados al recargar la ruta
+      loadedDistrictsRef.current = new Set();
 
       try {
         const route = await getRouteById(routeId);
@@ -199,6 +199,7 @@ export default function RoutesPage() {
         setCoverageView(coverage || []);
         setCoverageTotal(coverage?.length || 0);
 
+        // Inicializar horas por distrito desde la cobertura guardada
         setDistrictDeliveryTimes(
           (coverage || []).map((item: any) => ({
             district_id: item.district_id,
@@ -207,16 +208,40 @@ export default function RoutesPage() {
           })),
         );
 
+        // ─── FIX: Cargar TODOS los barrios cubiertos de la ruta en una sola
+        // llamada a BD. Esto evita tener que ir a buscarlos distrito por distrito
+        // cuando el usuario navega, previniendo que handleDistrictChange pise
+        // el estado con datos parciales de BD.
+        const { data: allCoverage } = await (
+          await import("@/services/supabase/client")
+        ).supabase
+          .from("route_coverage")
+          .select("neighborhood_id, neighborhoods(district_id)")
+          .eq("route_id", routeId);
+
+        const allNeighborhoodIds =
+          allCoverage?.map((r: any) => r.neighborhood_id) ?? [];
+
+        setSelectedNeighborhoods(allNeighborhoodIds);
+
+        // Marcar como "ya cargados" todos los distritos que tienen barrios en BD
+        const districtIdsFromCoverage = new Set<number>(
+          allCoverage
+            ?.map((r: any) => r.neighborhoods?.district_id)
+            .filter(Boolean) ?? [],
+        );
+        // También marcar los distritos de coverage (aunque no tengan barrios aún)
+        coverage?.forEach((item: any) =>
+          districtIdsFromCoverage.add(item.district_id),
+        );
+        loadedDistrictsRef.current = districtIdsFromCoverage;
+
         setRouteName(route.name || "");
         setEstimatedHours(route.estimated_hours || 0);
 
         const days = route.route_visit_days?.map((item: any) => item.day) || [];
         setSelectedDays(days);
         selectedDaysRef.current = days;
-
-        setSelectedNeighborhoods(
-          route.route_coverage?.map((item: any) => item.neighborhood_id) || [],
-        );
 
         const districtDays = await getRouteDistrictVisitDays(routeId);
         const groupedDays = districtDays.reduce((acc: any, item: any) => {
@@ -334,18 +359,67 @@ export default function RoutesPage() {
 
       if (!routeId) {
         router.replace(`/dashboard/routes?id=${savedRouteId}`);
+        return;
       }
 
-      if (routeId) {
-        const coverage = await getRouteDistrictCoverage(routeId);
-        setCoverageView(coverage || []);
-        setCoverageTotal(coverage?.length || 0);
-      }
+      // ── Re-sincronización completa tras guardar
+      // Ejecutar en paralelo para minimizar tiempo de espera
+      const [coverage, allCoverageResult, districtDays] = await Promise.all([
+        getRouteDistrictCoverage(routeId),
+        supabase
+          .from("route_coverage")
+          .select("neighborhood_id, neighborhoods(district_id)")
+          .eq("route_id", routeId),
+        getRouteDistrictVisitDays(routeId),
+      ]);
+
+      // Cobertura visual (tabla)
+      setCoverageView(coverage || []);
+      setCoverageTotal(coverage?.length || 0);
+
+      // Barrios seleccionados — fuente de verdad desde BD
+      const allNeighborhoodIds =
+        allCoverageResult.data?.map((r: any) => r.neighborhood_id) ?? [];
+      setSelectedNeighborhoods(allNeighborhoodIds);
+
+      // Distritos ya cargados — resetear el ref con los que quedaron en BD
+      const districtIdsFromCoverage = new Set<number>(
+        allCoverageResult.data
+          ?.map((r: any) => r.neighborhoods?.district_id)
+          .filter(Boolean) ?? [],
+      );
+      coverage?.forEach((item: any) =>
+        districtIdsFromCoverage.add(item.district_id),
+      );
+      loadedDistrictsRef.current = districtIdsFromCoverage;
+
+      // Horas por distrito — re-sincronizar desde coverage (fuente de verdad)
+      setDistrictDeliveryTimes(
+        (coverage || []).map((item: any) => ({
+          district_id: item.district_id,
+          min_hours: item.min_hours ?? 0,
+          max_hours: item.max_hours ?? 0,
+        })),
+      );
+
+      // Días por distrito — re-sincronizar desde BD
+      const groupedDays = districtDays.reduce((acc: any, item: any) => {
+        const existing = acc.find(
+          (x: any) => x.district_id === item.district_id,
+        );
+        if (existing) {
+          existing.days.push(item.day);
+        } else {
+          acc.push({ district_id: item.district_id, days: [item.day] });
+        }
+        return acc;
+      }, []);
+      setDistrictVisitDays(groupedDays);
 
       setUiMessage({
         open: true,
         type: "success",
-        title: routeId ? "Ruta actualizada" : "Ruta creada",
+        title: "Ruta actualizada",
         message: "Guardado correctamente.",
       });
     } catch (error) {
@@ -373,11 +447,9 @@ export default function RoutesPage() {
   }
 
   async function handleDistrictChange(districtId: number) {
-    // Guardar nombre real del distrito (para maps / localidades_service)
     const districtName =
       districts.find((district: any) => district.id === districtId)?.name || "";
     setSelectedDistrictName(districtName);
-    console.log("handleDistrictChange, selectedDistrictName:", districtName);
 
     // ─── BARRIOS
     const data = await getNeighborhoods(districtId);
@@ -387,13 +459,10 @@ export default function RoutesPage() {
       (neighborhood: any) => neighborhood.id,
     );
 
-    // Primero revisar memoria
-    const localDistrictIds = selectedNeighborhoods.filter((neighborhoodId) =>
-      currentDistrictNeighborhoodIds.includes(neighborhoodId),
-    );
-
-    // Si no está en memoria, buscar BD
-    if (localDistrictIds.length === 0 && routeId) {
+    // ─── FIX: Solo buscar en BD si este distrito nunca fue cargado.
+    // Si ya está en loadedDistrictsRef significa que loadRoute (o una carga
+    // previa) ya tiene sus barrios en selectedNeighborhoods. No sobreescribir.
+    if (!loadedDistrictsRef.current.has(districtId) && routeId) {
       const coverage = await getDistrictNeighborhoods(districtId, routeId);
       const coveredIds = coverage
         .filter((item: any) => item.has_coverage)
@@ -408,7 +477,10 @@ export default function RoutesPage() {
       });
     }
 
-    // ─── HORAS (prioridad: memoria → BD → defaults)
+    // Marcar el distrito como cargado (aunque no tuviera barrios cubiertos)
+    loadedDistrictsRef.current.add(districtId);
+
+    // ─── HORAS (prioridad: memoria → coverageView → defaults)
     let minToUse = defaultMinHours;
     let maxToUse = defaultMaxHours;
 
@@ -429,6 +501,8 @@ export default function RoutesPage() {
       }
     }
 
+    // Marcar skip para no disparar el effect con valores stale
+    skipDeliveryEffect.current = true;
     setDistrictMinHours(minToUse);
     setDistrictMaxHours(maxToUse);
 
@@ -441,7 +515,7 @@ export default function RoutesPage() {
       },
     ]);
 
-    // ─── DÍAS (prioridad: memoria → BD → defaults)
+    // ─── DÍAS (prioridad: memoria → defaults)
     let daysToUse = [...selectedDaysRef.current];
 
     const tempDays = districtVisitDays.find(
@@ -852,7 +926,6 @@ export default function RoutesPage() {
         </div>
 
         {/* BOTONES */}
-        {/* BUG FIX: Guardar necesitaba type="button" para no hacer submit accidental */}
         <div className="flex gap-3 mt-6">
           <button
             type="button"
@@ -937,3 +1010,4 @@ export default function RoutesPage() {
     </div>
   );
 }
+

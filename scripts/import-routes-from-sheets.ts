@@ -5,13 +5,13 @@ import path from "node:path";
 import { LocalidadesService } from "@/services/localidades_service";
 import { supabaseAdmin } from "@/services/supabase/admin";
 
-import { guanacaste } from "./data/guanacaste";
-  import { alajuela }    from "./data/alajuela";
-   import { cartago }     from "./data/cartago";
-   import { heredia }     from "./data/heredia";
-   import { limon }       from "./data/limon";
-   import { puntarenas }  from "./data/puntarenas";
-   import { sanjose }     from "./data/sanjose";
+import { guanacaste }  from "./data/guanacaste";
+import { alajuela }    from "./data/alajuela";
+import { cartago }     from "./data/cartago";
+import { heredia }     from "./data/heredia";
+import { limon }       from "./data/limon";
+import { puntarenas }  from "./data/puntarenas";
+import { sanjose }     from "./data/sanjose";
 
 export type RouteSheetRow = {
   canton: string;
@@ -25,7 +25,7 @@ export type ProvinceImport = {
 };
 
 const ALL: Record<string, ProvinceImport> = {
-//  guanacaste,
+  guanacaste,
   alajuela,
   cartago,
   heredia,
@@ -38,7 +38,7 @@ const ALL: Record<string, ProvinceImport> = {
 function loose(s: string): string {
   return s
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
     .trim();
 }
@@ -46,11 +46,15 @@ function loose(s: string): string {
 // ── parsea la columna RUTA ──
 //   "24 a 72 HRS"   → { min: 24, max: 72 }
 //   "24 HRS"        → { min: 24, max: 0 }
-//   "SIN COBERTURA" → null
-//   "Cronograma"    → no se contempla en Guanacaste (no aparece)
+//   "CRONOGRAMA"    → { min: 0,  max: 0  }  ← tiene cobertura, días se definen aparte
+//   "SIN COBERTURA" → null                  ← sin cobertura, no se inserta
 function parseHours(ruta: string): { min: number; max: number } | null {
   const norm = loose(ruta);
+
   if (norm.includes("SIN COBERTURA")) return null;
+
+  // FIX: CRONOGRAMA = cobertura sin horas definidas → min:0 max:0
+  if (norm.includes("CRONOGRAMA")) return { min: 0, max: 0 };
 
   const range = ruta.match(/(\d+)\s*a\s*(\d+)/i);
   if (range) return { min: Number(range[1]), max: Number(range[2]) };
@@ -61,7 +65,7 @@ function parseHours(ruta: string): { min: number; max: number } | null {
   return null;
 }
 
-// ── helpers de LocalidadesService (devuelven la key real, preservando acentos) ──
+// ── helpers de LocalidadesService ──
 function findProvKey(provName: string): string | null {
   const target = loose(provName);
   return LocalidadesService.getProvincias().find((p) => loose(p) === target) ?? null;
@@ -95,7 +99,7 @@ async function importProvince(p: ProvinceImport) {
     return;
   }
 
-  // ── 2. Cantones del provincia en BD ─────────────────────────
+  // ── 2. Cantones de la provincia en BD ───────────────────────
   const { data: allCantons } = await supabaseAdmin
     .from("cantons")
     .select("id, name")
@@ -104,7 +108,7 @@ async function importProvince(p: ProvinceImport) {
   const cantonByLoose = new Map<string, { id: number; name: string }>();
   for (const c of allCantons ?? []) cantonByLoose.set(loose(c.name), c as any);
 
-  // ── 3. Distritos del provincia en BD ────────────────────────
+  // ── 3. Distritos de la provincia en BD ──────────────────────
   const cantonIds = (allCantons ?? []).map((c: any) => c.id);
   const { data: allDistricts } =
     cantonIds.length > 0
@@ -130,12 +134,9 @@ async function importProvince(p: ProvinceImport) {
   const selectedNeighborhoodIds = new Set<number>();
 
   for (const row of p.rows) {
-    if (loose(row.ruta).includes("CRONOGRAMA")) {
-      log(`[CRONOGRAMA NO SOPORTADO] ${p.provincia} → ${row.canton} → ${row.distrito} — requiere días de visita por distrito; revisar a mano`);
-      continue;
-    }
-
     const hours = parseHours(row.ruta);
+
+    // SIN COBERTURA → null, se omite sin loguear (es esperado)
     if (!hours) continue;
 
     // BD: cantón
@@ -152,7 +153,7 @@ async function importProvince(p: ProvinceImport) {
       continue;
     }
 
-    // LocalidadesService: cantón y distrito (no aborta inserción, solo loguea)
+    // LocalidadesService: solo loguea, no aborta inserción
     if (provServiceKey) {
       const cantonKey = findCantonKey(provServiceKey, canton.name);
       if (!cantonKey) {
@@ -165,7 +166,7 @@ async function importProvince(p: ProvinceImport) {
       }
     }
 
-    // BD: barrios del distrito → todos a la cobertura
+    // BD: barrios del distrito → todos a cobertura
     const { data: nbs } = await supabaseAdmin
       .from("neighborhoods")
       .select("id")
@@ -242,7 +243,6 @@ async function importProvince(p: ProvinceImport) {
     route_id: routeId,
     neighborhood_id: id,
   }));
-  // Insert por chunks de 1000 para evitar payloads gigantes
   for (let i = 0; i < coverageRows.length; i += 1000) {
     const chunk = coverageRows.slice(i, i + 1000);
     const { error } = await supabaseAdmin.from("route_coverage").insert(chunk);
@@ -250,31 +250,33 @@ async function importProvince(p: ProvinceImport) {
   }
 
   // ── 8. Horas por distrito ───────────────────────────────────
-  // Deduplicar por district_id (la primera aparición gana)
-const seenDistrictIds = new Set<number>();
-const dedupedTimes = districtDeliveryTimes.filter((d) => {
-  if (seenDistrictIds.has(d.district_id)) return false;
-  seenDistrictIds.add(d.district_id);
-  return true;
-});
-  const timesRows = districtDeliveryTimes.map((d) => ({
-    route_id: routeId,
-    district_id: d.district_id,
-    min_hours: d.min_hours,
-    max_hours: d.max_hours,
-  }));
-  if (timesRows.length > 0) {
+  // FIX: usar dedupedTimes (no districtDeliveryTimes) para el insert
+  const seenDistrictIds = new Set<number>();
+  const dedupedTimes = districtDeliveryTimes.filter((d) => {
+    if (seenDistrictIds.has(d.district_id)) return false;
+    seenDistrictIds.add(d.district_id);
+    return true;
+  });
+
+  if (dedupedTimes.length > 0) {
+    const timesRows = dedupedTimes.map((d) => ({
+      route_id: routeId,
+      district_id: d.district_id,
+      min_hours: d.min_hours,
+      max_hours: d.max_hours,
+    }));
     const { error } = await supabaseAdmin
       .from("route_district_delivery_times")
       .insert(timesRows);
     if (error) throw error;
   }
 
-  // Sin días: el doc usa rangos de horas (no Cronograma) → no se setean
-  // route_visit_days ni route_district_visit_days.
+  // Nota: route_visit_days y route_district_visit_days no se insertan aquí.
+  // Los distritos CRONOGRAMA quedan con min:0 max:0 y sin días → se configuran
+  // manualmente desde la UI de rutas.
 
   console.log(
-    `  ✓ ${districtDeliveryTimes.length} distritos | ${selectedNeighborhoodIds.size} barrios`,
+    `  ✓ ${dedupedTimes.length} distritos | ${selectedNeighborhoodIds.size} barrios`,
   );
 }
 
@@ -285,7 +287,9 @@ async function main() {
   for (const name of targets) {
     const dataset = ALL[name];
     if (!dataset) {
-      console.error(`No existe data file para "${name}". Disponibles: ${Object.keys(ALL).join(", ")}`);
+      console.error(
+        `No existe data file para "${name}". Disponibles: ${Object.keys(ALL).join(", ")}`,
+      );
       process.exit(1);
     }
     await importProvince(dataset);
