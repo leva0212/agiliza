@@ -101,8 +101,31 @@ export async function POST(
 
   const cookieStore =
     await cookies();
+    cookieStore.set(
 
-  cookieStore.set(
+  "role",
+
+  "admin",
+
+  {
+
+    httpOnly:
+      true,
+
+    path:
+      "/",
+
+    secure:
+      true,
+
+    sameSite:
+      "lax",
+
+  }
+
+);
+
+  /*cookieStore.set(
 
     "role",
 
@@ -124,7 +147,7 @@ export async function POST(
 
     }
 
-  );
+  );*/
 
   return NextResponse.json({
 

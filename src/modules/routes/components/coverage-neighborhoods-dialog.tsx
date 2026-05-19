@@ -1,444 +1,501 @@
 "use client";
 
-import { useMemo } from "react";
-
-import { MapPin, Copy } from "lucide-react";
-
+import { useMemo, useState } from "react";
+import { MapPin } from "lucide-react";
 import { toast } from "sonner";
-
 import { LocalidadesService } from "@/services/localidades_service";
 
-import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import {
+  MaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
 
 import { MRT_Localization_ES } from "material-react-table/locales/es";
 
-type LocalidadInfo = {
-  nombre: string;
-  tipo: string;
-  lat: number;
-  lng: number;
-};
+import { NavigationDialog } from "@/shared/components/navigation-dialog";
 
 type RowItem = {
   covered: string;
-
   uncovered: string;
 };
 
 type Props = {
   open: boolean;
-
   title: string;
-
   province: string;
-
   canton: string;
-
   district: string;
-
   covered: string[];
-
   uncovered: string[];
-
   onClose: () => void;
 };
-/*
-function findLocalidad(
 
-  provinceName: string,
+type NavigationData = {
+  googleMaps: string;
+  waze: string;
+  coordinates?: string;
+};
 
-  cantonName: string,
+export function CoverageNeighborhoodsDialog({
+  open,
+  title,
+  province,
+  canton,
+  district,
+  covered,
+  uncovered,
+  onClose,
+}: Props) {
 
-  districtName: string,
+  const [navOpen, setNavOpen] =
+    useState(false);
 
-  neighborhoodName: string,
+  const [navData, setNavData] =
+    useState<NavigationData | null>(
+      null
+    );
 
-) {
-
-  const province =
-
-    LocalidadesService.localidadesMap[
-      provinceName
-    ];
-
-  if (
-    !province
-  ) {
-    return null;
-  }
-
-  const canton =
-
-    province[
-      cantonName
-    ];
-
-  if (
-    !canton
-  ) {
-    return null;
-  }
-
-  const district =
-
-    canton[
-      districtName
-    ];
-
-  if (
-    !district
-  ) {
-    return null;
-  }
-
-  return (
-
-    district.find(
-
-      (
-        item,
-      ) =>
-
-        item.nombre === neighborhoodName,
-
-    ) || null
-
+  const maxRows = Math.max(
+    covered.length,
+    uncovered.length
   );
 
-}*/
+  const data: RowItem[] =
+    Array.from(
+      { length: maxRows },
+      (_, i) => ({
+        covered:
+          covered[i] || "",
 
-function renderLocationCell(
-  province: string,
+        uncovered:
+          uncovered[i] || "",
+      })
+    );
 
-  canton: string,
+  function renderLocationCell(
+    name: string,
+    colorClass: string,
+  ) {
 
-  district: string,
+    if (!name)
+      return null;
 
-  name: string,
+    const localidades =
+      LocalidadesService.getLocalidades(
+        province,
+        canton,
+        district
+      );
 
-  colorClass: string,
-) {
-  if (!name) {
-    return null;
-  }
+    const match =
+      localidades.find(
+        (item) =>
+          item.nombre.toLowerCase() ===
+          name.toLowerCase()
+      );
 
-  const localidades = LocalidadesService.getLocalidades(
-    province,
+    const category =
+      match?.tipo || "";
 
-    canton,
+    return (
 
-    district,
-  );
-
-  const match = localidades.find(
-    (item) => item.nombre.toLowerCase() === name.toLowerCase(),
-  );
-
-  const category = match?.tipo || "";
-
-  return (
-    <div
-      className="
+      <div
+        className="
         flex
         items-center
         justify-between
-        gap-3
-        w-full
+        gap-2
       "
-    >
-      <div
-        className="
+      >
+
+        <div
+          className="
           flex
           items-start
           gap-2
         "
-      >
-        <div
-          className={`
+        >
+
+          <div
+            className={`
             w-2
             h-2
             rounded-full
-            mt-2
+            mt-1.5
             ${colorClass}
           `}
-        />
+          />
 
-        <div
-          className="
-            flex
-            flex-col
-          "
-        >
-          <span
-            className="
+          <div>
+
+            <div
+              className="
               font-medium
+              text-sm
             "
-          >
-            {name}
-          </span>
+            >
+              {name}
+            </div>
 
-          <span
-            className="
-              text-xs
-              text-gray-500
-            "
-          >
-            {category}
-          </span>
+            {category && (
+
+              <div
+                className="
+                text-xs
+                text-gray-500
+              "
+              >
+                {category}
+              </div>
+
+            )}
+
+          </div>
+
         </div>
+
+        <button
+          type="button"
+          title="Abrir ubicación"
+          className="
+          p-2
+          rounded-lg
+          hover:bg-sky-100
+          transition-colors
+          "
+          onClick={() => {
+
+            const urls =
+              LocalidadesService.getNavUrls(
+                province,
+                canton,
+                district,
+                name
+              );
+
+            const coords =
+              LocalidadesService.getCoordsLocalidad(
+                province,
+                canton,
+                district,
+                name
+              );
+
+            if (!urls) {
+
+              toast.error(
+                "Ubicación no encontrada"
+              );
+
+              return;
+
+            }
+
+            setNavData({
+
+              ...urls,
+
+              coordinates:
+                coords
+                  ? `${coords.lat}, ${coords.lng}`
+                  : undefined,
+
+            });
+
+            setNavOpen(true);
+
+          }}
+        >
+
+          <MapPin
+            size={30}
+            className="
+            text-blue-700
+          "
+          />
+
+        </button>
+
       </div>
+
+    );
+
+  }
+
+  const columns =
+    useMemo<
+      MRT_ColumnDef<RowItem>[]
+    >(
+      () => [
+
+        {
+
+          accessorKey:
+            "covered",
+
+          header:
+            "Con cobertura",
+
+          Cell:
+            ({
+              cell,
+            }) =>
+              renderLocationCell(
+                cell.getValue<string>(),
+                "bg-green-500"
+              ),
+
+          muiTableHeadCellProps: {
+
+            sx: {
+
+              background:
+                "#ecfdf5",
+
+              color:
+                "#15803d",
+
+              fontWeight:
+                700,
+
+            },
+
+          },
+
+        },
+
+        {
+
+          accessorKey:
+            "uncovered",
+
+          header:
+            "Sin cobertura",
+
+          Cell:
+            ({
+              cell,
+            }) =>
+              renderLocationCell(
+                cell.getValue<string>(),
+                "bg-red-500"
+              ),
+
+          muiTableHeadCellProps: {
+
+            sx: {
+
+              background:
+                "#fef2f2",
+
+              color:
+                "#dc2626",
+
+              fontWeight:
+                700,
+
+            },
+
+          },
+
+        },
+
+      ],
+      [
+        province,
+        canton,
+        district,
+      ]
+    );
+
+  if (!open)
+    return null;
+
+  return (
+
+    <>
 
       <div
         className="
-          flex
-          gap-2
-        "
-      >
-        <button
-          type="button"
-          title="Ver ubicación"
-          onClick={() => {
-            const url = LocalidadesService.getGoogleMapsUrl(
-              province,
-
-              canton,
-
-              district,
-
-              name,
-            );
-
-            if (!url) {
-              toast.error("Ubicación no encontrada");
-
-              return;
-            }
-
-            window.open(
-              url,
-
-              "_blank",
-            );
-          }}
-        >
-          <MapPin size={25} />
-        </button>
-
-        <button
-          type="button"
-          title="Copiar coordenadas"
-          onClick={async () => {
-            const coords = LocalidadesService.getCoordsLocalidad(
-              province,
-
-              canton,
-
-              district,
-
-              name,
-            );
-
-            if (!coords) {
-              toast.error("Ubicación no encontrada");
-
-              return;
-            }
-
-            await navigator.clipboard.writeText(`${coords.lat}, ${coords.lng}`);
-
-            toast.success("Ubicación copiada");
-          }}
-        >
-          <Copy size={16} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function CoverageNeighborhoodsDialog({
-  open,
-
-  title,
-
-  province,
-
-  canton,
-
-  district,
-
-  covered,
-
-  uncovered,
-
-  onClose,
-}: Props) {
-  if (!open) {
-    return null;
-  }
-
-  const maxRows = Math.max(covered.length, uncovered.length);
-
-  const data: RowItem[] = Array.from(
-    {
-      length: maxRows,
-    },
-
-    (_, index) => ({
-      covered: covered[index] || "",
-
-      uncovered: uncovered[index] || "",
-    }),
-  );
-
-  const columns = useMemo<MRT_ColumnDef<RowItem>[]>(
-    () => [
-      {
-        accessorKey: "covered",
-
-        header: "Con cobertura",
-
-        Cell: ({ cell }) =>
-          renderLocationCell(
-            province,
-
-            canton,
-
-            district,
-
-            cell.getValue<string>(),
-
-            "bg-green-500",
-          ),
-
-        muiTableHeadCellProps: {
-          sx: {
-            backgroundColor: "#ecfdf5",
-
-            color: "#15803d",
-
-            fontWeight: 700,
-          },
-        },
-      },
-
-      {
-        accessorKey: "uncovered",
-
-        header: "Sin cobertura",
-
-        Cell: ({ cell }) =>
-          renderLocationCell(
-            province,
-
-            canton,
-
-            district,
-
-            cell.getValue<string>(),
-
-            "bg-red-500",
-          ),
-
-        muiTableHeadCellProps: {
-          sx: {
-            backgroundColor: "#fef2f2",
-
-            color: "#dc2626",
-
-            fontWeight: 700,
-          },
-        },
-      },
-    ],
-
-    [],
-  );
-
-  return (
-    <div
-      className="
-     
         fixed
         inset-0
-        bg-black/50
+        bg-blue-950/30
+        backdrop-blur-sm
         z-50
         flex
         items-center
         justify-center
-        p-2
+        p-3
       "
-    >
-      <div
-        className="
-          bg-white
-          rounded-xl
-          w-full
-            max-w-[500px]
-          max-h-[90vh]
-          overflow-hidden
-        "
+        onClick={(e) => {
+
+          if (
+            e.target ===
+            e.currentTarget
+          ) {
+
+            onClose();
+
+          }
+
+        }}
       >
+
         <div
           className="
-            p-4
-            border-b
-          "
+          bg-gradient-to-b
+          from-white
+          to-sky-50
+          w-full
+          max-w-[520px]
+          rounded-3xl
+          max-h-[90dvh]
+          flex
+          flex-col
+          shadow-2xl
+          border
+          border-sky-200
+        "
         >
-          <h2
+
+          <div
             className="
-              font-bold
-              text-lg
-              leading-tight
-              break-words
-            "
-          >
-            {title}
-          </h2>
-        </div>
-
-        <div
-          className="
-            overflow-auto
-            max-h-[67vh]
+            px-5
+            py-4
+            border-b
+            border-sky-100
+            bg-white/60
+            backdrop-blur-sm
+            flex
+            items-center
+            justify-between
           "
-        >
-          <MaterialReactTable
-            columns={columns}
-            data={data}
-            localization={MRT_Localization_ES}
-            enableSorting={false}
-            enableColumnFilters={false}
-            enableDensityToggle={false}
-            enableFullScreenToggle={false}
-            enableColumnActions={false}
-            enablePagination={false}
-          />
-        </div>
+          >
 
-        <div
-          className="
-            p-4
+            <div>
+
+              <div
+                className="
+                inline-flex
+                items-center
+                gap-2
+                px-3
+                py-1
+                rounded-full
+                bg-sky-100
+                text-sky-700
+                text-xs
+                font-semibold
+                mb-2
+              "
+              >
+                🚚 Cobertura Agiliza
+              </div>
+
+              <h2
+                className="
+                font-bold
+                text-lg
+                text-blue-900
+              "
+              >
+                {title}
+              </h2>
+
+            </div>
+
+            <button
+              onClick={onClose}
+              className="
+              w-8
+              h-8
+              rounded-full
+              hover:bg-sky-100
+              text-slate-500
+              hover:text-blue-900
+            "
+            >
+              ✕
+            </button>
+
+          </div>
+
+          <div
+            className="
+            overflow-auto
+            flex-1
+            p-2
+          "
+          >
+
+            <MaterialReactTable
+              columns={columns}
+              data={data}
+              localization={
+                MRT_Localization_ES
+              }
+              enableSorting={false}
+              enableColumnFilters={false}
+              enableDensityToggle={false}
+              enableFullScreenToggle={false}
+              enableColumnActions={false}
+              enablePagination={false}
+            />
+
+          </div>
+
+          <div
+            className="
+            px-4
+            py-4
             border-t
             flex
             justify-end
           "
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="
-              bg-gray-600
-              text-white
-              px-4
-              py-2
-              rounded-lg
-            "
           >
-            Cerrar
-          </button>
+
+            <button
+              onClick={onClose}
+              className="
+              bg-gradient-to-r
+              from-blue-900
+              to-sky-600
+              hover:scale-[1.02]
+              transition-all
+              text-white
+              px-6
+              py-2.5
+              rounded-2xl
+              font-medium
+            "
+            >
+              Cerrar
+            </button>
+
+          </div>
+
         </div>
+
       </div>
-    </div>
+
+      <NavigationDialog
+        open={navOpen}
+        googleMaps={
+          navData?.googleMaps || ""
+        }
+        waze={
+          navData?.waze || ""
+        }
+        coordinates={
+          navData?.coordinates
+        }
+        onClose={() =>
+          setNavOpen(false)
+        }
+      />
+
+    </>
+
   );
+
 }

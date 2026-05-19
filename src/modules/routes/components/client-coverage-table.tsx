@@ -206,7 +206,7 @@ export function ClientCoverageTable({
         },
       },
     ],
-    [],
+    [data],
   );
 
   return (
@@ -237,70 +237,6 @@ export function ClientCoverageTable({
       enableDensityToggle={false}
       enableFullScreenToggle={false}
       enableColumnActions={false}
-      /*
-      enableRowActions
-
-      renderRowActions={({
-
-        row,
-
-      }) => {
-
-        if (
-          row.getIsGrouped()
-        ) {
-          return null;
-        }
-
-        return (
-
-          <button
-
-            type="button"
-
-            onClick={() =>
-
-              onViewDistrict(
-                row.original
-              )
-
-            }
-
-            className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
-
-          >
-
-            Ver barrios
-
-          </button>
-
-        );
-
-      }}*/
-
-      /* muiTableBodyRowProps={({ row }) => {
-        // solo filas agrupadas (cantones)
-
-        if (!row.getIsGrouped()) {
-          return {};
-        }
-
-        const hasCoverage = row.subRows?.some(
-          (subRow) => subRow.original?.covered_count > 0,
-        );
-
-        return {
-          sx: {
-            backgroundColor: hasCoverage ? "#ecfdf5" : "#fef2f2",
-
-            "& td": {
-              fontWeight: 700,
-
-              color: hasCoverage ? "#166534" : "#dc2626",
-            },
-          },
-        };
-      }*/
     />
   );
 }
