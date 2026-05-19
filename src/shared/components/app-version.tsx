@@ -1,10 +1,5 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-} from "react";
-
 export function AppVersion() {
 
   const version =
@@ -19,42 +14,18 @@ export function AppVersion() {
   const shortVersion =
 
     version.slice(
-
       0,
-
       7,
-
     );
 
-  const [
+  const buildDate =
 
-    buildDate,
+    process.env
+      .NEXT_PUBLIC_BUILD_DATE
 
-    setBuildDate,
+    ||
 
-  ] = useState(
-    "",
-  );
-
-  useEffect(
-    () => {
-
-      setBuildDate(
-
-        new Date()
-
-          .toLocaleString(
-
-            "es-CR",
-
-          ),
-
-      );
-
-    },
-
-    [],
-  );
+    "";
 
   return (
 
@@ -67,18 +38,19 @@ export function AppVersion() {
     >
 
       version:
-
-      {
-
-        shortVersion
-
-      }
+      {shortVersion}
 
       {" • "}
 
+      build:
+
       {
 
-        buildDate
+        new Date(
+          buildDate,
+        ).toLocaleString(
+          "es-CR",
+        )
 
       }
 
