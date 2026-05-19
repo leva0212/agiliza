@@ -87,7 +87,7 @@ export default function CoveragePage() {
       });
 
       setCoverageData(merged);
-      
+
     } catch (error) {
       console.error(error);
     }
@@ -124,6 +124,8 @@ export default function CoveragePage() {
             <Image
               src="/images/agiliza-logo.jpg"
               alt="Agiliza"
+              loading="eager"
+              priority
               width={90}
               height={90}
               className="object-contain shrink-0"
@@ -138,62 +140,62 @@ export default function CoveragePage() {
         </div>
 
         {/* FILTRO */}
-<div className="bg-white border border-sky-600 rounded-2xl shadow-sm p-4">
+        <div className="bg-white border border-sky-600 rounded-2xl shadow-sm p-4">
 
-  <div className="mb-3">
-    <h2 className="text-sm font-semibold text-slate-700">
-      Seleccione una provincia para visualizar su mapa de cobertura
-    </h2>
-    <p className="text-xs text-slate-500 mt-1">
-      Consulte zonas cubiertas, horarios de visita y barrios atendidos.
-    </p>
-  </div>
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold text-slate-700">
+              Seleccione una provincia para visualizar su mapa de cobertura
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Consulte zonas cubiertas, horarios de visita y barrios atendidos.
+            </p>
+          </div>
 
-  <div className="flex items-center gap-2 w-full max-w-[390px]">
-    <select
-      value={selectedProvince}
-      className="border rounded-xl p-3 w-full max-w-[350px] focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-      onChange={(e) => handleProvinceChange(e.target.value)}
-    >
-      <option value="">Seleccione provincia</option>
-      {provinces.map((province) => (
-        <option key={province} value={province}>
-          {province}
-        </option>
-      ))}
-    </select>
+          <div className="flex items-center gap-2 w-full max-w-[390px]">
+            <select
+              value={selectedProvince}
+              className="border rounded-xl p-3 w-full max-w-[350px] focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+              onChange={(e) => handleProvinceChange(e.target.value)}
+            >
+              <option value="">Seleccione provincia</option>
+              {provinces.map((province) => (
+                <option key={province} value={province}>
+                  {province}
+                </option>
+              ))}
+            </select>
 
-    <button
-      type="button"
-      title="Actualizar datos para obtener la información más reciente"
-      disabled={!selectedProvince}
-      onClick={() => loadCoverage(selectedProvince)}
-      className="shrink-0 p-3 rounded-xl border border-sky-600 text-sky-700 hover:bg-sky-50 active:bg-sky-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-        <path d="M21 3v5h-5"/>
-        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-        <path d="M8 16H3v5"/>
-      </svg>
-    </button>
-  </div>
-</div>
+            <button
+              type="button"
+              title="Actualizar datos para obtener la información más reciente"
+              disabled={!selectedProvince}
+              onClick={() => loadCoverage(selectedProvince)}
+              className="shrink-0 p-3 rounded-xl border border-sky-600 text-sky-700 hover:bg-sky-50 active:bg-sky-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
         {/* TABLA — overflow-x-auto para scroll horizontal solo dentro de la tabla */}
         <div className="bg-white border border-sky-600 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <ClientCoverageTable              
+            <ClientCoverageTable
               data={coverageData}
               onViewDistrict={handleViewDistrict}
             />
