@@ -20,1100 +20,1603 @@ import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverag
 import { LocalidadesService } from "@/services/localidades_service";
 import { supabase } from "@/services/supabase/client";
 
-const WEEK_DAYS = [
-  { value: "monday", label: "Lunes" },
-  { value: "tuesday", label: "Martes" },
-  { value: "wednesday", label: "Miércoles" },
-  { value: "thursday", label: "Jueves" },
-  { value: "friday", label: "Viernes" },
-  { value: "saturday", label: "Sábado" },
-  { value: "sunday", label: "Domingo" },
-];
-
-const DISTRICT_DAYS = [
-  { label: "L", value: "monday" },
-  { label: "M", value: "tuesday" },
-  { label: "M", value: "wednesday" },
-  { label: "J", value: "thursday" },
-  { label: "V", value: "friday" },
-  { label: "S", value: "saturday" },
-  { label: "D", value: "sunday" },
-];
-
 export default function RoutesPage() {
+  const DISTRICT_DAYS = [
 
-  const router = useRouter();
-  const [modifiedDistricts,setModifiedDistricts]=
-useState<number[]>([]);
+    {
+      label: "L",
+      value: "monday"
+    },
 
-// preview local de cobertura
+    {
+      label: "M",
+      value: "tuesday"
+    },
 
-const coveragePreviewRef = useRef<{
+    {
+      label: "X",
+      value: "wednesday"
+    },
 
-    [districtId:number]:number[]
+    {
+      label: "J",
+      value: "thursday"
+    },
 
-}>({});
+    {
+      label: "V",
+      value: "friday"
+    },
 
-// preview local de horas
+    {
+      label: "S",
+      value: "saturday"
+    },
 
-const deliveryPreviewRef = useRef<{
-
-    [districtId:number]:{
-
-        min_hours:number;
-
-        max_hours:number;
-
+    {
+      label: "D",
+      value: "sunday"
     }
 
-}>({});
+  ];
+  const router = useRouter();
 
-// preview local de días
+  const searchParams = useSearchParams();
 
-const visitDaysPreviewRef = useRef<{
+  const routeId =
+    searchParams.get("id");
 
-    [districtId:number]:string[]
+  const { data: provinces } =
+    useProvinces();
 
-}>({});
+
+  // ======================================
+  // Protección contra race conditions
+  // ======================================
+
+  const districtRequestRef =
+    useRef<number>(0);
+
+
+  // ======================================
+  // Estado temporal completo por distrito
+  // ======================================
+
+  const districtStateRef = useRef<
+    Record<
+      number,
+      {
+        min_hours: number;
+        max_hours: number;
+        days: string[];
+        neighborhoods: number[];
+      }
+    >
+  >({});
+
+
+  // ======================================
+  // Distritos cargados
+  // (mantener temporalmente para saveRoute)
+  // ======================================
 
   const [visitedDistricts, setVisitedDistricts] =
-
     useState<number[]>([]);
-  const searchParams = useSearchParams();
-  const routeId = searchParams.get("id");
-  const { data: provinces } = useProvinces();
 
-  // ─── Selección territorial
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedCanton, setSelectedCanton] = useState("");
-  const [selectedDistrict, setSelectedDistrict] = useState<number | null>(null);
-  const [selectedDistrictName, setSelectedDistrictName] = useState("");
 
-  const [cantons, setCantons] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
-  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<number[]>([]);
+  // ======================================
+  // Selección territorial
+  // ======================================
 
-  // selectedProvince / selectedCanton guardan IDs.
-  // LocalidadesService indexa por NOMBRE → derivamos los nombres aquí.
+  const [selectedProvince, setSelectedProvince] =
+    useState("");
+
+  const [selectedCanton, setSelectedCanton] =
+    useState("");
+
+  const [selectedDistrict, setSelectedDistrict] =
+    useState<number | null>(
+      null
+    );
+
+  const [
+    selectedDistrictName,
+    setSelectedDistrictName
+  ] = useState("");
+
+
+  // ======================================
+  // Catálogos
+  // ======================================
+
+  const [cantons, setCantons] =
+    useState<any[]>([]);
+
+  const [districts, setDistricts] =
+    useState<any[]>([]);
+
+  const [neighborhoods, setNeighborhoods] =
+    useState<any[]>([]);
+
+
+  // ======================================
+  // Cobertura seleccionada
+  // ======================================
+
+  const [
+    selectedNeighborhoods,
+    setSelectedNeighborhoods
+  ] = useState<number[]>([]);
+
+
+  // ======================================
+  // nombres derivados
+  // ======================================
+
   const selectedProvinceName =
-    provinces?.find((p: any) => String(p.id) === selectedProvince)?.name || "";
+
+    provinces?.find(
+      (p: any) =>
+
+        String(
+          p.id
+        )
+
+        === selectedProvince
+
+    )?.name || "";
+
   const selectedCantonName =
-    cantons.find((c: any) => String(c.id) === selectedCanton)?.name || "";
 
-  // ─── Datos de ruta
-  const [routeName, setRouteName] = useState("");
-  const [estimatedHours, setEstimatedHours] = useState(24);
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+    cantons.find(
+      (c: any) =>
 
-  // ─── Horas por defecto
-  const [defaultMinHours, setDefaultMinHours] = useState(24);
-  const [defaultMaxHours, setDefaultMaxHours] = useState(0);
+        String(
+          c.id
+        )
 
-  // ─── Horas por distrito
-  const [districtMinHours, setDistrictMinHours] = useState(24);
-  const [districtMaxHours, setDistrictMaxHours] = useState(0);
+        === selectedCanton
 
-  const [districtVisitDays, setDistrictVisitDays] = useState<
-    { district_id: number; days: string[] }[]
+    )?.name || "";
+
+
+  // ======================================
+  // Ruta
+  // ======================================
+
+  const [
+    routeName,
+    setRouteName
+  ] = useState("");
+
+
+  // ======================================
+  // Horas distrito
+  // ======================================
+
+  const [
+    districtMinHours,
+    setDistrictMinHours
+  ] = useState(24);
+
+  const [
+    districtMaxHours,
+    setDistrictMaxHours
+  ] = useState(0);
+
+
+  // ======================================
+  // Config distrito
+  // ======================================
+
+  const [
+    districtVisitDays,
+    setDistrictVisitDays
+  ] = useState<
+    {
+      district_id: number;
+      days: string[];
+    }[]
   >([]);
-  const [districtDeliveryTimes, setDistrictDeliveryTimes] = useState<
-    { district_id: number; min_hours: number; max_hours: number }[]
+
+
+  const [
+    districtDeliveryTimes,
+    setDistrictDeliveryTimes
+  ] = useState<
+    {
+      district_id: number;
+      min_hours: number;
+      max_hours: number;
+    }[]
   >([]);
 
-  // ─── Cobranzas
-  const [companyDeliveryCharge, setCompanyDeliveryCharge] = useState(0);
-  const [courierDeliveryPay, setCourierDeliveryPay] = useState(0);
-  const [companyFailedCharge, setCompanyFailedCharge] = useState(0);
-  const [courierFailedPay, setCourierFailedPay] = useState(0);
 
-  // ─── Cobertura / tabla
-  const [coverageView, setCoverageView] = useState<any[]>([]);
-  const [coverageTotal, setCoverageTotal] = useState(0);
-  const [coveragePagination, setCoveragePagination] = useState({
+  // ======================================
+  // Cobros
+  // ======================================
+
+  const [
+    companyDeliveryCharge,
+    setCompanyDeliveryCharge
+  ] = useState(0);
+
+  const [
+    courierDeliveryPay,
+    setCourierDeliveryPay
+  ] = useState(0);
+
+  const [
+    companyFailedCharge,
+    setCompanyFailedCharge
+  ] = useState(0);
+
+  const [
+    courierFailedPay,
+    setCourierFailedPay
+  ] = useState(0);
+
+
+  // ======================================
+  // Tabla
+  // ======================================
+
+  const [
+    coverageView,
+    setCoverageView
+  ] = useState<any[]>([]);
+
+  const [
+    coverageTotal,
+    setCoverageTotal
+  ] = useState(0);
+
+  const [
+    coveragePagination,
+    setCoveragePagination
+  ] = useState({
+
     pageIndex: 0,
-    pageSize: 100,
+    pageSize: 100
+
   });
 
-  // ─── Diálogo de barrios cubiertos
-  const [neighborhoodsDialogOpen, setNeighborhoodsDialogOpen] = useState(false);
-  const [neighborhoodsDialogTitle, setNeighborhoodsDialogTitle] = useState("");
-  const [dialogProvince, setDialogProvince] = useState("");
-  const [dialogCanton, setDialogCanton] = useState("");
-  const [dialogDistrict, setDialogDistrict] = useState("");
-  const [coveredNeighborhoods, setCoveredNeighborhoods] = useState<string[]>([]);
-  const [uncoveredNeighborhoods, setUncoveredNeighborhoods] = useState<string[]>([]);
 
-  // ─── Mensajes UI
-  const [uiMessage, setUiMessage] = useState({
+  // ======================================
+  // Dialog
+  // ======================================
+
+  const [
+    neighborhoodsDialogOpen,
+    setNeighborhoodsDialogOpen
+  ] = useState(false);
+
+  const [
+    neighborhoodsDialogTitle,
+    setNeighborhoodsDialogTitle
+  ] = useState("");
+
+  const [
+    dialogProvince,
+    setDialogProvince
+  ] = useState("");
+
+  const [
+    dialogCanton,
+    setDialogCanton
+  ] = useState("");
+
+  const [
+    dialogDistrict,
+    setDialogDistrict
+  ] = useState("");
+
+  const [
+    coveredNeighborhoods,
+    setCoveredNeighborhoods
+  ] = useState<string[]>([]);
+
+  const [
+    uncoveredNeighborhoods,
+    setUncoveredNeighborhoods
+  ] = useState<string[]>([]);
+
+
+  // ======================================
+  // Mensajes
+  // ======================================
+
+  const [
+    uiMessage,
+    setUiMessage
+  ] = useState({
+
     open: false,
-    type: "info" as "success" | "error" | "warning" | "info" | "question",
+
+    type:
+      "info" as
+      "success"
+      |
+      "error"
+      |
+      "warning"
+      |
+      "info"
+      |
+      "question",
+
     title: "",
-    message: "",
+    message: ""
+
   });
 
-  // ─── Ref para selectedDays sin stale closure
-  const selectedDaysRef = useRef<string[]>([]);
+  // ======================================
+  // CARGA INICIAL DE RUTA
+  // ======================================
 
-  // ─── Ref para evitar race condition en el effect de districtDeliveryTimes
-  const skipDeliveryEffect = useRef(false);
-
-  // ─── FIX: Ref que rastrea qué distritos ya fueron cargados desde BD.
-  // Cuando loadRoute inicializa selectedNeighborhoods con TODOS los barrios
-  // de la ruta, marcamos esos distritos aquí para que handleDistrictChange
-  // no los vuelva a buscar en BD (lo que pisaría cambios en memoria).
-  const loadedDistrictsRef = useRef<Set<number>>(new Set());
-
-  // Mantener selectedDaysRef sincronizado
   useEffect(() => {
-    selectedDaysRef.current = selectedDays;
-  }, [selectedDays]);
 
-  // ─── Effect de districtDeliveryTimes
-  // skipDeliveryEffect previene race condition con handleDistrictChange.
-  useEffect(()=>{
-
-  if(
-
-    !selectedDistrict ||
-
-    skipDeliveryEffect.current
-
-  ){
-
-    skipDeliveryEffect.current=false;
-
-    return;
-
-  }
-
-  setModifiedDistricts(
-
-    previous =>
-
-      previous.includes(
-        selectedDistrict
-      )
-
-      ? previous
-
-      : [
-
-          ...previous,
-
-          selectedDistrict
-
-        ]
-
-  );
-
-  deliveryPreviewRef.current[
-    selectedDistrict
-  ]={
-
-    min_hours:
-      districtMinHours,
-
-    max_hours:
-
-      districtMinHours===0
-
-      ? 0
-
-      : districtMaxHours
-
-  };
-
-  setDistrictDeliveryTimes(
-
-    previous => [
-
-      ...previous.filter(
-
-        item=>
-
-          item.district_id!==selectedDistrict
-
-      ),
-
-      {
-
-        district_id:
-          selectedDistrict,
-
-        min_hours:
-          districtMinHours,
-
-        max_hours:
-
-          districtMinHours===0
-
-          ? 0
-
-          : districtMaxHours
-
-      }
-
-    ]
-
-  );
-
-},[
-
-  districtMinHours,
-
-  districtMaxHours,
-
-  selectedDistrict
-
-]);
-
-  // ─── Effect de districtVisitDays
-  useEffect(() => {
-    if (!selectedDistrict) return;
-
-    setDistrictVisitDays((previous) => {
-      const currentDistrict = previous.find(
-        (item) => item.district_id === selectedDistrict,
-      );
-      const currentDays = currentDistrict?.days ?? [...selectedDaysRef.current];
-      const updatedItem = {
-        district_id: selectedDistrict,
-        days: [...currentDays],
-      };
-      const exists = previous.some(
-        (item) => item.district_id === selectedDistrict,
-      );
-      if (exists) {
-        return previous.map((item) =>
-          item.district_id === selectedDistrict ? updatedItem : item,
-        );
-      }
-      return [...previous, updatedItem];
-    });
-  }, [selectedDistrict]);
-
-  // ─── Carga inicial de la ruta al editar
-  useEffect(() => {
     async function loadRoute() {
-      if (!routeId) return;
 
-      // Limpiar el set de distritos cargados al recargar la ruta
-      loadedDistrictsRef.current = new Set();
+      if (!routeId)
+        return;
 
       try {
-        const route = await getRouteById(routeId);
-        const coverage = await getRouteDistrictCoverage(routeId);
 
-        setCoverageView(coverage || []);
-        setCoverageTotal(coverage?.length || 0);
+        const [
 
-        // Inicializar horas por distrito desde la cobertura guardada
-        setDistrictDeliveryTimes(
-          (coverage || []).map((item: any) => ({
-            district_id: item.district_id,
-            min_hours: item.min_hours ?? 0,
-            max_hours: item.max_hours ?? 0,
-          })),
+          route,
+          coverage,
+          districtDays
+
+        ] = await Promise.all([
+
+          getRouteById(
+            routeId
+          ),
+
+          getRouteDistrictCoverage(
+            routeId
+          ),
+
+          getRouteDistrictVisitDays(
+            routeId
+          )
+
+        ]);
+
+
+        setCoverageView(
+          coverage || []
         );
 
-        // ─── FIX: Cargar TODOS los barrios cubiertos de la ruta en una sola
-        // llamada a BD. Esto evita tener que ir a buscarlos distrito por distrito
-        // cuando el usuario navega, previniendo que handleDistrictChange pise
-        // el estado con datos parciales de BD.
-        const { data: allCoverage } = await (
-          await import("@/services/supabase/client")
-        ).supabase
-          .from("route_coverage")
-          .select("neighborhood_id, neighborhoods(district_id)")
-          .eq("route_id", routeId).limit(15000);
-
-        const allNeighborhoodIds =
-          allCoverage?.map((r: any) => Number(r.neighborhood_id)) ?? [];
-        /*const allNeighborhoodIds =
-          allCoverage?.map((r: any) => r.neighborhood_id) ?? [];*/
-
-        setSelectedNeighborhoods(allNeighborhoodIds);
-
-        // Marcar como "ya cargados" todos los distritos que tienen barrios en BD
-        const districtIdsFromCoverage = new Set<number>(
-          allCoverage
-            ?.map((r: any) => r.neighborhoods?.district_id)
-            .filter(Boolean) ?? [],
+        setCoverageTotal(
+          coverage?.length || 0
         );
-        // También marcar los distritos de coverage (aunque no tengan barrios aún)
-        coverage?.forEach((item: any) =>
-          districtIdsFromCoverage.add(item.district_id),
-        );
-        loadedDistrictsRef.current = districtIdsFromCoverage;
 
-        setRouteName(route.name || "");
-        setEstimatedHours(route.estimated_hours || 0);
 
-        const days = route.route_visit_days?.map((item: any) => item.day) || [];
-        setSelectedDays(days);
-        selectedDaysRef.current = days;
+        // =====================
+        // horas distrito
+        // =====================
 
-        const districtDays = await getRouteDistrictVisitDays(routeId);
-        const groupedDays = districtDays.reduce((acc: any, item: any) => {
-          const existing = acc.find(
-            (x: any) => x.district_id === item.district_id,
+        const deliveryTimes =
+
+          (coverage || []).map(
+            (item: any) => ({
+
+              district_id:
+                item.district_id,
+
+              min_hours:
+                item.min_hours ?? 0,
+
+              max_hours:
+                item.max_hours ?? 0
+
+            })
           );
-          if (existing) {
-            existing.days.push(item.day);
-          } else {
-            acc.push({ district_id: item.district_id, days: [item.day] });
-          }
-          return acc;
-        }, []);
 
-        setDistrictVisitDays(groupedDays);
-      } catch (error) {
-        console.error("loadRoute error:", error);
-        setCoverageView([]);
-        setCoverageTotal(0);
+        setDistrictDeliveryTimes(
+          deliveryTimes
+        );
+
+
+        // =====================
+        // días distrito
+        // =====================
+
+        const groupedDays =
+
+          districtDays.reduce(
+
+            (
+              acc: {
+                district_id: number;
+                days: string[];
+              }[],
+
+              item: any
+
+            ) => {
+
+              const existing =
+
+                acc.find(
+
+                  district =>
+
+                    district.district_id
+                    === item.district_id
+
+                );
+
+              if (existing) {
+
+                existing.days.push(
+                  item.day
+                );
+
+              }
+              else {
+
+                acc.push({
+
+                  district_id:
+                    item.district_id,
+
+                  days: [
+                    item.day
+                  ]
+
+                });
+
+              }
+
+              return acc;
+
+            },
+
+            []
+
+          );
+
+        setDistrictVisitDays(
+          groupedDays
+        );
+
+
+        // =====================
+        // cargar barrios
+        // =====================
+
+        const {
+
+          data: allCoverage
+
+        } = await supabase
+
+          .from(
+            "route_coverage"
+          )
+
+          .select(
+            "neighborhood_id,neighborhoods(district_id)"
+          )
+
+          .eq(
+            "route_id",
+            routeId
+          )
+
+          .limit(
+            15000
+          );
+
+
+        const neighborhoodIds =
+
+          Array.from(
+
+            new Set(
+
+              allCoverage?.map(
+                (item: any) =>
+
+                  Number(
+                    item.neighborhood_id
+                  )
+              )
+
+              ?? []
+
+            )
+
+          );
+
+        setSelectedNeighborhoods(
+          neighborhoodIds
+        );
+
+
+        // =====================
+        // nombre
+        // =====================
+
+        setRouteName(
+          route.name || ""
+        );
+
+
+        // =====================
+        // memoria local
+        // =====================
+
+        const groupedCoverage =
+          new Map<
+            number,
+            number[]
+          >();
+
+        allCoverage?.forEach(
+          (item: any) => {
+
+            const districtId =
+
+              Number(
+                item.neighborhoods
+                  ?.district_id
+              );
+
+            if (
+              !districtId
+            )
+              return;
+
+            if (
+              !groupedCoverage.has(
+                districtId
+              )
+            ) {
+
+              groupedCoverage.set(
+                districtId,
+                []
+              );
+
+            }
+
+            groupedCoverage
+              .get(
+                districtId
+              )
+              ?.push(
+
+                Number(
+                  item.neighborhood_id
+                )
+
+              );
+
+          }
+        );
+
+
+        deliveryTimes.forEach(
+
+          (
+            item: {
+              district_id: number;
+              min_hours: number;
+              max_hours: number;
+            }
+
+          ) => {
+
+            districtStateRef.current[
+              item.district_id
+            ] = {
+
+              min_hours:
+                item.min_hours,
+
+              max_hours:
+                item.max_hours,
+
+              days:
+
+                groupedDays.find(
+
+                  (
+                    district: {
+                      district_id: number;
+                      days: string[];
+                    }
+                  ) =>
+
+                    district.district_id
+                    === item.district_id
+
+                )?.days || [],
+
+              neighborhoods:
+
+                groupedCoverage.get(
+                  item.district_id
+                )
+
+                || []
+
+            };
+
+          });
+
       }
+      catch (error) {
+
+        console.error(
+          "loadRoute",
+          error
+        );
+
+        setCoverageView(
+          []
+        );
+
+        setCoverageTotal(
+          0
+        );
+
+      }
+
     }
 
     loadRoute();
-  }, [routeId]);
+
+  }, [
+    routeId
+  ]);
+
+
+
+  // ======================================
+  // MANTENER districtDeliveryTimes
+  // sincronizado con memoria local
+  // ======================================
+
+  useEffect(() => {
+
+    const values =
+
+      Object.entries(
+
+        districtStateRef.current
+
+      );
+
+    const updated =
+
+      values.map(
+
+        ([districtId, state]) => ({
+
+          district_id:
+            Number(
+              districtId
+            ),
+
+          min_hours:
+            state.min_hours,
+
+          max_hours:
+            state.max_hours
+
+        })
+
+      );
+
+    setDistrictDeliveryTimes(
+      updated
+    );
+
+  }, [
+
+    districtMinHours,
+    districtMaxHours,
+    selectedNeighborhoods
+
+  ]);
+
+
+
+  // ======================================
+  // MANTENER districtVisitDays
+  // sincronizado con memoria local
+  // ======================================
+
+  useEffect(() => {
+
+    const values =
+
+      Object.entries(
+
+        districtStateRef.current
+
+      );
+
+    const updated =
+
+      values.map(
+
+        ([districtId, state]) => ({
+
+          district_id:
+            Number(
+              districtId
+            ),
+
+          days:
+            state.days
+
+        })
+
+      );
+
+    setDistrictVisitDays(
+      updated
+    );
+
+  }, [
+    selectedDistrict
+  ]);
+
+
+  function delay(
+    ms: number
+  ) {
+
+    return new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          ms
+        )
+    );
+
+  }
+
+
+  // ======================================
+  // LIMPIAR
+  // ======================================
 
   function handleClear() {
+
     setSelectedProvince("");
     setSelectedCanton("");
-    setSelectedDistrict(null);
+
+    setSelectedDistrict(
+      null
+    );
+
     setCantons([]);
     setDistricts([]);
     setNeighborhoods([]);
 
-    if (routeId) return;
+    if (routeId)
+      return;
 
     setRouteName("");
-    setEstimatedHours(24);
-    setSelectedDays([]);
-    selectedDaysRef.current = [];
+
     setSelectedNeighborhoods([]);
-    setCompanyDeliveryCharge(0);
-    setCourierDeliveryPay(0);
-    setCompanyFailedCharge(0);
-    setCourierFailedPay(0);
+
+    setCompanyDeliveryCharge(
+      0
+    );
+
+    setCourierDeliveryPay(
+      0
+    );
+
+    setCompanyFailedCharge(
+      0
+    );
+
+    setCourierFailedPay(
+      0
+    );
+
+    districtStateRef.current =
+      {};
+
   }
 
-  function toggleDistrictVisitDay(day: string) {
-    if (!selectedDistrict) return;
 
-    setDistrictVisitDays((previous) => {
-      const districtConfig = previous.find(
-        (item) => item.district_id === selectedDistrict,
+  // ======================================
+  // PROVINCIA
+  // ======================================
+
+  async function handleProvinceChange(
+    provinceId: number
+  ) {
+
+    const data =
+
+      await getCantons(
+        provinceId
       );
-      const currentDays = districtConfig?.days || [];
-      const updatedDays = currentDays.includes(day)
-        ? currentDays.filter((d) => d !== day)
-        : [...currentDays, day];
 
-      const otherDistricts = previous.filter(
-        (item) => item.district_id !== selectedDistrict,
+    setCantons(
+      data || []
+    );
+
+    setDistricts([]);
+
+    setNeighborhoods([]);
+
+  }
+
+
+  // ======================================
+  // CANTON
+  // ======================================
+
+  async function handleCantonChange(
+    cantonId: number
+  ) {
+
+    const data =
+
+      await getDistricts(
+        cantonId
       );
 
-      return [
-        ...otherDistricts,
-        { district_id: selectedDistrict, days: updatedDays },
+    setDistricts(
+      data || []
+    );
+
+    setNeighborhoods([]);
+
+  }
+
+
+  // ======================================
+  // HORAS
+  // ======================================
+
+  function updateDistrictHours(
+
+    min: number,
+    max: number
+
+  ) {
+
+    if (
+      !selectedDistrict
+    )
+      return;
+
+    const current =
+
+      districtStateRef.current[
+      selectedDistrict
       ];
-    });
+
+    districtStateRef.current[
+      selectedDistrict
+    ] = {
+
+      ...current,
+
+      min_hours:
+        min,
+
+      max_hours:
+
+        min === 0
+          ? 0
+          : max
+
+    };
+
+    setDistrictMinHours(
+      min
+    );
+
+    setDistrictMaxHours(
+
+      min === 0
+        ? 0
+        : max
+
+    );
+
   }
 
-  function toggleDay(day: string) {
-    setSelectedDays((prev) => {
-      const next = prev.includes(day)
-        ? prev.filter((x) => x !== day)
-        : [...prev, day];
-      selectedDaysRef.current = next;
-      return next;
-    });
+
+  // ======================================
+  // DIAS
+  // ======================================
+
+  function toggleDistrictVisitDay(
+    day: string
+  ) {
+
+    if (
+      !selectedDistrict
+    )
+      return;
+
+    const current =
+
+      districtStateRef.current[
+      selectedDistrict
+      ];
+
+    const days =
+
+      current.days.includes(
+        day
+      )
+
+        ? current.days.filter(
+          (d: string) =>
+            d !== day
+        )
+
+        : [
+
+          ...current.days,
+
+          day
+
+        ];
+
+
+    districtStateRef.current[
+      selectedDistrict
+    ] = {
+
+      ...current,
+
+      days
+
+    };
+
+
+    setDistrictVisitDays(
+      previous => {
+
+        const others =
+
+          previous.filter(
+            item =>
+
+              item.district_id
+              !== selectedDistrict
+
+          );
+
+        return [
+
+          ...others,
+
+          {
+
+            district_id:
+              selectedDistrict,
+
+            days
+
+          }
+
+        ];
+
+      }
+    );
+
   }
 
-  async function handleSaveRoute() {
-    try {
-      if (!routeName.trim()) {
-        setUiMessage({
-          open: true,
-          type: "warning",
-          title: "Validación",
-          message: "Debe ingresar un nombre.",
-        });
-        return;
-      }
 
-      if (selectedNeighborhoods.length === 0) {
-        setUiMessage({
-          open: true,
-          type: "warning",
-          title: "Validación",
-          message: "Debe seleccionar barrios.",
-        });
-        return;
-      }
+  // ======================================
+  // DISTRITO
+  // ======================================
 
-      console.log({
+  async function handleDistrictChange(
+    districtId: number
+  ) {
 
-        selectedDistrict,
+    const requestId =
 
-        districtNeighborhoodIds:
+      ++districtRequestRef.current;
 
-          neighborhoods.map(
+    await delay(
+      250
+    );
 
-            n => n.id
+    if (
 
-          ),
+      requestId
+      !== districtRequestRef.current
 
-        selectedNeighborhoods,
+    ) {
 
-        selectedCurrentDistrict:
+      return;
 
-          selectedNeighborhoods.filter(
+    }
 
-            id =>
+    setSelectedDistrict(
+      districtId
+    );
 
-              neighborhoods.some(
 
-                n => n.id === id
+    setVisitedDistricts(
 
+      previous =>
+
+        previous.includes(
+          districtId
+        )
+
+          ? previous
+
+          : [
+
+            ...previous,
+
+            districtId
+
+          ]
+
+    );
+
+
+    const districtName =
+
+      districts.find(
+
+        (
+          district: any
+        ) =>
+
+          district.id
+          === districtId
+
+      )?.name || "";
+
+    setSelectedDistrictName(
+      districtName
+    );
+
+
+    const data =
+
+      await getNeighborhoods(
+        districtId
+      );
+
+
+    if (
+
+      requestId
+      !== districtRequestRef.current
+
+    ) {
+
+      return;
+
+    }
+
+
+    setNeighborhoods(
+      data || []
+    );
+
+
+    let state =
+
+      districtStateRef.current[
+      districtId
+      ];
+
+
+    if (
+      !state
+    ) {
+
+      const coverage =
+
+        await getDistrictNeighborhoods(
+
+          districtId,
+          routeId
+
+        );
+
+      const savedHours =
+
+        coverageView.find(
+
+          (
+            item: any
+          ) =>
+
+            item.district_id
+            === districtId
+
+        );
+
+
+      const savedDays =
+
+        districtVisitDays.find(
+
+          (
+            item
+          ) =>
+
+            item.district_id
+            === districtId
+
+        );
+
+
+      state = {
+
+        min_hours:
+
+          savedHours
+            ?.min_hours
+          ?? 0,
+
+        max_hours:
+
+          savedHours
+            ?.max_hours
+          ?? 0,
+
+        days:
+
+          savedDays
+            ?.days
+          ?? [],
+
+        neighborhoods:
+
+          coverage.map(
+
+            (
+              item: any
+            ) =>
+
+              Number(
+                item.neighborhood_id
               )
 
           )
 
-      });
+      };
 
-      const savedRouteId = await saveRoute({
 
-        routeId,
-        routeName,
-        estimatedHours: defaultMinHours,
-        selectedDays,
-        selectedNeighborhoods,
+      districtStateRef.current[
+        districtId
+      ] = state;
 
-        company_delivery_charge:
-          companyDeliveryCharge,
-
-        courier_delivery_pay:
-          courierDeliveryPay,
-
-        company_failed_charge:
-          companyFailedCharge,
-
-        courier_failed_pay:
-          courierFailedPay,
-
-        districtDeliveryTimes,
-
-        districtVisitDays,
-
-        visitedDistricts,
-
-      });
-
-      if (!routeId) {
-        router.replace(`/dashboard/routes?id=${savedRouteId}`);
-        return;
-      }
-
-      // ── Re-sincronización completa tras guardar
-      // Ejecutar en paralelo para minimizar tiempo de espera
-      const [coverage, allCoverageResult, districtDays] = await Promise.all([
-        getRouteDistrictCoverage(routeId),
-        supabase
-          .from("route_coverage")
-          .select("neighborhood_id, neighborhoods(district_id)")
-          .eq("route_id", routeId).limit(15000),
-        getRouteDistrictVisitDays(routeId),
-      ]);
-
-      // Cobertura visual (tabla)
-      setCoverageView(coverage || []);
-      setCoverageTotal(coverage?.length || 0);
-
-      // Barrios seleccionados — fuente de verdad desde BD
-      const allNeighborhoodIds =
-
-        Array.from(
-
-          new Set(
-
-            allCoverageResult.data?.map(
-
-              (r: any) =>
-
-                r.neighborhood_id
-
-            ) ?? []
-
-          )
-
-        );
-
-      setSelectedNeighborhoods(
-
-        previous => {
-
-          return allNeighborhoodIds;
-
-        }
-
-      );
-
-      // Distritos ya cargados — resetear el ref con los que quedaron en BD
-      const districtIdsFromCoverage = new Set<number>(
-        allCoverageResult.data
-          ?.map((r: any) => r.neighborhoods?.district_id)
-          .filter(Boolean) ?? [],
-      );
-      coverage?.forEach((item: any) =>
-        districtIdsFromCoverage.add(item.district_id),
-      );
-      loadedDistrictsRef.current = districtIdsFromCoverage;
-
-      // Horas por distrito — re-sincronizar desde coverage (fuente de verdad)
-      setDistrictDeliveryTimes(
-        (coverage || []).map((item: any) => ({
-          district_id: item.district_id,
-          min_hours: item.min_hours ?? 0,
-          max_hours: item.max_hours ?? 0,
-        })),
-      );
-
-      // Días por distrito — re-sincronizar desde BD
-      const groupedDays = districtDays.reduce((acc: any, item: any) => {
-        const existing = acc.find(
-          (x: any) => x.district_id === item.district_id,
-        );
-        if (existing) {
-          existing.days.push(item.day);
-        } else {
-          acc.push({ district_id: item.district_id, days: [item.day] });
-        }
-        return acc;
-      }, []);
-      setDistrictVisitDays(groupedDays);
-
-      setUiMessage({
-        open: true,
-        type: "success",
-        title: "Ruta actualizada",
-        message: "Guardado correctamente.",
-      });
-    } catch (error) {
-      console.error(error);
-      setUiMessage({
-        open: true,
-        type: "error",
-        title: "Error",
-        message: "No fue posible guardar.",
-      });
     }
-  }
 
-  async function handleProvinceChange(provinceId: number) {
-    const data = await getCantons(provinceId);
-    setCantons(data || []);
-    setDistricts([]);
-    setNeighborhoods([]);
-  }
 
-  async function handleCantonChange(cantonId: number) {
-    const data = await getDistricts(cantonId);
-    setDistricts(data || []);
-    setNeighborhoods([]);
-  }
+    if (
 
-  async function handleDistrictChange(
-  districtId: number,
-) {
+      requestId
+      !== districtRequestRef.current
 
-  setSelectedDistrict(
-    districtId,
-  );
+    ) {
 
-  const districtName =
+      return;
 
-    districts.find(
+    }
 
-      (
-        district:any
-      ) =>
 
-        district.id === districtId
-
-    )?.name || "";
-
-  setSelectedDistrictName(
-    districtName
-  );
-
-  // registrar distrito navegado
-
-  setVisitedDistricts(
-
-    previous =>
-
-      previous.includes(
-        districtId
-      )
-
-      ? previous
-
-      : [
-
-          ...previous,
-
-          districtId
-
-        ]
-
-  );
-
-  // ======================
-  // BARRIOS DEL DISTRITO
-  // ======================
-
-  const data =
-
-    await getNeighborhoods(
-      districtId
+    setDistrictMinHours(
+      state.min_hours
     );
 
-  setNeighborhoods(
-    data || []
-  );
-
-  const currentDistrictNeighborhoodIds =
-
-    (data || []).map(
-
-      (
-        neighborhood:any
-      ) =>
-
-        Number(
-          neighborhood.id
-        )
-
+    setDistrictMaxHours(
+      state.max_hours
     );
 
-  // ======================
-  // COBERTURA
-  // preview -> BD
-  // ======================
 
-  let coveredIds:number[]=[];
+    const districtNeighborhoodIds =
 
-  if(
-
-    coveragePreviewRef.current[
-      districtId
-    ]
-
-  ){
-
-    coveredIds=
-
-      coveragePreviewRef.current[
-        districtId
-      ];
-
-  }
-
-  else if(
-
-    routeId
-
-  ){
-
-    const coverage=
-
-      await getDistrictNeighborhoods(
-
-        districtId,
-
-        routeId
-
-      );
-
-    coveredIds=
-
-      coverage.map(
+      data.map(
 
         (
-          item:any
+          item: any
         ) =>
 
           Number(
-
-            item.neighborhood_id ??
-
             item.id
-
           )
 
       );
 
-    coveragePreviewRef.current[
-      districtId
-    ]=
 
-      coveredIds;
+    setSelectedNeighborhoods(
 
-  }
+      previous => {
 
-  setSelectedNeighborhoods(
+        const others =
 
-    previous => {
-
-      const otherDistricts=
-
-        previous.filter(
-
-          neighborhoodId =>
-
-            !currentDistrictNeighborhoodIds.includes(
-
-              neighborhoodId
-
-            )
-
-        );
-
-      return [
-
-        ...otherDistricts,
-
-        ...coveredIds
-
-      ];
-
-    }
-
-  );
-
-  // ======================
-  // HORAS
-  // preview -> BD
-  // ======================
-
-  skipDeliveryEffect.current=true;
-
-  let hours={
-
-    min_hours:0,
-
-    max_hours:0
-
-  };
-
-  if(
-
-    deliveryPreviewRef.current[
-      districtId
-    ]
-
-  ){
-
-    hours=
-
-      deliveryPreviewRef.current[
-        districtId
-      ];
-
-  }
-
-  else{
-
-    const savedHours=
-
-      coverageView.find(
-
-        (
-          item:any
-        ) =>
-
-          item.district_id===districtId
-
-      );
-
-    hours={
-
-      min_hours:
-        savedHours?.min_hours ?? 0,
-
-      max_hours:
-        savedHours?.max_hours ?? 0,
-
-    };
-
-    deliveryPreviewRef.current[
-      districtId
-    ]=hours;
-
-  }
-
-  setDistrictMinHours(
-    hours.min_hours
-  );
-
-  setDistrictMaxHours(
-    hours.max_hours
-  );
-
-  // ======================
-  // DÍAS
-  // preview -> BD
-  // ======================
-
-  let days:string[]=[];
-
-  if(
-
-    visitDaysPreviewRef.current[
-      districtId
-    ]
-
-  ){
-
-    days=
-
-      visitDaysPreviewRef.current[
-        districtId
-      ];
-
-  }
-
-  else{
-
-    const saved=
-
-      districtVisitDays.find(
-
-        item=>
-
-          item.district_id===districtId
-
-      );
-
-    days=
-
-      saved?.days ?? [];
-
-    
-    visitDaysPreviewRef.current[
-      districtId
-    ]=
-
-      [...days];
-
-  }
-
-  setSelectedDays(
-    [...days]
-  );
-
-  selectedDaysRef.current=
-    [...days];
-
-}
-
-  function handleToggleDistrict() {
-    if (neighborhoods.length === 0) return;
-
-    const districtNeighborhoodIds = neighborhoods.map(
-      (neighborhood: any) => neighborhood.id,
-    );
-
-    setSelectedNeighborhoods((previous) => {
-      const allSelected = districtNeighborhoodIds.every((id: number) =>
-        previous.includes(id),
-      );
-
-      if (allSelected) {
-        if (selectedDistrict) {
-          setDistrictDeliveryTimes((prev) =>
-            prev.filter((item) => item.district_id !== selectedDistrict),
-          );
-        }
-        return previous.filter((id) => !districtNeighborhoodIds.includes(id));
-      }
-
-      return Array.from(new Set([...previous, ...districtNeighborhoodIds]));
-    });
-
-
-
-
-  }
-
-function toggleNeighborhood(
-  neighborhoodId:number
-){
-
-  if(
-    !selectedDistrict
-  ) return;
-
-  setModifiedDistricts(
-
-    previous =>
-
-      previous.includes(
-        selectedDistrict
-      )
-
-      ? previous
-
-      : [
-
-          ...previous,
-
-          selectedDistrict
-
-        ]
-
-  );
-
-  setSelectedNeighborhoods(
-
-    previous => {
-
-      const updated =
-
-        previous.includes(
-          neighborhoodId
-        )
-
-        ? previous.filter(
+          previous.filter(
 
             id =>
 
-              id !== neighborhoodId
+              !districtNeighborhoodIds.includes(
+                id
+              )
 
-          )
+          );
 
-        : [
+        return [
 
-            ...previous,
+          ...others,
 
-            neighborhoodId
+          ...state.neighborhoods
 
-          ];
-
-      // preview cobertura
-
-      const districtIds=
-
-        updated.filter(
-
-          id =>
-
-            neighborhoods.some(
-
-              n =>
-
-                Number(
-                  n.id
-                )===id
-
-            )
-
-        );
-
-      coveragePreviewRef.current[
-        selectedDistrict
-      ]=
-
-      districtIds;
-
-      return updated;
-
-    }
-
-  );
-
-  // mantener horas del distrito
-  // (ya existía antes)
-
-  setDistrictDeliveryTimes(
-
-    previous => {
-
-      const exists =
-
-        previous.some(
-
-          item =>
-
-            item.district_id===selectedDistrict
-
-        );
-
-      if(
-        exists
-      ){
-
-        return previous.map(
-
-          item =>
-
-            item.district_id===selectedDistrict
-
-            ? {
-
-                ...item,
-
-                min_hours:
-                  districtMinHours,
-
-                max_hours:
-
-                  districtMinHours===0
-
-                  ? 0
-
-                  : districtMaxHours,
-
-              }
-
-            : item
-
-        );
+        ];
 
       }
 
-      return [
+    );
 
-        ...previous,
+  }
 
-        {
 
-          district_id:
-            selectedDistrict,
+  // ======================================
+  // TOGGLE DISTRITO
+  // ======================================
 
-          min_hours:
-            districtMinHours,
+  function handleToggleDistrict() {
 
-          max_hours:
+    if (
+      !selectedDistrict
+      ||
+      neighborhoods.length === 0
+    )
+      return;
 
-            districtMinHours===0
 
-            ? 0
+    const districtIds =
 
-            : districtMaxHours
+      neighborhoods
+        .map(
 
-        }
+          (item: any) =>
 
-      ];
+            Number(
+              item.id
+            )
+
+        )
+        .filter(
+          id =>
+
+            !isNaN(id)
+            &&
+            id > 0
+        );
+
+
+    const allSelected =
+
+      districtIds.every(
+        id =>
+
+          selectedNeighborhoods.includes(
+            id
+          )
+
+      );
+
+
+    const updated =
+
+      allSelected
+
+        ? selectedNeighborhoods.filter(
+          id =>
+
+            !districtIds.includes(
+              id
+            )
+        )
+
+        : [
+
+          ...selectedNeighborhoods,
+
+          ...districtIds
+
+        ];
+
+
+    const cleaned =
+
+      Array.from(
+        new Set(
+          updated
+        )
+      )
+        .filter(
+          id =>
+
+            typeof id === "number"
+            &&
+            !isNaN(id)
+            &&
+            id > 0
+        );
+
+
+    setSelectedNeighborhoods(
+      cleaned
+    );
+
+
+    districtStateRef.current[
+      selectedDistrict
+    ] = {
+
+      ...districtStateRef.current[
+      selectedDistrict
+      ],
+
+      neighborhoods:
+
+        allSelected
+          ? []
+          : districtIds
+
+    };
+
+  }
+
+
+  // ======================================
+  // TOGGLE BARRIO
+  // ======================================
+
+  function toggleNeighborhood(
+    neighborhoodId: number
+  ) {
+
+    if (
+      !selectedDistrict
+    )
+      return;
+
+
+    setSelectedNeighborhoods(
+
+      previous => {
+
+        const updated =
+
+          previous.includes(
+            neighborhoodId
+          )
+
+            ? previous.filter(
+              id =>
+                id !== neighborhoodId
+            )
+
+            : [
+
+              ...previous,
+
+              neighborhoodId
+
+            ];
+
+
+        const cleaned =
+
+          updated.filter(
+            id =>
+
+              typeof id === "number"
+              &&
+              !isNaN(id)
+              &&
+              id > 0
+          );
+
+
+        const districtIds =
+
+          cleaned.filter(
+            id =>
+
+              neighborhoods.some(
+
+                (neighborhood: any) =>
+
+                  Number(
+                    neighborhood.id
+                  )
+                  === id
+
+              )
+
+          );
+
+
+        districtStateRef.current[
+          selectedDistrict
+        ] = {
+
+          ...districtStateRef.current[
+          selectedDistrict
+          ],
+
+          neighborhoods:
+            districtIds
+
+        };
+
+        return cleaned;
+
+      }
+
+    );
+
+  }
+
+
+  // ======================================
+  // GUARDAR
+  // ======================================
+
+  async function handleSaveRoute() {
+
+    try {
+
+      if (
+        !routeName.trim()
+      ) {
+
+        setUiMessage({
+
+          open: true,
+
+          type: "warning",
+
+          title: "Validación",
+
+          message:
+            "Debe ingresar un nombre"
+
+        });
+
+        return;
+
+      }
+
+
+      if (
+        selectedNeighborhoods.length === 0
+      ) {
+
+        setUiMessage({
+
+          open: true,
+
+          type: "warning",
+
+          title: "Validación",
+
+          message:
+            "Debe seleccionar barrios"
+
+        });
+
+        return;
+
+      }
+
+
+      const savedRouteId =
+
+        await saveRoute({
+
+          routeId,
+
+          routeName,
+
+          selectedNeighborhoods,
+
+          company_delivery_charge:
+            companyDeliveryCharge,
+
+          courier_delivery_pay:
+            courierDeliveryPay,
+
+          company_failed_charge:
+            companyFailedCharge,
+
+          courier_failed_pay:
+            courierFailedPay,
+
+          districtDeliveryTimes,
+
+          districtVisitDays,
+
+          loadedDistrictIds:
+            visitedDistricts
+
+        });
+
+      setUiMessage({
+
+        open: true,
+
+        type: "success",
+
+        title:
+
+          routeId
+            ? "Ruta actualizada"
+            : "Ruta creada",
+
+        message:
+          "Guardado correctamente"
+
+      });
+
+
+      if (
+        !routeId
+      ) {
+
+        setTimeout(() => {
+
+          router.replace(
+
+            `/dashboard/routes?id=${savedRouteId}`
+
+          );
+
+        }, 1000);
+
+      }
+
+    }
+    catch (error) {
+
+      console.error(
+        error
+      );
+
+      setUiMessage({
+
+        open: true,
+
+        type: "error",
+
+        title: "Error",
+
+        message:
+          "No fue posible guardar"
+
+      });
 
     }
 
-  );
+  }
 
-}
+
+
+
   async function handleViewDistrict(row: any) {
     if (!routeId) return;
 
@@ -1136,14 +1639,25 @@ function toggleNeighborhood(
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-[450px] lg:max-w-6xl mx-auto p-6">
       <div className="bg-white border rounded-xl shadow-sm p-6">
         <h1 className="text-2xl font-bold mb-6">
           {routeId ? "Editar Ruta" : "Nueva Ruta"}
         </h1>
 
-        {/* NOMBRE + TIEMPO BASE */}
-        <div className="grid md:grid-cols-2 gap-4 mb-6">
+        {/* NOMBRE */}
+        <div className=" gap-4 mb-6 max-w-[300px]">
+          <label>
+            NOMBRE DE LA RUTA
+          </label>
+          <input
+            placeholder="Nombre de ruta"
+            value={routeName}
+            onChange={(e) => setRouteName(e.target.value)}
+          />
+        </div>
+
+        {/* <div className="grid md:grid-cols-2 gap-4 mb-6">
           <input
             placeholder="Nombre de ruta"
             value={routeName}
@@ -1188,10 +1702,11 @@ function toggleNeighborhood(
               </>
             )}
           </div>
-        </div>
+        </div>*/}
+
 
         {/* DÍAS BASE */}
-        <div className="flex gap-2 flex-wrap mb-6">
+        {/*<div className="flex gap-2 flex-wrap mb-6">
           {WEEK_DAYS.map((day) => (
             <button
               key={day.value}
@@ -1205,7 +1720,7 @@ function toggleNeighborhood(
               {day.label}
             </button>
           ))}
-        </div>
+        </div>*/}
 
         {/* SELECTS PROVINCIA / CANTÓN / DISTRITO */}
         <div className="space-y-4">
@@ -1284,9 +1799,22 @@ function toggleNeighborhood(
                 value={districtMinHours}
                 className="border rounded-lg p-1 max-w-[150px]"
                 onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setDistrictMinHours(value);
-                  if (value === 0) setDistrictMaxHours(0);
+
+                  const value =
+                    Number(
+                      e.target.value
+                    );
+
+                  updateDistrictHours(
+
+                    value,
+
+                    value === 0
+                      ? 0
+                      : districtMaxHours
+
+                  );
+
                 }}
               >
                 <option value={24}>24 horas</option>
@@ -1527,4 +2055,3 @@ function toggleNeighborhood(
     </div>
   );
 }
-

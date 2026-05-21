@@ -65,7 +65,7 @@ export function ClientCoverageTable({
             {
               key: "wednesday",
 
-              label: "M",
+              label: "X ",
             },
 
             {
