@@ -100,7 +100,7 @@ export default function RoutesListPage() {
         header: "Ruta",
       },
 
-      {
+      /*{
         accessorKey: "estimated_hours",
 
         header: "Tiempo estimado",
@@ -114,7 +114,7 @@ export default function RoutesListPage() {
 
           return `${hours} horas`;
         },
-      },
+      },*/
 
       {
         accessorKey: "active",
