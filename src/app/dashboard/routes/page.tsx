@@ -20,6 +20,7 @@ import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverag
 import { LocalidadesService } from "@/services/localidades_service";
 import { supabase } from "@/services/supabase/client";
 
+
 const WEEK_DAYS = [
   { value: "monday", label: "Lunes" },
   { value: "tuesday", label: "Martes" },
@@ -42,6 +43,9 @@ const DISTRICT_DAYS = [
 
 export default function RoutesPage() {
   const router = useRouter();
+  const [visitedDistricts, setVisitedDistricts] =
+
+useState<number[]>([]);
   const searchParams = useSearchParams();
   const routeId = searchParams.get("id");
   const { data: provinces } = useProvinces();
@@ -217,10 +221,12 @@ export default function RoutesPage() {
         ).supabase
           .from("route_coverage")
           .select("neighborhood_id, neighborhoods(district_id)")
-          .eq("route_id", routeId);
+          .eq("route_id", routeId).limit(15000);
 
         const allNeighborhoodIds =
-          allCoverage?.map((r: any) => r.neighborhood_id) ?? [];
+          allCoverage?.map((r: any) => Number(r.neighborhood_id)) ?? [];
+        /*const allNeighborhoodIds =
+          allCoverage?.map((r: any) => r.neighborhood_id) ?? [];*/
 
         setSelectedNeighborhoods(allNeighborhoodIds);
 
@@ -343,19 +349,63 @@ export default function RoutesPage() {
         return;
       }
 
-      const savedRouteId = await saveRoute({
-        routeId,
-        routeName,
-        estimatedHours: defaultMinHours,
-        selectedDays,
+      console.log({
+
+        selectedDistrict,
+
+        districtNeighborhoodIds:
+
+          neighborhoods.map(
+
+            n => n.id
+
+          ),
+
         selectedNeighborhoods,
-        company_delivery_charge: companyDeliveryCharge,
-        courier_delivery_pay: courierDeliveryPay,
-        company_failed_charge: companyFailedCharge,
-        courier_failed_pay: courierFailedPay,
-        districtDeliveryTimes,
-        districtVisitDays,
+
+        selectedCurrentDistrict:
+
+          selectedNeighborhoods.filter(
+
+            id =>
+
+              neighborhoods.some(
+
+                n => n.id === id
+
+              )
+
+          )
+
       });
+
+      const savedRouteId = await saveRoute({
+
+    routeId,
+    routeName,
+    estimatedHours: defaultMinHours,
+    selectedDays,
+    selectedNeighborhoods,
+
+    company_delivery_charge:
+      companyDeliveryCharge,
+
+    courier_delivery_pay:
+      courierDeliveryPay,
+
+    company_failed_charge:
+      companyFailedCharge,
+
+    courier_failed_pay:
+      courierFailedPay,
+
+    districtDeliveryTimes,
+
+    districtVisitDays,
+
+    visitedDistricts,
+
+});
 
       if (!routeId) {
         router.replace(`/dashboard/routes?id=${savedRouteId}`);
@@ -369,7 +419,7 @@ export default function RoutesPage() {
         supabase
           .from("route_coverage")
           .select("neighborhood_id, neighborhoods(district_id)")
-          .eq("route_id", routeId),
+          .eq("route_id", routeId).limit(15000),
         getRouteDistrictVisitDays(routeId),
       ]);
 
@@ -379,8 +429,32 @@ export default function RoutesPage() {
 
       // Barrios seleccionados — fuente de verdad desde BD
       const allNeighborhoodIds =
-        allCoverageResult.data?.map((r: any) => r.neighborhood_id) ?? [];
-      setSelectedNeighborhoods(allNeighborhoodIds);
+
+        Array.from(
+
+          new Set(
+
+            allCoverageResult.data?.map(
+
+              (r: any) =>
+
+                r.neighborhood_id
+
+            ) ?? []
+
+          )
+
+        );
+
+      setSelectedNeighborhoods(
+
+        previous => {
+
+          return allNeighborhoodIds;
+
+        }
+
+      );
 
       // Distritos ya cargados — resetear el ref con los que quedaron en BD
       const districtIdsFromCoverage = new Set<number>(
@@ -446,94 +520,155 @@ export default function RoutesPage() {
     setNeighborhoods([]);
   }
 
-  async function handleDistrictChange(districtId: number) {
-    const districtName =
-      districts.find((district: any) => district.id === districtId)?.name || "";
-    setSelectedDistrictName(districtName);
+  async function handleDistrictChange(
+  districtId: number,
+) {
 
-    // ─── BARRIOS
-    const data = await getNeighborhoods(districtId);
-    setNeighborhoods(data || []);
+  setSelectedDistrict(
+    districtId,
+  );
 
-    const currentDistrictNeighborhoodIds = data.map(
-      (neighborhood: any) => neighborhood.id,
+  const districtName =
+
+    districts.find(
+
+      (
+        district:any
+      ) =>
+
+        district.id === districtId
+
+    )?.name || "";
+
+  setSelectedDistrictName(
+    districtName
+  );
+
+  // registrar distrito visitado
+
+  setVisitedDistricts(
+
+    previous =>
+
+      previous.includes(
+        districtId
+      )
+
+      ? previous
+
+      : [
+
+          ...previous,
+
+          districtId
+
+        ]
+
+  );
+
+  // ======================
+  // BARRIOS
+  // ======================
+
+  const data = await getNeighborhoods(
+    districtId
+  );
+
+  setNeighborhoods(
+    data || []
+  );
+
+  const currentDistrictNeighborhoodIds =
+
+    data.map(
+
+      (
+        neighborhood:any
+      ) =>
+
+        neighborhood.id
+
     );
 
-    // ─── FIX: Solo buscar en BD si este distrito nunca fue cargado.
-    // Si ya está en loadedDistrictsRef significa que loadRoute (o una carga
-    // previa) ya tiene sus barrios en selectedNeighborhoods. No sobreescribir.
-    if (!loadedDistrictsRef.current.has(districtId) && routeId) {
-      const coverage = await getDistrictNeighborhoods(districtId, routeId);
-      const coveredIds = coverage
-        .filter((item: any) => item.has_coverage)
-        .map((item: any) => item.id);
+  // cargar cobertura real
 
-      setSelectedNeighborhoods((previous) => {
-        const otherDistricts = previous.filter(
-          (neighborhoodId) =>
-            !currentDistrictNeighborhoodIds.includes(neighborhoodId),
-        );
-        return [...otherDistricts, ...coveredIds];
-      });
-    }
+  if (
 
-    // Marcar el distrito como cargado (aunque no tuviera barrios cubiertos)
-    loadedDistrictsRef.current.add(districtId);
+    routeId
 
-    // ─── HORAS (prioridad: memoria → coverageView → defaults)
-    let minToUse = defaultMinHours;
-    let maxToUse = defaultMaxHours;
+  ) {
 
-    const tempHours = districtDeliveryTimes.find(
-      (item) => item.district_id === districtId,
-    );
+    const coverage =
 
-    if (tempHours) {
-      minToUse = tempHours.min_hours;
-      maxToUse = tempHours.max_hours;
-    } else {
-      const savedHours = coverageView.find(
-        (item: any) => item.district_id === districtId,
-      );
-      if (savedHours) {
-        minToUse = savedHours.min_hours ?? 0;
-        maxToUse = savedHours.max_hours ?? 0;
+  await getDistrictNeighborhoods(
+
+    districtId,
+
+    routeId
+
+  );
+
+console.log(
+  "coverage district",
+  coverage
+);
+
+const coveredIds =
+
+  coverage.map(
+
+    (
+      item:any
+    ) =>
+
+      Number(
+
+        item.neighborhood_id ??
+
+        item.id
+
+      )
+
+  );
+
+console.log(
+  "coveredIds",
+  coveredIds
+);
+
+    setSelectedNeighborhoods(
+
+      previous => {
+
+        const otherDistricts =
+
+          previous.filter(
+
+            neighborhoodId =>
+
+              !currentDistrictNeighborhoodIds.includes(
+
+                neighborhoodId
+
+              )
+
+          );
+
+        return [
+
+          ...otherDistricts,
+
+          ...coveredIds
+
+        ];
+
       }
-    }
 
-    // Marcar skip para no disparar el effect con valores stale
-    skipDeliveryEffect.current = true;
-    setDistrictMinHours(minToUse);
-    setDistrictMaxHours(maxToUse);
-
-    setDistrictDeliveryTimes((previous) => [
-      ...previous.filter((item) => item.district_id !== districtId),
-      {
-        district_id: districtId,
-        min_hours: minToUse,
-        max_hours: minToUse === 0 ? 0 : maxToUse,
-      },
-    ]);
-
-    // ─── DÍAS (prioridad: memoria → defaults)
-    let daysToUse = [...selectedDaysRef.current];
-
-    const tempDays = districtVisitDays.find(
-      (item) => item.district_id === districtId,
     );
 
-    if (tempDays?.days?.length) {
-      daysToUse = [...tempDays.days];
-    }
-
-    setDistrictVisitDays((previous) => [
-      ...previous.filter((item) => item.district_id !== districtId),
-      {
-        district_id: districtId,
-        days: [...daysToUse],
-      },
-    ]);
   }
+
+}
 
   function handleToggleDistrict() {
     if (neighborhoods.length === 0) return;
@@ -576,10 +711,10 @@ export default function RoutesPage() {
           return previous.map((item) =>
             item.district_id === selectedDistrict
               ? {
-                  ...item,
-                  min_hours: districtMinHours,
-                  max_hours: districtMinHours === 0 ? 0 : districtMaxHours,
-                }
+                ...item,
+                min_hours: districtMinHours,
+                max_hours: districtMinHours === 0 ? 0 : districtMaxHours,
+              }
               : item,
           );
         }
@@ -678,11 +813,10 @@ export default function RoutesPage() {
               key={day.value}
               type="button"
               onClick={() => toggleDay(day.value)}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                selectedDays.includes(day.value)
-                  ? "bg-violet-600 text-white border-violet-600"
-                  : "bg-white hover:bg-violet-50"
-              }`}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${selectedDays.includes(day.value)
+                ? "bg-violet-600 text-white border-violet-600"
+                : "bg-white hover:bg-violet-50"
+                }`}
             >
               {day.label}
             </button>
@@ -820,11 +954,10 @@ export default function RoutesPage() {
                     key={day.value}
                     type="button"
                     onClick={() => toggleDistrictVisitDay(day.value)}
-                    className={`w-8 h-8 rounded-full border text-sm font-medium ${
-                      isSelected
-                        ? "bg-green-600 text-white border-green-600"
-                        : "bg-white text-gray-700 border-gray-300"
-                    }`}
+                    className={`w-8 h-8 rounded-full border text-sm font-medium ${isSelected
+                      ? "bg-green-600 text-white border-green-600"
+                      : "bg-white text-gray-700 border-gray-300"
+                      }`}
                   >
                     {day.label}
                   </button>

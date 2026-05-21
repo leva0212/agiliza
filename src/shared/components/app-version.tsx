@@ -41,9 +41,9 @@ export function AppVersion() {
 
       {" • "}
 
-      build:
+     {/* build:
       {" "}
-      {formattedBuildDate}
+      {formattedBuildDate}*/}
 
     </div>
 

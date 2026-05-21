@@ -17,7 +17,7 @@ export async function getRouteDistrictCoverage(
         routeId,
     }
 
-  );
+  );  
 
   if (
     error
