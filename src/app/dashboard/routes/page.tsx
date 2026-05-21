@@ -20,7 +20,6 @@ import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverag
 import { LocalidadesService } from "@/services/localidades_service";
 import { supabase } from "@/services/supabase/client";
 
-
 const WEEK_DAYS = [
   { value: "monday", label: "Lunes" },
   { value: "tuesday", label: "Martes" },
@@ -42,10 +41,44 @@ const DISTRICT_DAYS = [
 ];
 
 export default function RoutesPage() {
+
   const router = useRouter();
+  const [modifiedDistricts,setModifiedDistricts]=
+useState<number[]>([]);
+
+// preview local de cobertura
+
+const coveragePreviewRef = useRef<{
+
+    [districtId:number]:number[]
+
+}>({});
+
+// preview local de horas
+
+const deliveryPreviewRef = useRef<{
+
+    [districtId:number]:{
+
+        min_hours:number;
+
+        max_hours:number;
+
+    }
+
+}>({});
+
+// preview local de días
+
+const visitDaysPreviewRef = useRef<{
+
+    [districtId:number]:string[]
+
+}>({});
+
   const [visitedDistricts, setVisitedDistricts] =
 
-useState<number[]>([]);
+    useState<number[]>([]);
   const searchParams = useSearchParams();
   const routeId = searchParams.get("id");
   const { data: provinces } = useProvinces();
@@ -138,30 +171,102 @@ useState<number[]>([]);
 
   // ─── Effect de districtDeliveryTimes
   // skipDeliveryEffect previene race condition con handleDistrictChange.
-  useEffect(() => {
-    if (!selectedDistrict) return;
-    if (skipDeliveryEffect.current) {
-      skipDeliveryEffect.current = false;
-      return;
-    }
+  useEffect(()=>{
 
-    setDistrictDeliveryTimes((previous) => {
-      const exists = previous.some(
-        (item) => item.district_id === selectedDistrict,
-      );
-      const updatedItem = {
-        district_id: selectedDistrict,
-        min_hours: districtMinHours,
-        max_hours: districtMinHours === 0 ? 0 : districtMaxHours,
-      };
-      if (exists) {
-        return previous.map((item) =>
-          item.district_id === selectedDistrict ? updatedItem : item,
-        );
+  if(
+
+    !selectedDistrict ||
+
+    skipDeliveryEffect.current
+
+  ){
+
+    skipDeliveryEffect.current=false;
+
+    return;
+
+  }
+
+  setModifiedDistricts(
+
+    previous =>
+
+      previous.includes(
+        selectedDistrict
+      )
+
+      ? previous
+
+      : [
+
+          ...previous,
+
+          selectedDistrict
+
+        ]
+
+  );
+
+  deliveryPreviewRef.current[
+    selectedDistrict
+  ]={
+
+    min_hours:
+      districtMinHours,
+
+    max_hours:
+
+      districtMinHours===0
+
+      ? 0
+
+      : districtMaxHours
+
+  };
+
+  setDistrictDeliveryTimes(
+
+    previous => [
+
+      ...previous.filter(
+
+        item=>
+
+          item.district_id!==selectedDistrict
+
+      ),
+
+      {
+
+        district_id:
+          selectedDistrict,
+
+        min_hours:
+          districtMinHours,
+
+        max_hours:
+
+          districtMinHours===0
+
+          ? 0
+
+          : districtMaxHours
+
       }
-      return [...previous, updatedItem];
-    });
-  }, [selectedDistrict, districtMinHours, districtMaxHours]);
+
+    ]
+
+  );
+
+},[
+
+  districtMinHours,
+
+  districtMaxHours,
+
+  selectedDistrict
+
+]);
 
   // ─── Effect de districtVisitDays
   useEffect(() => {
@@ -381,31 +486,31 @@ useState<number[]>([]);
 
       const savedRouteId = await saveRoute({
 
-    routeId,
-    routeName,
-    estimatedHours: defaultMinHours,
-    selectedDays,
-    selectedNeighborhoods,
+        routeId,
+        routeName,
+        estimatedHours: defaultMinHours,
+        selectedDays,
+        selectedNeighborhoods,
 
-    company_delivery_charge:
-      companyDeliveryCharge,
+        company_delivery_charge:
+          companyDeliveryCharge,
 
-    courier_delivery_pay:
-      courierDeliveryPay,
+        courier_delivery_pay:
+          courierDeliveryPay,
 
-    company_failed_charge:
-      companyFailedCharge,
+        company_failed_charge:
+          companyFailedCharge,
 
-    courier_failed_pay:
-      courierFailedPay,
+        courier_failed_pay:
+          courierFailedPay,
 
-    districtDeliveryTimes,
+        districtDeliveryTimes,
 
-    districtVisitDays,
+        districtVisitDays,
 
-    visitedDistricts,
+        visitedDistricts,
 
-});
+      });
 
       if (!routeId) {
         router.replace(`/dashboard/routes?id=${savedRouteId}`);
@@ -544,7 +649,7 @@ useState<number[]>([]);
     districtName
   );
 
-  // registrar distrito visitado
+  // registrar distrito navegado
 
   setVisitedDistricts(
 
@@ -567,12 +672,14 @@ useState<number[]>([]);
   );
 
   // ======================
-  // BARRIOS
+  // BARRIOS DEL DISTRITO
   // ======================
 
-  const data = await getNeighborhoods(
-    districtId
-  );
+  const data =
+
+    await getNeighborhoods(
+      districtId
+    );
 
   setNeighborhoods(
     data || []
@@ -580,93 +687,236 @@ useState<number[]>([]);
 
   const currentDistrictNeighborhoodIds =
 
-    data.map(
+    (data || []).map(
 
       (
         neighborhood:any
       ) =>
 
-        neighborhood.id
+        Number(
+          neighborhood.id
+        )
 
     );
 
-  // cargar cobertura real
+  // ======================
+  // COBERTURA
+  // preview -> BD
+  // ======================
 
-  if (
+  let coveredIds:number[]=[];
 
-    routeId
+  if(
 
-  ) {
+    coveragePreviewRef.current[
+      districtId
+    ]
 
-    const coverage =
+  ){
 
-  await getDistrictNeighborhoods(
+    coveredIds=
 
-    districtId,
-
-    routeId
-
-  );
-
-console.log(
-  "coverage district",
-  coverage
-);
-
-const coveredIds =
-
-  coverage.map(
-
-    (
-      item:any
-    ) =>
-
-      Number(
-
-        item.neighborhood_id ??
-
-        item.id
-
-      )
-
-  );
-
-console.log(
-  "coveredIds",
-  coveredIds
-);
-
-    setSelectedNeighborhoods(
-
-      previous => {
-
-        const otherDistricts =
-
-          previous.filter(
-
-            neighborhoodId =>
-
-              !currentDistrictNeighborhoodIds.includes(
-
-                neighborhoodId
-
-              )
-
-          );
-
-        return [
-
-          ...otherDistricts,
-
-          ...coveredIds
-
-        ];
-
-      }
-
-    );
+      coveragePreviewRef.current[
+        districtId
+      ];
 
   }
+
+  else if(
+
+    routeId
+
+  ){
+
+    const coverage=
+
+      await getDistrictNeighborhoods(
+
+        districtId,
+
+        routeId
+
+      );
+
+    coveredIds=
+
+      coverage.map(
+
+        (
+          item:any
+        ) =>
+
+          Number(
+
+            item.neighborhood_id ??
+
+            item.id
+
+          )
+
+      );
+
+    coveragePreviewRef.current[
+      districtId
+    ]=
+
+      coveredIds;
+
+  }
+
+  setSelectedNeighborhoods(
+
+    previous => {
+
+      const otherDistricts=
+
+        previous.filter(
+
+          neighborhoodId =>
+
+            !currentDistrictNeighborhoodIds.includes(
+
+              neighborhoodId
+
+            )
+
+        );
+
+      return [
+
+        ...otherDistricts,
+
+        ...coveredIds
+
+      ];
+
+    }
+
+  );
+
+  // ======================
+  // HORAS
+  // preview -> BD
+  // ======================
+
+  skipDeliveryEffect.current=true;
+
+  let hours={
+
+    min_hours:0,
+
+    max_hours:0
+
+  };
+
+  if(
+
+    deliveryPreviewRef.current[
+      districtId
+    ]
+
+  ){
+
+    hours=
+
+      deliveryPreviewRef.current[
+        districtId
+      ];
+
+  }
+
+  else{
+
+    const savedHours=
+
+      coverageView.find(
+
+        (
+          item:any
+        ) =>
+
+          item.district_id===districtId
+
+      );
+
+    hours={
+
+      min_hours:
+        savedHours?.min_hours ?? 0,
+
+      max_hours:
+        savedHours?.max_hours ?? 0,
+
+    };
+
+    deliveryPreviewRef.current[
+      districtId
+    ]=hours;
+
+  }
+
+  setDistrictMinHours(
+    hours.min_hours
+  );
+
+  setDistrictMaxHours(
+    hours.max_hours
+  );
+
+  // ======================
+  // DÍAS
+  // preview -> BD
+  // ======================
+
+  let days:string[]=[];
+
+  if(
+
+    visitDaysPreviewRef.current[
+      districtId
+    ]
+
+  ){
+
+    days=
+
+      visitDaysPreviewRef.current[
+        districtId
+      ];
+
+  }
+
+  else{
+
+    const saved=
+
+      districtVisitDays.find(
+
+        item=>
+
+          item.district_id===districtId
+
+      );
+
+    days=
+
+      saved?.days ?? [];
+
+    
+    visitDaysPreviewRef.current[
+      districtId
+    ]=
+
+      [...days];
+
+  }
+
+  setSelectedDays(
+    [...days]
+  );
+
+  selectedDaysRef.current=
+    [...days];
 
 }
 
@@ -693,43 +943,177 @@ console.log(
 
       return Array.from(new Set([...previous, ...districtNeighborhoodIds]));
     });
+
+
+
+
   }
 
-  function toggleNeighborhood(neighborhoodId: number) {
-    setSelectedNeighborhoods((previous) =>
-      previous.includes(neighborhoodId)
-        ? previous.filter((id) => id !== neighborhoodId)
-        : [...previous, neighborhoodId],
-    );
+function toggleNeighborhood(
+  neighborhoodId:number
+){
 
-    if (selectedDistrict) {
-      setDistrictDeliveryTimes((previous) => {
-        const exists = previous.some(
-          (item) => item.district_id === selectedDistrict,
-        );
-        if (exists) {
-          return previous.map((item) =>
-            item.district_id === selectedDistrict
-              ? {
-                ...item,
-                min_hours: districtMinHours,
-                max_hours: districtMinHours === 0 ? 0 : districtMaxHours,
-              }
-              : item,
-          );
-        }
-        return [
+  if(
+    !selectedDistrict
+  ) return;
+
+  setModifiedDistricts(
+
+    previous =>
+
+      previous.includes(
+        selectedDistrict
+      )
+
+      ? previous
+
+      : [
+
           ...previous,
-          {
-            district_id: selectedDistrict,
-            min_hours: districtMinHours,
-            max_hours: districtMinHours === 0 ? 0 : districtMaxHours,
-          },
-        ];
-      });
-    }
-  }
 
+          selectedDistrict
+
+        ]
+
+  );
+
+  setSelectedNeighborhoods(
+
+    previous => {
+
+      const updated =
+
+        previous.includes(
+          neighborhoodId
+        )
+
+        ? previous.filter(
+
+            id =>
+
+              id !== neighborhoodId
+
+          )
+
+        : [
+
+            ...previous,
+
+            neighborhoodId
+
+          ];
+
+      // preview cobertura
+
+      const districtIds=
+
+        updated.filter(
+
+          id =>
+
+            neighborhoods.some(
+
+              n =>
+
+                Number(
+                  n.id
+                )===id
+
+            )
+
+        );
+
+      coveragePreviewRef.current[
+        selectedDistrict
+      ]=
+
+      districtIds;
+
+      return updated;
+
+    }
+
+  );
+
+  // mantener horas del distrito
+  // (ya existía antes)
+
+  setDistrictDeliveryTimes(
+
+    previous => {
+
+      const exists =
+
+        previous.some(
+
+          item =>
+
+            item.district_id===selectedDistrict
+
+        );
+
+      if(
+        exists
+      ){
+
+        return previous.map(
+
+          item =>
+
+            item.district_id===selectedDistrict
+
+            ? {
+
+                ...item,
+
+                min_hours:
+                  districtMinHours,
+
+                max_hours:
+
+                  districtMinHours===0
+
+                  ? 0
+
+                  : districtMaxHours,
+
+              }
+
+            : item
+
+        );
+
+      }
+
+      return [
+
+        ...previous,
+
+        {
+
+          district_id:
+            selectedDistrict,
+
+          min_hours:
+            districtMinHours,
+
+          max_hours:
+
+            districtMinHours===0
+
+            ? 0
+
+            : districtMaxHours
+
+        }
+
+      ];
+
+    }
+
+  );
+
+}
   async function handleViewDistrict(row: any) {
     if (!routeId) return;
 
