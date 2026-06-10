@@ -24,12 +24,21 @@ export default function CoveragePage() {
 
   const STORAGE_KEY = "coverage_selected_province";
 
-  const [selectedProvince, setSelectedProvince] = useState<string>(() => {
+  /*const [selectedProvince, setSelectedProvince] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(STORAGE_KEY) ?? "";
     }
     return "";
-  });
+  });*/
+useEffect(() => {
+  const saved =
+    localStorage.getItem(STORAGE_KEY);
+
+  if (saved) {
+    setSelectedProvince(saved);
+  }
+}, []);
+  const [selectedProvince, setSelectedProvince] = useState("");
   const [coverageData, setCoverageData] = useState<CoverageRow[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState("");

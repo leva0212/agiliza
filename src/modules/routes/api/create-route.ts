@@ -1,5 +1,4 @@
-import { supabase } from "@/services/supabase/client";
-
+import { createClient } from "@/lib/supabase/client";
 type Input = {
   name: string;
   estimatedHours: number;
@@ -8,6 +7,7 @@ type Input = {
 export async function createRoute(
   input: Input
 ) {
+  const supabase = createClient();
   const { data, error } =
     await supabase
       .from("routes")

@@ -4,7 +4,10 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { UiMessage } from "@/shared/components/ui-message";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
-
+//import { supabase } from "@/services/supabase/client";
+import {
+  createClient,
+} from "@/lib/supabase/client";
 export default function LoginPage() {
   const router = useRouter();
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -22,29 +25,158 @@ export default function LoginPage() {
   >("info");
 
   async function handleLogin() {
-    setLoading(true);
+    const supabase =
+  createClient();
 
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+  if (!email.trim()) {
 
-    const result = await response.json();
-    setLoading(false);
+    setMessageTitle(
+      "Correo requerido",
+    );
 
-    if (!result.success) {
-      setMessageTitle("Acceso denegado");
-      setMessageText(result.message);
-      setMessageType("error");
-      setMessageOpen(true);
+    setMessageText(
+      "Ingrese su correo electrónico.",
+    );
+
+    setMessageType(
+      "warning",
+    );
+
+    setMessageOpen(
+      true,
+    );
+
+    return;
+  }
+
+  if (!password.trim()) {
+
+    setMessageTitle(
+      "Contraseña requerida",
+    );
+
+    setMessageText(
+      "Ingrese su contraseña.",
+    );
+
+    setMessageType(
+      "warning",
+    );
+
+    setMessageOpen(
+      true,
+    );
+
+    return;
+  }
+
+  try {
+
+    setLoading(
+      true,
+    );
+
+  const {
+  data,
+  error,
+} =
+  await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+console.log(
+  "LOGIN DATA",
+  data,
+);
+
+console.log(
+  "LOGIN ERROR",
+  error,
+);
+
+    if (error) {
+
+      setMessageTitle(
+        "Acceso denegado",
+      );
+
+      setMessageText(
+        error.message,
+      );
+
+      setMessageType(
+        "error",
+      );
+
+      setMessageOpen(
+        true,
+      );
+
       return;
     }
 
-    router.push("/dashboard/routes/list");
+    setMessageTitle(
+      "Bienvenido",
+    );
+
+    setMessageText(
+      "Inicio de sesión exitoso.",
+    );
+
+    setMessageType(
+      "success",
+    );
+
+    setMessageOpen(
+      true,
+    );
+    if (error) {
+
+  return;
+}
+
+window.location.href =
+  "/dashboard/";
+/*
+    setTimeout(
+      () => {
+
+        router.push(
+          "/dashboard/routes/list",
+        );
+
+      },
+      500,
+    );*/
+
+  } catch {
+
+    setMessageTitle(
+      "Error",
+    );
+
+    setMessageText(
+      "No fue posible iniciar sesión.",
+    );
+
+    setMessageType(
+      "error",
+    );
+
+    setMessageOpen(
+      true,
+    );
+
+  } finally {
+
+    setLoading(
+      false,
+    );
+
   }
+
+}
 
   return (
     <>

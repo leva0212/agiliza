@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 export async function getRouteCoverageView(
 
@@ -8,7 +8,7 @@ export async function getRouteCoverageView(
 
   pageSize = 100
 
-) {
+) { const supabase = createClient();
 
   const from =
     pageIndex *

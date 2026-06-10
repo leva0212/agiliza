@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 type Params = {
   routeId?: string | null;
@@ -44,6 +44,7 @@ export async function saveRoute({
   loadedDistrictIds,
 
 }:Params){
+  const supabase = createClient();
 
   let currentRouteId=routeId;
 

@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   ...(process.env.NODE_ENV === "development" && {
 
     allowedDevOrigins: [
-      "192.168.40.159",
+      "192.168.56.1",
     ],
 
   }),

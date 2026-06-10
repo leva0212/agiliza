@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 export async function getDistrictNeighborhoods(
 
@@ -6,7 +6,7 @@ export async function getDistrictNeighborhoods(
 
   routeId?: string | null
 
-) {
+) { const supabase = createClient();
 
   const {
     data,

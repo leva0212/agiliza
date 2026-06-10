@@ -10,9 +10,13 @@ type Props = {
 
   title: string;
 
-  message: string;
+  message: React.ReactNode;
 
   type?: MessageType;
+
+  cancelText?: string;
+
+confirmText?: string;
 
   onClose: () => void;
 
@@ -25,6 +29,8 @@ export function UiMessage({
   title,
 
   message,
+  cancelText = "Cancelar",
+  confirmText = "Confirmar",
 
   type = "info",
 
@@ -89,9 +95,9 @@ export function UiMessage({
 
           </div>
 
-          <p className="text-sm">
+          <div className="text-sm">
             {message}
-          </p>
+          </div>
 
         </div>
 
@@ -106,7 +112,7 @@ export function UiMessage({
               onClick={onClose}
               className="border border-gray-300 py-3 rounded-xl font-medium"
             >
-              Cancelar
+             {cancelText}
             </button>
 
             <button
@@ -115,7 +121,7 @@ export function UiMessage({
               }
               className="bg-violet-600 text-white py-3 rounded-xl font-medium"
             >
-              Confirmar
+              {confirmText}
             </button>
 
           </div>
@@ -132,6 +138,7 @@ export function UiMessage({
         )}
 
       </div>
+      
 
     </div>
   );

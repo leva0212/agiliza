@@ -1,8 +1,8 @@
-import { supabase } from "@/services/supabase/client";
-
+import { createClient } from "@/lib/supabase/client";
 export async function getRouteById(
   routeId: string
 ) {
+  const supabase = createClient();
   const { data, error } =
     await supabase
       .from("routes")

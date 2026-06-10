@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 type WeekDay =
   | "monday"
@@ -13,6 +13,7 @@ export async function saveRouteDays(
   routeId: string,
   days: WeekDay[]
 ) {
+  const supabase = createClient();
   const payload =
     days.map((day) => ({
       route_id: routeId,

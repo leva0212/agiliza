@@ -1,9 +1,32 @@
-import { useQuery } from '@tanstack/react-query'
-import { getCompanies } from '../api/get-companies'
+import { useQuery } from "@tanstack/react-query";
 
-export function useCompanies() {
+import { getCompanies } from "@/modules/companies/api/get-companies";
+
+export function useCompanies(
+  pageIndex: number,
+  pageSize: number,
+) {
   return useQuery({
-    queryKey: ['companies'],
-    queryFn: getCompanies,
-  })
+
+    queryKey: [
+
+      "companies",
+
+      pageIndex,
+
+      pageSize,
+
+    ],
+
+    queryFn: () =>
+
+      getCompanies({
+
+        pageIndex,
+
+        pageSize,
+
+      }),
+
+  });
 }

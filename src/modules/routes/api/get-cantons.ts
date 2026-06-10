@@ -1,15 +1,44 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
+
+import type {
+  Canton,
+} from "../types/canton";
 
 export async function getCantons(
-  provinceId: number
-) {
-  const { data, error } = await supabase
-    .from("cantons")
+  provinceId: number,
+): Promise<
+  Canton[]
+> {
+
+  const supabase =
+    createClient();
+
+  const {
+    data,
+    error,
+  } = await supabase
+
+    .from(
+      "cantons",
+    )
+
     .select("*")
-    .eq("province_id", provinceId)
-    .order("id");
 
-  if (error) throw error;
+    .eq(
+      "province_id",
+      provinceId,
+    )
 
-  return data;
+    .order(
+      "id",
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  return (
+    data ?? []
+  ) as Canton[];
+
 }

@@ -1,8 +1,9 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 export async function deleteRoute(
   routeId: string
 ) {
+  const supabase = createClient();
   const { error } =
     await supabase
       .from("routes")

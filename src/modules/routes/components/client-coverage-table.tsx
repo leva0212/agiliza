@@ -222,7 +222,7 @@ export function ClientCoverageTable({
         pagination: {
           pageIndex: 0,
 
-          pageSize: 200,
+          pageSize: 100,
         },
       }}
       muiSearchTextFieldProps={{

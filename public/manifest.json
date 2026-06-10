@@ -2,7 +2,7 @@
   "name": "Agiliza",
   "short_name": "Agiliza",
   "description": "Mapa de cobertura Agiliza",
-  "start_url": "/",
+   "start_url": "/dashboard/coverage",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1976d2",

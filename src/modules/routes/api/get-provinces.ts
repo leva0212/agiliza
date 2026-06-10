@@ -1,12 +1,21 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
-export async function getProvinces() {
+import type { Province } from "../types/province";
+
+export async function getProvinces(): Promise<Province[]> {
+  const supabase = createClient();
+
   const { data, error } = await supabase
+
     .from("provinces")
+
     .select("*")
+
     .order("id");
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
-  return data;
+  return (data ?? []) as Province[];
 }

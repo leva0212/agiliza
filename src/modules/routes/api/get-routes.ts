@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 type Params = {
   pageIndex: number;
@@ -11,6 +11,7 @@ export async function getRoutes({
 
   pageSize,
 }: Params) {
+  const supabase = createClient();
   const from =
     pageIndex * pageSize;
 

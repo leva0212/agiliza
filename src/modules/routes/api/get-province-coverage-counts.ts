@@ -1,11 +1,11 @@
-import { supabase } from "@/services/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 export async function getProvinceCoverageCounts(
 
   provinceName: string
 
 ) {
-
+  const supabase = createClient();
   const {
     data,
 
