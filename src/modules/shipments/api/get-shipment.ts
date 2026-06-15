@@ -59,8 +59,7 @@ export async function getShipment(shipmentId: string): Promise<ShipmentDetail> {
       id,
       full_name
      ),
-
-      route:routes(
+    route:routes(
         id,
         name,
         estimated_hours
@@ -97,8 +96,10 @@ neighborhood:neighborhoods(
     throw error;
   }
 
+
   return {
     ...data,
+
     courier:
       Array.isArray(
         data.courier,

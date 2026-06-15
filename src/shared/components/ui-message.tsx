@@ -3,7 +3,8 @@ type MessageType =
   | "error"
   | "warning"
   | "info"
-  | "question";
+  | "question"
+  | "danger";
 
 type Props = {
   open: boolean;
@@ -16,7 +17,7 @@ type Props = {
 
   cancelText?: string;
 
-confirmText?: string;
+  confirmText?: string;
 
   onClose: () => void;
 
@@ -70,76 +71,105 @@ export function UiMessage({
       box: "bg-violet-50 border-violet-200 text-violet-700",
       button: "bg-violet-600",
     },
+    danger: {
+      icon: "🗑",
+      box: "bg-red-50 border-red-300 text-red-700",
+      button: "bg-red-600",
+    },
   };
 
-  const current =
-    styles[type];
-
+  const current = styles[type];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border animate-fade-in p-6">
+      <div
+        className="
+        w-full
+        max-w-2xl
+        bg-white
+        rounded-2xl
+        shadow-xl
+        border
+        animate-fade-in
+        flex
+        flex-col
+        max-h-[85vh]
+      "
+      >
+        {/* CONTENIDO CON SCROLL */}
 
         <div
-          className={`rounded-xl border p-5 mb-5 ${current.box}`}
+          className="
+          p-6
+          overflow-y-auto
+          flex-1
+        "
         >
-          <div className="flex items-center gap-3 mb-2">
+          <div className={`rounded-xl border p-5 ${current.box}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-2xl font-bold">{current.icon}</div>
 
-            <div className="text-2xl font-bold">
-              {current.icon}
+              <h2 className="text-lg font-semibold">{title}</h2>
             </div>
 
-            <h2 className="text-lg font-semibold">
-              {title}
-            </h2>
-
+            <div className="text-sm">{message}</div>
           </div>
-
-          <div className="text-sm">
-            {message}
-          </div>
-
         </div>
 
-        {/* QUESTION */}
+        {/* BOTONES FIJOS */}
 
-        {type ===
-        "question" ? (
+        <div
+          className="
+          border-t
+          p-4
+          bg-white
+          rounded-b-2xl
+        "
+        >
+          {type === "question" || type === "danger" ? (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={onClose}
+                className="
+                border
+                border-gray-300
+                py-3
+                rounded-xl
+                font-medium
+              "
+              >
+                {cancelText}
+              </button>
 
-          <div className="grid grid-cols-2 gap-3">
-
+              <button
+                onClick={onConfirm}
+                className={`
+    text-white
+    py-3
+    rounded-xl
+    font-medium
+    ${type === "danger" ? "bg-red-600" : "bg-violet-600"}
+  `}
+              >
+                {confirmText}
+              </button>
+            </div>
+          ) : (
             <button
               onClick={onClose}
-              className="border border-gray-300 py-3 rounded-xl font-medium"
+              className={`
+              w-full
+              text-white
+              py-3
+              rounded-xl
+              font-medium
+              ${current.button}
+            `}
             >
-             {cancelText}
+              Cerrar
             </button>
-
-            <button
-              onClick={
-                onConfirm
-              }
-              className="bg-violet-600 text-white py-3 rounded-xl font-medium"
-            >
-              {confirmText}
-            </button>
-
-          </div>
-
-        ) : (
-
-          <button
-            onClick={onClose}
-            className={`w-full text-white py-3 rounded-xl font-medium ${current.button}`}
-          >
-            Cerrar
-          </button>
-
-        )}
-
+          )}
+        </div>
       </div>
-      
-
     </div>
   );
 }

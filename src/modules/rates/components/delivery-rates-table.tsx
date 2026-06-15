@@ -2,170 +2,171 @@
 
 import { useMemo } from "react";
 
-import {
-  MaterialReactTable,
-  type MRT_ColumnDef,
-} from "material-react-table";
+import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
-import {
-  MRT_Localization_ES,
-} from "material-react-table/locales/es";
+import { MRT_Localization_ES } from "material-react-table/locales/es";
 
-import type {
-  DeliveryRateDetail,
-} from "../types/delivery-rate";
+import type { DeliveryRateDetail } from "../types/delivery-rate";
+import EditIcon from "@mui/icons-material/Edit";
 
+import DeleteIcon from "@mui/icons-material/Delete";
+
+import IconButton from "@mui/material/IconButton";
+
+import Tooltip from "@mui/material/Tooltip";
 type Props = {
   data: DeliveryRateDetail[];
+
+  onEdit: (rate: DeliveryRateDetail) => void;
+
+  onDelete: (rateId: string) => void;
 };
-
-function getZoneLabel(
-  rate: DeliveryRateDetail,
-) {
-
-  if (
-    rate.neighborhood
-  ) {
+function getZoneLabel(rate: DeliveryRateDetail) {
+  if (rate.neighborhood) {
     return `Barrio ${rate.neighborhood.name}`;
   }
 
-  if (
-    rate.district
-  ) {
+  if (rate.district) {
     return `Distrito ${rate.district.name}`;
   }
 
-  if (
-    rate.canton
-  ) {
+  if (rate.canton) {
     return `Cantón ${rate.canton.name}`;
   }
 
-  if (
-    rate.province
-  ) {
+  if (rate.province) {
     return `Provincia ${rate.province.name}`;
   }
 
   return "Toda la ruta";
-
 }
 
-export function DeliveryRatesTable({
-  data,
-}: Props) {
+export function DeliveryRatesTable({ data, onEdit, onDelete }: Props) {
+  const columns = useMemo<MRT_ColumnDef<DeliveryRateDetail>[]>(
+    () => [
+      {
+        id: "company",
 
-  const columns =
-    useMemo<
-      MRT_ColumnDef<
-        DeliveryRateDetail
-      >[]
-    >(
-      () => [
+        header: "Empresa",
 
-        {
-          id: "zone",
+        accessorFn: (row) => row.company?.name ?? "",
 
-          header: "Zona",
+        size: 200,
+      },
 
-          accessorFn: (
-            row,
-          ) =>
-            getZoneLabel(
-              row,
-            ),
+      {
+        id: "zone",
 
-          size: 250,
+        header: "Zona",
 
-          minSize: 150,
+        Cell: ({ row }) => {
+          const rate = row.original;
+
+          const zone = getZoneLabel(rate);
+
+          const showRoute = zone === "Toda la ruta";
+
+          return (
+            <div>
+              <div>{zone}</div>
+
+              {showRoute && (
+                <div
+                  className="
+              text-xs
+              text-gray-500
+            "
+                >
+                  {`Ruta: ${rate.route?.name}`}
+                </div>
+              )}
+            </div>
+          );
         },
 
-        {
-          accessorKey:
-            "delivery_charge",
+        size: 250,
 
-          header:
-            "Cobro Entrega",
+        minSize: 150,
+      },
 
-          Cell: ({
-            cell,
-          }) =>
-            `₡${Number(
-              cell.getValue(),
-            ).toLocaleString()}`,
-        },
+      {
+        accessorKey: "delivery_charge",
 
-        {
-          accessorKey:
-            "failed_charge",
+        header: "Cobro Entrega",
 
-          header:
-            "Cobro Fallido",
+        Cell: ({ cell }) => `₡${Number(cell.getValue()).toLocaleString()}`,
+      },
 
-          Cell: ({
-            cell,
-          }) =>
-            `₡${Number(
-              cell.getValue(),
-            ).toLocaleString()}`,
-        },
+      {
+        accessorKey: "failed_charge",
 
-      ],
-      [],
-    );
+        header: "Cobro Intento Fallido",
 
-  return (
+        Cell: ({ cell }) => `₡${Number(cell.getValue()).toLocaleString()}`,
+      },
+      {
+        id: "actions",
 
-    <MaterialReactTable
+        header: "Acciones",
 
-      columns={
-        columns
-      }
+        enableSorting: false,
 
-      data={
-        data
-      }
+        enableColumnFilter: false,
 
-      localization={
-        MRT_Localization_ES
-      }
+        size: 120,
 
-      enableColumnFilters
+        Cell: ({ row }) => (
+          <div
+            className="
+        flex
+        items-center
+        gap-1
+      "
+          >
+            <Tooltip title="Modificar tarifa DTS">
+              <IconButton size="small" onClick={() => onEdit(row.original)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
 
-      enableColumnOrdering
-
-      enableSorting
-
-      enableDensityToggle
-
-      enableFullScreenToggle
-
-      enableColumnActions
-
-      enableGlobalFilter
-
-      initialState={{
-
-        density:
-          "compact",
-
-      }}
-
-      muiSearchTextFieldProps={{
-
-        placeholder:
-          "Buscar tarifa...",
-
-        variant:
-          "outlined",
-
-        size:
-          "small",
-
-      }}
-
-    />
-
+            <Tooltip title="Eliminar tarifa DTS">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => onDelete(row.original.id)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </div>
+        ),
+      },
+    ],
+    [],
   );
 
+  return (
+    <MaterialReactTable
+      columns={columns}
+      data={data}
+      localization={MRT_Localization_ES}
+      enableColumnFilters
+      enableColumnOrdering
+      enableSorting
+      enableDensityToggle
+      enableFullScreenToggle
+      enableColumnActions
+      enableGlobalFilter
+      initialState={{
+        density: "compact",
+      }}
+      muiSearchTextFieldProps={{
+        placeholder: "Buscar tarifa...",
+
+        variant: "outlined",
+
+        size: "small",
+      }}
+    />
+  );
 }

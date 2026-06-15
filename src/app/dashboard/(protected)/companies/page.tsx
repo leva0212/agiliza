@@ -13,10 +13,13 @@ import { ContactMethodsEditor } from "@/modules/contacts/components/contact-meth
 import { getProducts } from "@/modules/products/api/get-products";
 import { saveCompanyProducts } from "@/modules/company-products/api/save-company-products";
 import { getSelectedProductIds } from "@/modules/company-products/api/get-selected-product-ids";
-
+import { propagateCompanyRates } from "@/modules/rates/api/propagate-company-rates";
 export default function CompaniesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [propagateOpen, setPropagateOpen] = useState(false);
+  const [propagating, setPropagating] = useState(false);
+
   const companyId = searchParams.get("id");
   const queryClient = useQueryClient();
 
@@ -27,10 +30,15 @@ export default function CompaniesPage() {
   const [contactName, setContactName] = useState("");
   const [contactPosition, setContactPosition] = useState("");
   const [active, setActive] = useState(true);
+  const [deliveryCharge, setDeliveryCharge] = useState("0");
+
+  const [failedCharge, setFailedCharge] = useState("0");
   const [messageOpen, setMessageOpen] = useState(false);
   const [messageTitle, setMessageTitle] = useState("");
   const [messageText, setMessageText] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | "warning" | "info">("info");
+  const [messageType, setMessageType] = useState<
+    "success" | "error" | "warning" | "info"
+  >("info");
   const [primaryContactId, setPrimaryContactId] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -55,6 +63,9 @@ export default function CompaniesPage() {
       setActive(company.active);
       setContactName(company.primary_contact?.full_name || "");
       setContactPosition(company.primary_contact?.position || "");
+      setDeliveryCharge(String(company.delivery_charge ?? 0));
+
+      setFailedCharge(String(company.failed_charge ?? 0));
       setPrimaryContactId(company.primary_contact?.id || "");
     }
 
@@ -64,47 +75,82 @@ export default function CompaniesPage() {
   async function handleSave() {
     try {
       if (companyId) {
+        console.log({
+          deliveryCharge,
+          failedCharge,
+        });
         await updateCompany({
           id: companyId,
+
           code,
+
           name,
+
           tradeName,
+
           address,
+
           contactName,
+
           contactPosition,
+
           active,
+
+          deliveryCharge: Number(deliveryCharge),
+
+          failedCharge: Number(failedCharge),
         });
 
         await saveCompanyProducts(companyId, selectedProducts);
 
-        await queryClient.invalidateQueries({ queryKey: ["companies"] });
+        await queryClient.invalidateQueries({
+          queryKey: ["companies"],
+        });
 
         setMessageTitle("Empresa actualizada");
-        setMessageText("La empresa se actualizó correctamente.");
-        setMessageType("success");
-        setMessageOpen(true);
 
-        /*setTimeout(() => {
-          router.push("/dashboard/companies/list");
-        }, 2000);*/
+        setMessageText("La empresa se actualizó correctamente.");
+
+        setMessageType("success");
+
+        setMessageOpen(true);
       } else {
         const company = await createCompany({
           code,
+
           name,
+
           tradeName,
+
           address,
+
           contactName,
+
           contactPosition,
+
           active,
+
+          deliveryCharge: Number(deliveryCharge),
+
+          failedCharge: Number(failedCharge),
         });
 
-        await saveCompanyProducts(company.id, selectedProducts);
+        await saveCompanyProducts(
+          company.id,
 
-        await queryClient.invalidateQueries({ queryKey: ["companies"] });
+          selectedProducts,
+        );
+
+        await queryClient.invalidateQueries({
+          queryKey: ["companies"],
+        });
 
         setMessageTitle("Empresa creada");
+
         setMessageText("La empresa se creó correctamente.");
+
         setMessageType("success");
+
         setMessageOpen(true);
 
         setTimeout(() => {
@@ -113,9 +159,13 @@ export default function CompaniesPage() {
       }
     } catch (error) {
       console.error(error);
+
       setMessageTitle("Error");
+
       setMessageText("No fue posible guardar la empresa.");
+
       setMessageType("error");
+
       setMessageOpen(true);
     }
   }
@@ -136,7 +186,9 @@ export default function CompaniesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Nombre legal</label>
+            <label className="block text-sm font-medium mb-2">
+              Nombre legal
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -145,7 +197,9 @@ export default function CompaniesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Nombre comercial</label>
+            <label className="block text-sm font-medium mb-2">
+              Nombre comercial
+            </label>
             <input
               value={tradeName}
               onChange={(e) => setTradeName(e.target.value)}
@@ -163,7 +217,9 @@ export default function CompaniesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Contacto principal</label>
+            <label className="block text-sm font-medium mb-2">
+              Contacto principal
+            </label>
             <input
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
@@ -189,6 +245,103 @@ export default function CompaniesPage() {
               />
               Activa
             </label>
+            <div
+              className="
+    border
+    rounded-lg
+    p-4
+  "
+            >
+              <h3
+                className="
+      text-lg
+      font-bold
+      mb-4
+    "
+              >
+                Tarifas DTS
+              </h3>
+
+              <div
+                className="
+      grid
+      gap-4
+    "
+              >
+                <div>
+                  <label
+                    className="
+          block
+          text-sm
+          font-medium
+          mb-2
+        "
+                  >
+                    Cobro entrega
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={deliveryCharge}
+                    onChange={(e) => setDeliveryCharge(e.target.value)}
+                    className="
+          w-full
+          border
+          rounded-lg
+          p-3
+        "
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="
+          block
+          text-sm
+          font-medium
+          mb-2
+        "
+                  >
+                    Cobro intento fallido
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={failedCharge}
+                    onChange={(e) => setFailedCharge(e.target.value)}
+                    className="
+          w-full
+          border
+          rounded-lg
+          p-3
+        "
+                  />
+                </div>
+
+                {companyId && (
+                  <button
+                    type="button"
+                    disabled={propagating}
+                    onClick={() => setPropagateOpen(true)}
+                    className="
+    bg-violet-600
+    hover:bg-violet-700
+    text-white
+    px-4
+    py-3
+    rounded-lg
+    disabled:opacity-50
+  "
+                  >
+                    {propagating
+                      ? "Propagando..."
+                      : "Propagar a todas las rutas"}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -226,10 +379,13 @@ export default function CompaniesPage() {
                 checked={selectedProducts.includes(product.id)}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setSelectedProducts((previous) => [...previous, product.id]);
+                    setSelectedProducts((previous) => [
+                      ...previous,
+                      product.id,
+                    ]);
                   } else {
                     setSelectedProducts((previous) =>
-                      previous.filter((id) => id !== product.id)
+                      previous.filter((id) => id !== product.id),
                     );
                   }
                 }}
@@ -239,6 +395,171 @@ export default function CompaniesPage() {
           ))}
         </div>
       </div>
+      <UiMessage
+        open={propagateOpen}
+        type="question"
+        title="
+    Propagar tarifas
+  "
+        message={
+          <>
+            <p>
+              ¿Desea guardar la configuración actual y propagarla a todas las
+              rutas?
+            </p>
+            <br />
+
+            <p>
+              Se crearán o actualizarán únicamente las tarifas de nivel
+              <strong> Toda la ruta</strong>.
+            </p>
+
+            <br />
+
+            <p>
+              Las tarifas específicas por provincia, cantón, distrito o barrio
+              no serán modificadas.
+            </p>
+          </>
+        }
+        confirmText="
+    Propagar
+  "
+        cancelText="
+    Cancelar
+  "
+        onClose={() => setPropagateOpen(false)}
+        onConfirm={async () => {
+
+  if (
+    !companyId
+  ) {
+    return;
+  }
+
+  setPropagateOpen(
+    false,
+  );
+
+  setPropagating(
+    true,
+  );
+
+  try {
+
+    await updateCompany({
+
+      id:
+        companyId,
+
+      code,
+
+      name,
+
+      tradeName,
+
+      address,
+
+      contactName,
+
+      contactPosition,
+
+      active,
+
+      deliveryCharge:
+        Number(
+          deliveryCharge,
+        ),
+
+      failedCharge:
+        Number(
+          failedCharge,
+        ),
+
+    });
+
+    await saveCompanyProducts(
+
+      companyId,
+
+      selectedProducts,
+
+    );
+
+    await propagateCompanyRates({
+
+      companyId,
+
+      deliveryCharge:
+        Number(
+          deliveryCharge,
+        ),
+
+      failedCharge:
+        Number(
+          failedCharge,
+        ),
+
+    });
+
+    await queryClient.invalidateQueries({
+
+      queryKey: [
+        "companies",
+      ],
+
+    });
+
+    setMessageTitle(
+      "Configuración propagada",
+    );
+
+    setMessageText(
+      "La empresa fue actualizada y las tarifas fueron propagadas correctamente.",
+    );
+
+    setMessageType(
+      "success",
+    );
+
+    setMessageOpen(
+      true,
+    );
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      error,
+    );
+
+    setMessageTitle(
+      "Error",
+    );
+
+    setMessageText(
+      "No fue posible propagar las tarifas.",
+    );
+
+    setMessageType(
+      "error",
+    );
+
+    setMessageOpen(
+      true,
+    );
+
+  } finally {
+
+    setPropagating(
+      false,
+    );
+
+  }
+
+}}
+      />
 
       <UiMessage
         open={messageOpen}

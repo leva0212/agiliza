@@ -66,7 +66,7 @@ export async function getShipments({
       internal_reference,
 
       delivered_at,
-
+      
       created_at,
 
       company:companies(

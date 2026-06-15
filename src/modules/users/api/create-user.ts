@@ -9,12 +9,15 @@ export type CreateUserRequest = {
 
   can_deliver?: boolean;
 
+  delivery_pay?: number;
+
+  failed_pay?: number;
 
   role:
-    | "super_admin"
-    | "company_admin"
-    | "courier"
-    | "seller";
+  | "super_admin"
+  | "company_admin"
+  | "courier"
+  | "seller";
 };
 
 export async function createUser(

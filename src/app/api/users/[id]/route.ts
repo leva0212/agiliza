@@ -49,6 +49,10 @@ export async function PUT(
       active,
 
       can_deliver,
+
+      delivery_pay,
+
+      failed_pay,
     } = body;
 
     /* ==================================
@@ -117,6 +121,10 @@ export async function PUT(
         active,
 
         can_deliver,
+
+        delivery_pay,
+
+        failed_pay,
       })
 
       .eq("id", id);

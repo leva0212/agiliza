@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
+import {
+  createDefaultRatesForRoute,
+} from "@/modules/rates/api/create-default-rates-for-route";
 type Input = {
   name: string;
   estimatedHours: number;
@@ -20,7 +23,17 @@ export async function createRoute(
       .select()
       .single();
 
-  if (error) throw error;
+  if (
+    error
+  ) {
+    throw error;
+  }
+
+  await createDefaultRatesForRoute(
+    data.id,
+  );
+
+  return data;
 
   return data;
 }

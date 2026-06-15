@@ -1,6 +1,8 @@
 export type DeliveryRate = {
   id: string;
 
+  company_id: string;
+
   route_id: string;
 
   province_id: number | null;
@@ -21,6 +23,8 @@ export type DeliveryRate = {
 };
 
 export type CreateDeliveryRateInput = {
+  company_id: string;
+
   route_id: string;
 
   province_id?: number | null;
@@ -38,6 +42,16 @@ export type CreateDeliveryRateInput = {
 
 export type DeliveryRateDetail =
   DeliveryRate & {
+
+    company?: {
+      id: string;
+      name: string;
+    } | null;
+
+    route?: {
+      id: string;
+      name: string;
+    } | null;
 
     province?: {
       id: number;

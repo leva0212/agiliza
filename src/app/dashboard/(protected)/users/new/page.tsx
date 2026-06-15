@@ -27,9 +27,13 @@ export default function NewUserPage() {
   const [role, setRole] = useState("company_admin");
 
   const [canDeliver, setCanDeliver] = useState(false);
+  const [deliveryPay, setDeliveryPay] = useState("0");
+
+  const [failedPay, setFailedPay] = useState("0");
   const selectedCompany = companies.find((company) => company.id === companyId);
 
   const isSystemCompany = selectedCompany?.is_system_company === true;
+ 
 
   const [loading, setLoading] = useState(false);
 
@@ -79,6 +83,10 @@ export default function NewUserPage() {
         role: role as "super_admin" | "company_admin" | "courier",
 
         can_deliver: canDeliver,
+
+        delivery_pay: Number(deliveryPay),
+
+        failed_pay: Number(failedPay),
       });
 
       setMessageTitle("Usuario creado");
@@ -102,241 +110,210 @@ export default function NewUserPage() {
   }
 
   return (
-  <div className="max-w-2xl mx-auto max-w-[400px] border p-6 rounded-xl space-y-6">
-    <h1 className="text-2xl font-bold">
-      Nuevo usuario
-    </h1>
+    <div className="max-w-2xl mx-auto max-w-[400px] border p-6 rounded-xl space-y-6">
+      <h1 className="text-2xl font-bold">Nuevo usuario</h1>
 
-    <div className="space-y-4">
+      <div className="space-y-4">
+        <input
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="Nombre completo"
+          className="w-full border rounded-xl p-3"
+        />
 
-      <input
-        value={fullName}
-        onChange={(e) =>
-          setFullName(
-            e.target.value,
-          )
-        }
-        placeholder="Nombre completo"
-        className="w-full border rounded-xl p-3"
-      />
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Correo"
+          className="w-full border rounded-xl p-3"
+        />
 
-      <input
-        value={email}
-        onChange={(e) =>
-          setEmail(
-            e.target.value,
-          )
-        }
-        placeholder="Correo"
-        className="w-full border rounded-xl p-3"
-      />
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Teléfono"
+          className="w-full border rounded-xl p-3"
+        />
 
-      <input
-        value={phone}
-        onChange={(e) =>
-          setPhone(
-            e.target.value,
-          )
-        }
-        placeholder="Teléfono"
-        className="w-full border rounded-xl p-3"
-      />
+        <select
+          value={companyId}
+          onChange={(e) => {
+            const value = e.target.value;
 
-      <select
-        value={companyId}
-        onChange={(e) => {
+            setCompanyId(value);
 
-          const value =
-            e.target.value;
+            const company = companies.find((c) => c.id === value);
 
-          setCompanyId(
-            value,
-          );
+            if (
+              !company?.is_system_company &&
+              (role === "courier" || role === "super_admin")
+            ) {
+              setRole("company_admin");
 
-          const company =
-            companies.find(
-              (c) =>
-                c.id === value,
-            );
-
-          if (
-  !company?.is_system_company &&
-  (
-    role === "courier" ||
-    role === "super_admin"
-  )
-) {
-
-  setRole(
-    "company_admin",
-  );
-
-  setCanDeliver(
-    false,
-  );
-
-}
-
-        }}
-        className="w-full border rounded-xl p-3"
-      >
-        <option
-          value=""
-          disabled
+              setCanDeliver(false);
+            }
+          }}
+          className="w-full border rounded-xl p-3"
         >
-          Seleccione empresa
-        </option>
+          <option value="" disabled>
+            Seleccione empresa
+          </option>
 
-        {companies.map(
-          (company) => (
-            <option
-              key={company.id}
-              value={company.id}
-            >
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>
               {company.name}
             </option>
-          ),
-        )}
-      </select>
+          ))}
+        </select>
 
-      <select
-        value={role}
-        disabled={!companyId}
-        onChange={(e) => {
+        <select
+          value={role}
+          disabled={!companyId}
+          onChange={(e) => {
+            const value = e.target.value;
 
-          const value =
-            e.target.value;
+            if (value === "courier" && !isSystemCompany) {
+              return;
+            }
 
-          if (
-            value === "courier" &&
-            !isSystemCompany
-          ) {
-            return;
-          }
+            setRole(value);
 
-          setRole(
-            value,
-          );
+            if (value === "courier") {
+              setCanDeliver(true);
+            } else {
+              setCanDeliver(false);
+            }
+          }}
+          className="w-full border rounded-xl p-3"
+        >
+          {isSystemCompany && (
+            <option value="super_admin">{getRoleLabel("super_admin")}</option>
+          )}
 
-          if (
-            value === "courier"
-          ) {
+          <option value="company_admin">{getRoleLabel("company_admin")}</option>
 
-            setCanDeliver(
-              true,
-            );
+          <option value="seller">{getRoleLabel("seller")}</option>
 
-          } else {
-
-            setCanDeliver(
-              false,
-            );
-
-          }
-
-        }}
-        className="w-full border rounded-xl p-3"
-      >
+          {isSystemCompany && (
+            <option value="courier">{getRoleLabel("courier")}</option>
+          )}
+        </select>
 
         {isSystemCompany && (
-  <option value="super_admin">
-    {getRoleLabel("super_admin")}
-  </option>
-)}
+          <label className="flex items-center gap-3 border rounded-xl p-3">
+            <input
+              type="checkbox"
+              checked={canDeliver}
+              disabled={role === "courier"}
+              onChange={(e) => setCanDeliver(e.target.checked)}
+            />
 
-<option value="company_admin">
-  {getRoleLabel("company_admin")}
-</option>
+            <span>Puede realizar entregas</span>
+          </label>
+        )}
 
-<option value="seller">
-  {getRoleLabel("seller")}
-</option>
+        {isSystemCompany && canDeliver && (
+          <div
+            className="
+        border
+        rounded-xl
+        p-4
+        space-y-4
+      "
+          >
+            <h3
+              className="
+          font-semibold
+        "
+            >
+              Pagos mensajero
+            </h3>
 
-{isSystemCompany && (
-  <option value="courier">
-    {getRoleLabel("courier")}
-  </option>
-)}
+            <div>
+              <label
+                className="
+            block
+            mb-1
+            font-medium
+          "
+              >
+                Pago entrega
+              </label>
 
-      </select>
+              <input
+                type="number"
+                min="0"
+                value={deliveryPay}
+                onChange={(e) => setDeliveryPay(e.target.value)}
+                className="
+            w-full
+            border
+            rounded-xl
+            p-3
+          "
+              />
+            </div>
 
-      {isSystemCompany && (
-        <label className="flex items-center gap-3 border rounded-xl p-3">
+            <div>
+              <label
+                className="
+            block
+            mb-1
+            font-medium
+          "
+              >
+                Pago intento fallido
+              </label>
 
-          <input
-            type="checkbox"
-            checked={canDeliver}
-            disabled={
-              role ===
-              "courier"
-            }
-            onChange={(e) =>
-              setCanDeliver(
-                e.target.checked,
-              )
-            }
-          />
+              <input
+                type="number"
+                min="0"
+                value={failedPay}
+                onChange={(e) => setFailedPay(e.target.value)}
+                className="
+            w-full
+            border
+            rounded-xl
+            p-3
+          "
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
-          <span>
-            Puede realizar
-            entregas
-          </span>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-3 border rounded-xl"
+        >
+          Cancelar
+        </button>
 
-        </label>
-      )}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={loading}
+          className="px-4 py-3 bg-blue-600 text-white rounded-xl"
+        >
+          {loading ? "Guardando..." : "Guardar"}
+        </button>
+      </div>
 
+      <UiMessage
+        open={messageOpen}
+        title={messageTitle}
+        message={messageText}
+        type={messageType}
+        onClose={() => {
+          setMessageOpen(false);
+
+          if (messageType === "success") {
+            router.push("/dashboard/users/list");
+          }
+        }}
+      />
     </div>
-
-    <div className="flex gap-3">
-
-      <button
-        type="button"
-        onClick={() =>
-          router.back()
-        }
-        className="px-4 py-3 border rounded-xl"
-      >
-        Cancelar
-      </button>
-
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={loading}
-        className="px-4 py-3 bg-blue-600 text-white rounded-xl"
-      >
-        {loading
-          ? "Guardando..."
-          : "Guardar"}
-      </button>
-
-    </div>
-
-    <UiMessage
-      open={messageOpen}
-      title={messageTitle}
-      message={messageText}
-      type={messageType}
-      onClose={() => {
-
-        setMessageOpen(
-          false,
-        );
-
-        if (
-          messageType ===
-          "success"
-        ) {
-
-          router.push(
-            "/dashboard/users/list",
-          );
-
-        }
-
-      }}
-    />
-
-  </div>
-);
+  );
 }

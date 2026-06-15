@@ -5,24 +5,41 @@ import type {
 } from "../types/delivery-rate";
 export async function getDeliveryRates(
   routeId: string,
+
+  companyId: string,
+
+  filterRoute: boolean,
+
+  filterCompany: boolean,
 ): Promise<DeliveryRateDetail[]> {
 
   const supabase =
     createClient();
 
-  const {
-    data,
-    error,
-  } = await supabase
+  let query =
 
-    .from(
-      "delivery_rates",
-    )
+    supabase
 
-    .select(`
+      .from(
+        "delivery_rates",
+      )
+
+      .select(`
   id,
 
-  route_id,
+route_id,
+
+route:routes(
+  id,
+  name
+),
+
+company_id,
+
+company:companies(
+  id,
+  name
+),
 
   province_id,
 
@@ -59,30 +76,73 @@ export async function getDeliveryRates(
     id,
     name
   )
-`)
+`);
+  if (
+    filterRoute &&
+    routeId
+  ) {
 
-    .eq(
-      "route_id",
-      routeId,
-    )
+    query =
+      query.eq(
+        "route_id",
+        routeId,
+      );
 
-    .order(
+  }
+
+  if (
+    filterCompany &&
+    companyId
+  ) {
+
+    query =
+      query.eq(
+        "company_id",
+        companyId,
+      );
+
+  }
+
+  query =
+    query.order(
       "created_at",
       {
         ascending: true,
       },
     );
 
+
+  const {
+    data,
+    error,
+  } = await query;
+
   if (
     error
   ) {
     throw error;
   }
+  console.log(
+    "delivery rates",
+    data,
+  );
 
   return (data ?? []).map(
     (rate: any) => ({
 
       ...rate,
+      company:
+        Array.isArray(
+          rate.company,
+        )
+          ? rate.company[0] ?? null
+          : rate.company,
+      route:
+        Array.isArray(
+          rate.route,
+        )
+          ? rate.route[0] ?? null
+          : rate.route,
 
       province:
         Array.isArray(

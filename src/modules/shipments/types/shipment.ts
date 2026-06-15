@@ -75,6 +75,8 @@ export type Shipment = {
     estimated_hours:
     number | null;
   } | null;
+
+
 };
 
 export type ShipmentListResponse = {
@@ -84,9 +86,11 @@ export type ShipmentListResponse = {
 };
 
 export type ShipmentDetail = Shipment & {
+
   courier: {
     id: string;
     full_name: string;
+
   } | null;
   identification_type: {
 

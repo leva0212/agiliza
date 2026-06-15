@@ -14,6 +14,10 @@ type Input = {
   contactPosition: string;
 
   active: boolean;
+
+  deliveryCharge: number;
+
+  failedCharge: number;
 };
 
 export async function createCompany(
@@ -28,7 +32,6 @@ export async function createCompany(
   } = await supabase
 
     .from("companies")
-
     .insert({
       code: input.code,
 
@@ -39,6 +42,12 @@ export async function createCompany(
       address: input.address,
 
       active: input.active,
+
+      delivery_charge:
+        input.deliveryCharge,
+
+      failed_charge:
+        input.failedCharge,
     })
 
     .select()

@@ -32,6 +32,7 @@ import { getShipmentStatusHistory } from "@/modules/shipments/api/get-shipment-s
 import { getShipmentStatusOption } from "@/modules/shipments/utils/get-shipment-status-option";
 import { useShipmentsRealtime } from "@/modules/shipments/hooks/use-shipments-realtime";
 import { ContactActionsDialog } from "@/components/contact-actions-dialog";
+import { ShipmentEvidencesCard } from "@/modules/shipments/components/shipment-evidences-card";
 import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 export default function ShipmentDetailPage() {
   useShipmentsRealtime();
@@ -69,6 +70,7 @@ export default function ShipmentDetailPage() {
       setActionsOpen(false);
     },
   });
+
   const { data: shipment, isLoading: shipmentLoading } = useQuery({
     queryKey: ["shipment", shipmentId],
 
@@ -287,51 +289,55 @@ export default function ShipmentDetailPage() {
             </div>
           )}
         </div>
-        <div className="border rounded-xl p-3">
-          <div className="font-semibold mb-3">Historial</div>
-          <div className="space-y-3">
-            <div
-              className="
+
+        <div className="space-y-3">
+          <ShipmentEvidencesCard
+            shipmentId={shipmentId}
+            createdBy={profile?.id}
+            trackingNumber={shipment.tracking_number}
+          />
+          <div
+            className="
     bg-white
     rounded-2xl
     border
     p-4
   "
-            >
-              <div
-                className="
+          >
+            <div
+              className="
       text-lg
       font-semibold
       mb-4
     "
-              >
-                Historial
-              </div>
+            >
+              Historial
+            </div>
 
-              <div
-                className="
+            <div
+              className="
       space-y-4
     "
-              >
-                {statusHistory.map((history) => {
-                  const currentStatus = getShipmentStatusOption(history.status);
+            >
+              {statusHistory.map((history) => {
+                const currentStatus = getShipmentStatusOption(history.status);
 
-                  const previousStatus = history.previous_status
-                    ? getShipmentStatusOption(history.previous_status)
-                    : null;
+                const previousStatus = history.previous_status
+                  ? getShipmentStatusOption(history.previous_status)
+                  : null;
 
-                  const Icon = currentStatus?.icon;
+                const Icon = currentStatus?.icon;
 
-                  return (
-                    <div
-                      key={history.id}
-                      className="
+                return (
+                  <div
+                    key={history.id}
+                    className="
               relative
               pl-8
             "
-                    >
-                      <div
-                        className="
+                  >
+                    <div
+                      className="
                 absolute
                 left-0
                 top-1
@@ -342,10 +348,10 @@ export default function ShipmentDetailPage() {
                 border-2
                 border-gray-300
               "
-                      />
+                    />
 
-                      <div
-                        className="
+                    <div
+                      className="
                 absolute
                 left-[7px]
                 top-5
@@ -353,10 +359,10 @@ export default function ShipmentDetailPage() {
                 w-[2px]
                 bg-gray-200
               "
-                      />
+                    />
 
-                      <div
-                        className={`
+                    <div
+                      className={`
                 inline-flex
                 items-center
                 gap-2
@@ -368,53 +374,53 @@ export default function ShipmentDetailPage() {
                 text-sm
                 ${currentStatus?.className}
               `}
-                      >
-                        {Icon && <Icon size={14} />}
+                    >
+                      {Icon && <Icon size={14} />}
 
-                        {currentStatus?.label}
-                      </div>
+                      {currentStatus?.label}
+                    </div>
 
-                      <div
-                        className="
+                    <div
+                      className="
                 mt-2
                 text-sm
                 font-medium
               "
-                      >
-                        {history.profile?.full_name ?? "Sistema"}
-                      </div>
+                    >
+                      {history.profile?.full_name ?? "Sistema"}
+                    </div>
 
-                      <div
-                        className="
+                    <div
+                      className="
                 text-xs
                 text-gray-500
               "
-                      >
-                        {new Date(history.created_at).toLocaleString("es-CR")}
-                      </div>
+                    >
+                      {new Date(history.created_at).toLocaleString("es-CR")}
+                    </div>
 
-                      {previousStatus && (
-                        <div
-                          className="
+                    {previousStatus && (
+                      <div
+                        className="
                   mt-2
                   text-xs
                   text-gray-500
                 "
-                        >
-                          Estado anterior:{" "}
-                          <span
-                            className="
+                      >
+                        Estado anterior:{" "}
+                        <span
+                          className="
                     font-medium
                   "
-                          >
-                            {previousStatus.label}
-                          </span>
-                        </div>
-                      )}
+                        >
+                          {previousStatus.label}
+                        </span>
+                      </div>
+                    )}
 
-                      {history.notes && (
-                        <div
-                          className="
+                    {history.notes && (
+                      <div
+                        className="
                   mt-2
                   text-sm
                   bg-gray-50
@@ -422,14 +428,13 @@ export default function ShipmentDetailPage() {
                   rounded-lg
                   p-2
                 "
-                        >
-                          📝 {history.notes}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      >
+                        📝 {history.notes}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

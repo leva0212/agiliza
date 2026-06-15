@@ -24,6 +24,8 @@ export async function getUser(
         phone,
         active,
         can_deliver,
+        delivery_pay,
+      failed_pay,
         must_change_password,
 
         company:companies(

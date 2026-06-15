@@ -13,6 +13,9 @@ export type UpdateUserRequest = {
   active: boolean;
   
   can_deliver: boolean;
+  delivery_pay: number;
+
+failed_pay: number;
 
 
 };

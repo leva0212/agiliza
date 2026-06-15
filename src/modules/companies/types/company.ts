@@ -13,6 +13,10 @@ export type Company = {
 
   created_at: string;
 
+  delivery_charge: number;
+
+  failed_charge: number;
+
   primary_contact: {
     id: string;
 

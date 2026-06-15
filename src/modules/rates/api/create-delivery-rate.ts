@@ -20,6 +20,8 @@ export async function createDeliveryRate(
     )
 
     .insert({
+      company_id:
+        input.company_id,
 
       route_id:
         input.route_id,

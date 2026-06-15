@@ -29,6 +29,9 @@ export type User = {
   } | null;
 
   last_password?: string | null;
-  can_deliver: boolean;
+
+  delivery_pay: number;
+
+  failed_pay: number;
 
 };

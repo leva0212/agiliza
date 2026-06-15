@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
       company_id,
 
       can_deliver,
+
+      delivery_pay,
+
+      failed_pay,
     } = body;
 
     if (!email || !full_name || !role) {
@@ -189,6 +193,11 @@ export async function POST(request: NextRequest) {
         must_change_password: true,
 
         last_password: tempPassword,
+        delivery_pay:
+          delivery_pay ?? 0,
+
+        failed_pay:
+          failed_pay ?? 0,
       });
 
     if (insertError) {

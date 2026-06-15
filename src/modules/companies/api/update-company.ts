@@ -16,13 +16,17 @@ type Input = {
   contactPosition: string;
 
   active: boolean;
+
+  deliveryCharge: number;
+
+  failedCharge: number;
 };
 
 export async function updateCompany(
   input: Input,
 ) {
 
-    const supabase = createClient();
+  const supabase = createClient();
 
   const {
     error: companyError,
@@ -43,6 +47,12 @@ export async function updateCompany(
 
       active:
         input.active,
+
+      delivery_charge:
+        input.deliveryCharge,
+
+      failed_charge:
+        input.failedCharge,
     })
 
     .eq(
