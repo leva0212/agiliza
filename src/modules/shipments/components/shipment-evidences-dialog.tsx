@@ -50,10 +50,13 @@ export function ShipmentEvidencesDialog({
   trackingNumber,
 }: Props) {
   const [viewerOpen, setViewerOpen] = useState(false);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const [confirmShareOpen, setConfirmShareOpen] = useState(false);
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [viewerEvidence, setViewerEvidence] = useState<any>(null);
   const { data: evidences = [] } = useShipmentEvidences(shipmentId);
+  const hasComments = evidences.some((e) => e.notes?.trim());
   const { data: profile } = useCurrentProfile();
 
   const queryClient = useQueryClient();
@@ -248,25 +251,29 @@ export function ShipmentEvidencesDialog({
               <button
                 type="button"
                 onClick={async () => {
-                  try {
-                    await shareEvidences({
-                      trackingNumber,
-                      evidences,
-                    });
+                  if (!hasComments) {
+                    try {
+                      await shareEvidences({
+                        trackingNumber,
+                        evidences,
+                        includeComments: false,
+                      });
 
-                    toast.success("Evidencias compartidas");
-                  } catch (error) {
-                    console.error(error);
+                      toast.success("Evidencias compartidas");
+                    } catch (error) {
+                      console.error(error);
 
-                    toast.error(
-                      error instanceof Error
-                        ? error.message
-                        : "No fue posible compartir las evidencias",
-                      {
-                        duration: 7000,
-                      },
-                    );
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "No fue posible compartir las evidencias",
+                      );
+                    }
+
+                    return;
                   }
+
+                  setShareDialogOpen(true);
                 }}
                 className="
       flex
@@ -577,6 +584,63 @@ Ingrese un comentario...
         shipmentId={viewerEvidence?.shipment_id ?? ""}
         fileUrl={viewerEvidence?.file_url ?? ""}
         notes={viewerEvidence?.notes}
+      />
+      <UiMessage
+        open={shareDialogOpen}
+        type="question"
+        title="Compartir evidencias"
+        message={
+          <>
+            ¿Desea incluir los comentarios de las evidencias?
+            <br />
+            <br />
+            Las fotografías siempre serán compartidas.
+          </>
+        }
+        cancelText="Sin comentarios"
+        confirmText="Con comentarios"
+        onClose={async () => {
+          setShareDialogOpen(false);
+
+          try {
+            await shareEvidences({
+              trackingNumber,
+              evidences,
+              includeComments: false,
+            });
+
+            toast.success("Evidencias compartidas");
+          } catch (error) {
+            console.error(error);
+
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "No fue posible compartir las evidencias",
+            );
+          }
+        }}
+        onConfirm={async () => {
+          setShareDialogOpen(false);
+
+          try {
+            await shareEvidences({
+              trackingNumber,
+              evidences,
+              includeComments: true,
+            });
+
+            toast.success("Evidencias compartidas");
+          } catch (error) {
+            console.error(error);
+
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "No fue posible compartir las evidencias",
+            );
+          }
+        }}
       />
     </div>
   );

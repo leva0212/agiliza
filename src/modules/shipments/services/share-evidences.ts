@@ -9,11 +9,14 @@ type Input = {
     trackingNumber: string;
 
     evidences: ShipmentEvidence[];
+
+    includeComments?: boolean;
 };
 
 export async function shareEvidences({
     trackingNumber,
     evidences,
+    includeComments = true,
 }: Input) {
     if (
         typeof navigator.share !==
@@ -68,65 +71,33 @@ export async function shareEvidences({
             ),
         );
 
-        comments.push(
-            [
-                "--------------------------------",
-                `EVIDENCIA ${index}`,
-                "",
-                evidence.notes ??
-                "Sin comentarios",
-                "",
-            ].join("\n"),
-        );
+        if (
+            evidence.notes?.trim()
+        ) {
+            comments.push(
+                `📷 Evidencia ${index}\n${evidence.notes.trim()}`,
+            );
+        }
 
         index++;
     }
 
-   /* const commentsFile =
-        new File(
-            [comments.join("\n")],
-            `${trackingNumber}-Comentarios.txt`,
-            {
-                type: "text/plain",
-            },
-        );*/
-
-    /* files.push(
-         commentsFile,
-     );*/
-
-    /*console.log(
-        "FILES",
-        files.map((f) => ({
-            name: f.name,
-            size: f.size,
-            type: f.type,
-        })),
-    );
-    console.log(
-        "TOTAL FILES",
-        files.length,
-    );*/
-
     await navigator.share({
-  title:
-    `Evidencias ${trackingNumber}`,
-
-  text: [
-    `EVIDENCIAS ${trackingNumber}`,
-    "",
-    ...comments,
-  ].join("\n\n"),
-
-  files,
-});
-
-    /*await navigator.share({
         title:
             `Evidencias ${trackingNumber}`,
 
+        text:
+            includeComments &&
+                comments.length > 0
+                ? [
+                    `EVIDENCIAS ${trackingNumber}`,
+                    "",
+                    ...comments,
+                ].join("\n\n")
+                : undefined,
+
         files,
-    });*/
+    });
 }
 
 function getExtension(
