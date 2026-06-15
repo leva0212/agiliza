@@ -12,11 +12,13 @@ type Props = {
 
   onClose: () => void;
 
-  evidenceId: string;
+  evidenceId?: string;
 
-  shipmentId: string;
+  shipmentId?: string;
 
-  fileUrl: string;
+  fileUrl?: string;
+
+  imageUrl?: string;
 
   notes?: string | null;
 };
@@ -28,6 +30,7 @@ export function EvidenceViewerDialog({
   shipmentId,
   fileUrl,
   notes,
+  imageUrl,
 }: Props) {
   const [rotation, setRotation] = useState(0);
   useEffect(() => {
@@ -108,16 +111,28 @@ export function EvidenceViewerDialog({
                     transition: "transform 200ms ease",
                   }}
                 >
-                  <CachedEvidenceImage
-                    evidenceId={evidenceId}
-                    shipmentId={shipmentId}
-                    fileUrl={fileUrl}
-                    className="
-        max-w-[95vw]
-        max-h-[90vh]
-        object-contain
-      "
-                  />
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="
+      max-w-[95vw]
+      max-h-[90vh]
+      object-contain
+    "
+                    />
+                  ) : (
+                    <CachedEvidenceImage
+                      evidenceId={evidenceId!}
+                      shipmentId={shipmentId!}
+                      fileUrl={fileUrl!}
+                      className="
+      max-w-[95vw]
+      max-h-[90vh]
+      object-contain
+    "
+                    />
+                  )}
                 </div>
               </TransformComponent>
             </div>

@@ -1,3 +1,4 @@
+import { generateId } from "@/shared/utils/generate-id";
 import {
   assignInventory,
 } from "./assign-inventory";
@@ -43,7 +44,7 @@ export async function createInventory(
       "",
 
     created_by:
-      crypto.randomUUID(),
+      generateId(),
 
   });
 

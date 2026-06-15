@@ -3,7 +3,8 @@ import { compressImage } from "../utils/compress-image";
 import {
     cacheEvidenceFile,
 } from "../services/evidence-cache-service";
-
+import { generateId }
+  from "@/shared/utils/generate-id";
 import { generateThumbnail }
     from "../utils/generate-thumbnail";
 
@@ -82,7 +83,7 @@ export async function createShipmentEvidence({
         compressedFile.name.split(".").pop() ?? "jpg";
 
     const fileName =
-        `${shipmentId}/${crypto.randomUUID()}.${extension}`;
+        `${shipmentId}/${generateId()}.${extension}`;
 
     const uploadResult = await supabase.storage
         .from("shipment-evidences")
