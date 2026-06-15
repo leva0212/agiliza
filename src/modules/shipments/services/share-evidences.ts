@@ -91,8 +91,21 @@ export async function shareEvidences({
             },
         );
 
-    files.push(
-        commentsFile,
+    /* files.push(
+         commentsFile,
+     );*/
+
+    console.log(
+        "FILES",
+        files.map((f) => ({
+            name: f.name,
+            size: f.size,
+            type: f.type,
+        })),
+    );
+    console.log(
+        "TOTAL FILES",
+        files.length,
     );
 
     await navigator.share({
