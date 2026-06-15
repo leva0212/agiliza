@@ -82,20 +82,20 @@ export async function shareEvidences({
         index++;
     }
 
-    const commentsFile =
+   /* const commentsFile =
         new File(
             [comments.join("\n")],
             `${trackingNumber}-Comentarios.txt`,
             {
                 type: "text/plain",
             },
-        );
+        );*/
 
     /* files.push(
          commentsFile,
      );*/
 
-    console.log(
+    /*console.log(
         "FILES",
         files.map((f) => ({
             name: f.name,
@@ -106,14 +106,27 @@ export async function shareEvidences({
     console.log(
         "TOTAL FILES",
         files.length,
-    );
+    );*/
 
     await navigator.share({
+  title:
+    `Evidencias ${trackingNumber}`,
+
+  text: [
+    `EVIDENCIAS ${trackingNumber}`,
+    "",
+    ...comments,
+  ].join("\n\n"),
+
+  files,
+});
+
+    /*await navigator.share({
         title:
             `Evidencias ${trackingNumber}`,
 
         files,
-    });
+    });*/
 }
 
 function getExtension(
