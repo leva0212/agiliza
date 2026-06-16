@@ -388,6 +388,86 @@ export function ShipmentEvidencesDialog({
                   </button>
                 ))}
 
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.createElement("input");
+
+                  input.type = "file";
+
+                  input.accept = "image/*";
+
+                  input.onchange = async () => {
+                    const file = input.files?.[0];
+
+                    if (!file) {
+                      return;
+                    }
+
+                    try {
+                      console.log("navigator.share", typeof navigator.share);
+
+                      console.log(
+                        "navigator.canShare",
+                        typeof navigator.canShare,
+                      );
+
+                      console.log("FILE", {
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                      });
+
+                      if (typeof navigator.share !== "function") {
+                        alert("navigator.share NO existe");
+
+                        return;
+                      }
+
+                      if (
+                        navigator.canShare &&
+                        !navigator.canShare({
+                          files: [file],
+                        })
+                      ) {
+                        alert("navigator.canShare devolvió false");
+
+                        return;
+                      }
+
+                      await navigator.share({
+                        title: "TMP Share Test",
+
+                        text: "Prueba temporal",
+
+                        files: [file],
+                      });
+
+                      alert("Share OK");
+                    } catch (error) {
+                      console.error("TMP SHARE ERROR", error);
+
+                      alert(
+                        error instanceof Error ? error.message : String(error),
+                      );
+                    }
+                  };
+
+                  input.click();
+                }}
+                className="
+    px-3
+    py-2
+    rounded-lg
+    border
+    bg-red-500
+    text-white
+    text-sm
+  "
+              >
+                TMP
+              </button>
+
               {isMobile ? (
                 <button
                   type="button"
