@@ -8,6 +8,8 @@ export type PendingEvidence = {
 
     previewUrl: string;
 
+    originalPreviewUrl: string;
+
     hd: boolean;
 
     notes: string;
@@ -17,18 +19,34 @@ export type PendingEvidence = {
     flipX: boolean;
 
     flipY: boolean;
+
+    cropX: number;
+
+    cropY: number;
+
+    cropWidth: number;
+
+    cropHeight: number;
+
 };
 
 export function createPendingEvidence(
     file: File,
 ): PendingEvidence {
+
+
+    const previewUrl =
+        URL.createObjectURL(file);
+
     return {
         id: generateId(),
 
         file,
 
-        previewUrl:
-            URL.createObjectURL(file),
+        originalPreviewUrl:
+            previewUrl,
+
+        previewUrl,
 
         hd: false,
 
@@ -39,5 +57,13 @@ export function createPendingEvidence(
         flipX: false,
 
         flipY: false,
+
+        cropX: 0,
+
+        cropY: 0,
+
+        cropWidth: 0,
+
+        cropHeight: 0,
     };
 }

@@ -1,26 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
-import { X, RotateCw, FlipHorizontal } from "lucide-react";
+import { X, RotateCw, FlipHorizontal, Crop, BadgeInfo } from "lucide-react";
 
 import type { PendingEvidence } from "../../types/pending-evidence";
-import { EvidenceViewerDialog } from "../evidence-viewer-dialog";
-
+import { EvidenceCropDialog } from "./crop-dialog/evidence-crop-dialog";
+import { processImage } from "@/shared/utils/process-image";
 type Props = {
   open: boolean;
 
   evidences: PendingEvidence[];
 
   onClose: () => void;
+
+  onUpload: (evidences: PendingEvidence[]) => Promise<void>;
 };
 
-export function ShipmentEvidenceEditor({ open, evidences, onClose }: Props) {
+export function ShipmentEvidenceEditor({
+  open,
+  evidences,
+  onClose,
+  onUpload,
+}: Props) {
+  const [cropOpen, setCropOpen] = useState(false);
   const [index, setIndex] = useState(0);
 
   const [items, setItems] = useState<PendingEvidence[]>([]);
-  const [viewerOpen, setViewerOpen] = useState(false);
+
+  const touchStartX = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const current = items[index];
+  useEffect(() => {
+    if (!textareaRef.current) {
+      return;
+    }
+
+    textareaRef.current.style.height = "0px";
+
+    textareaRef.current.style.height =
+      Math.min(textareaRef.current.scrollHeight, 120) + "px";
+  }, [index, current?.notes]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [open]);
+
+  function autoGrowTextarea(element: HTMLTextAreaElement) {
+    element.style.height = "0px";
+
+    const maxHeight = 24 * 5;
+
+    element.style.height = Math.min(element.scrollHeight, maxHeight) + "px";
+  }
   useEffect(() => {
     if (open) {
       setItems(evidences);
@@ -39,45 +82,170 @@ export function ShipmentEvidenceEditor({ open, evidences, onClose }: Props) {
         fixed
         inset-0
         z-[200]
-        bg-white
+        bg-black
         flex
         flex-col
+        overscroll-none        
       "
     >
-      {/* Header */}
+      {/* Overlay superior */}
 
       <div
         className="
-          sticky
-          top-0
-          z-10
-          border-b
-          bg-white
-          px-4
-          py-3
-          flex
-          items-center
-          justify-between
-        "
+    absolute
+    top-4
+    left-4
+    right-4
+
+    z-20
+
+    flex
+    items-center
+    justify-between
+  "
       >
         <button
           onClick={onClose}
           className="
-            p-2
-            rounded-lg
-            hover:bg-gray-100
-          "
+      w-12
+      h-12
+
+      rounded-full
+
+      bg-black/40
+      backdrop-blur
+
+      text-white
+
+      flex
+      items-center
+      justify-center
+    "
         >
-          <X size={20} />
+          <X size={22} />
         </button>
 
         <div
           className="
-            text-sm
-            font-medium
-          "
+      flex
+      items-center
+      gap-2
+    "
         >
-          {index + 1}/{items.length}
+          <button
+            type="button"
+            onClick={() => {
+              const copy = [...items];
+
+              copy[index] = {
+                ...copy[index],
+                hd: !copy[index].hd,
+              };
+
+              setItems(copy);
+            }}
+            className={`
+        px-3
+        h-10
+
+        rounded-full
+
+        text-sm
+        font-medium
+
+        backdrop-blur
+
+        ${current.hd ? "bg-blue-600 text-white" : "bg-black/40 text-white"}
+      `}
+          >
+            HD
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const copy = [...items];
+
+              copy[index] = {
+                ...copy[index],
+                rotation: copy[index].rotation + 90,
+              };
+
+              setItems(copy);
+            }}
+            className="
+        w-10
+        h-10
+
+        rounded-full
+
+        bg-black/40
+        backdrop-blur
+
+        text-white
+
+        flex
+        items-center
+        justify-center
+      "
+          >
+            <RotateCw size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const copy = [...items];
+
+              copy[index] = {
+                ...copy[index],
+                flipX: !copy[index].flipX,
+              };
+
+              setItems(copy);
+            }}
+            className="
+        w-10
+        h-10
+
+        rounded-full
+
+        bg-black/40
+        backdrop-blur
+
+        text-white
+
+        flex
+        items-center
+        justify-center
+      "
+          >
+            <FlipHorizontal size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCropOpen(true);
+            }}
+            className="
+    w-10
+    h-10
+
+    rounded-full
+
+    bg-black/40
+    backdrop-blur
+
+    text-white
+
+    flex
+    items-center
+    justify-center
+  "
+          >
+            <Crop size={18} />
+          </button>
         </div>
       </div>
 
@@ -85,250 +253,380 @@ export function ShipmentEvidenceEditor({ open, evidences, onClose }: Props) {
 
       <div
         className="
-          flex-1
-          bg-gray-100
+    absolute
+    inset-0
+
+    bg-black
+    overflow-hidden
+  "
+      >
+        <div
+          //ref={carouselRef}
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) {
+              return;
+            }
+
+            const delta = e.changedTouches[0].clientX - touchStartX.current;
+
+            if (delta < -60 && index < items.length - 1) {
+              setIndex(index + 1);
+            }
+
+            if (delta > 60 && index > 0) {
+              setIndex(index - 1);
+            }
+
+            touchStartX.current = null;
+          }}
+          onScroll={(e) => {
+            const element = e.currentTarget;
+
+            const newIndex = Math.round(
+              element.scrollLeft / element.clientWidth,
+            );
+
+            if (
+              newIndex !== index &&
+              newIndex >= 0 &&
+              newIndex < items.length
+            ) {
+              setIndex(newIndex);
+            }
+          }}
+          className="
+  h-full
+  flex
+"
+        >
+          <div
+            className="
+    w-full
+    h-full
+
+    flex
+    items-center
+    justify-center
+  "
+          >
+            <div
+              className="
+      w-full
+      h-full
+
+      flex
+      items-center
+      justify-center
+    "
+            >
+              <img
+                src={current.previewUrl}
+                alt=""
+                style={{
+                  transform: `
+          rotate(${current.rotation}deg)
+          scaleX(
+            ${current.flipX ? -1 : 1}
+          )
+        `,
+                }}
+                className="
+        max-w-full
+        max-h-full
+
+        object-contain
+      "
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Panel inferior */}
+
+      <div
+        className="
+    absolute
+
+    left-4
+    right-4
+    bottom-4
+
+    z-20
+  "
+      >
+        {/* Miniaturas */}
+
+        <div
+          className="
+    mb-2
+
+    flex
+    gap-2
+
+    overflow-x-auto
+  "
+        >
+          {items.map((evidence, i) => (
+            <div
+              key={evidence.id}
+              className="
+        relative
+        shrink-0
+      "
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+
+                  const nextItems = items.filter((x) => x.id !== evidence.id);
+
+                  if (nextItems.length === 0) {
+                    onClose();
+
+                    return;
+                  }
+
+                  setItems(nextItems);
+
+                  if (index >= nextItems.length) {
+                    setIndex(nextItems.length - 1);
+                  }
+                }}
+                className="
+          absolute
+          top-0.5
+          right-0.5
+
+          z-20
+
+          w-5
+          h-5
+
+          rounded-full
+
+          bg-red-500/60
+          backdrop-blur
+
+          text-white
+
+          text-sm
+          font-bold
+
           flex
           items-center
           justify-center
-          overflow-hidden
         "
-      >
-        <button
-          type="button"
-          onClick={() => setViewerOpen(true)}
-          className="
-    max-w-full
-    max-h-full
-  "
-        >
-          <img
-            src={current.previewUrl}
-            alt=""
-            style={{
-              transform: `
-        rotate(${current.rotation}deg)
-        scaleX(
-          ${current.flipX ? -1 : 1}
-        )
-      `,
-            }}
-            className="
-      max-w-full
-      max-h-full
-      object-contain
-    "
-          />
-        </button>
-      </div>
+              >
+                ×
+              </button>
 
-      {/* Herramientas */}
+              {evidence.hd && (
+                <div
+                  className="
+            absolute
 
-      <div
-        className="
-          border-t
-          p-4
-          space-y-4
-          bg-white
-        "
-      >
+            bottom-0.5
+            right-0.5
+
+            bg-blue-600/60
+            backdrop-blur
+
+            text-white
+
+            text-[10px]
+
+            px-1.5
+            py-0.5
+
+            rounded
+
+            z-10
+          "
+                >
+                  HD
+                </div>
+              )}
+
+              {evidence.notes && evidence.notes.trim() && (
+                <div
+                  className="
+              absolute
+
+              bottom-0.5
+              left-0.5
+
+              bg-black/40
+              backdrop-blur
+
+              text-white
+
+              text-[10px]
+
+              px-1.5
+              py-0.5
+
+              rounded
+
+              z-10
+            "
+                >
+                  💬
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIndex(i);
+                }}
+              >
+                <img
+                  src={evidence.previewUrl}
+                  alt=""
+                  className={`
+            w-17
+            h-17
+
+            object-cover
+
+            rounded-lg
+
+            border-2
+
+            ${i === index ? "border-blue-600" : "border-white/30"}
+          `}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+        {/* Comentario + Enviar */}
+
         <div
           className="
-            flex
-            items-center
-            gap-4
-          "
+      flex
+      items-end
+      gap-2
+    "
         >
-          <label
-            className="
-              flex
-              items-center
-              gap-2
-            "
-          >
-            <input
-              type="checkbox"
-              checked={current.hd}
-              onChange={(e) => {
-                const copy = [...items];
+          <textarea
+            ref={textareaRef}
+            value={current.notes}
+            maxLength={500}
+            rows={1}
+            placeholder="Añade un comentario..."
+            onChange={(e) => {
+              autoGrowTextarea(e.currentTarget);
 
-                copy[index] = {
-                  ...copy[index],
-
-                  hd: e.target.checked,
-                };
-
-                setItems(copy);
-              }}
-            />
-            HD
-          </label>
-
-          <button
-            type="button"
-            onClick={() => {
               const copy = [...items];
 
               copy[index] = {
                 ...copy[index],
-
-                rotation: copy[index].rotation + 90,
+                notes: e.target.value,
               };
 
               setItems(copy);
             }}
+            onInput={(e) => autoGrowTextarea(e.currentTarget)}
             className="
-              flex
-              items-center
-              gap-2
-              px-3
-              py-2
-              border
-              rounded-lg
-            "
-          >
-            <RotateCw size={18} />
-            Rotar
-          </button>
+        flex-1
+
+        min-h-[48px]
+        max-h-[120px]
+
+        rounded-3xl
+
+        bg-black/70
+        backdrop-blur
+
+        text-white
+
+        px-4
+        py-3
+
+        resize-none
+
+        overflow-y-auto
+
+        outline-none
+
+        placeholder:text-white/60
+      "
+          />
 
           <button
             type="button"
-            onClick={() => {
-              const copy = [...items];
-
-              copy[index] = {
-                ...copy[index],
-
-                flipX: !copy[index].flipX,
-              };
-
-              setItems(copy);
+            onClick={async () => {
+              await onUpload(items);
             }}
             className="
-              flex
-              items-center
-              gap-2
-              px-3
-              py-2
-              border
-              rounded-lg
-            "
+    w-16
+    h-16
+
+    shrink-0
+
+    rounded-full
+
+    bg-green-500
+
+    text-white
+
+    flex
+    items-center
+    justify-center
+
+    shadow-xl
+  "
           >
-            <FlipHorizontal size={18} />
-            Espejo
+            ↑
           </button>
         </div>
-
-        <textarea
-          value={current.notes}
-          placeholder="Comentario de la evidencia..."
-          rows={3}
-          onChange={(e) => {
-            const copy = [...items];
-
-            copy[index] = {
-              ...copy[index],
-
-              notes: e.target.value,
-            };
-
-            setItems(copy);
-          }}
-          className="
-            w-full
-            border
-            rounded-lg
-            p-3
-            resize-none
-          "
-        />
       </div>
-
-      {/* Miniaturas */}
-
-      <div
-        className="
-          border-t
-          bg-white
-          p-2
-          flex
-          gap-2
-          overflow-x-auto
-        "
-      >
-        {items.map((evidence, i) => (
-          <button
-            key={evidence.id}
-            type="button"
-            onClick={() => setIndex(i)}
-            className="
-                relative
-                shrink-0
-              "
-          >
-            {evidence.hd && (
-              <div
-                className="
-                    absolute
-                    top-1
-                    right-1
-                    bg-blue-600
-                    text-white
-                    text-[10px]
-                    px-1.5
-                    py-0.5
-                    rounded
-                    z-10
-                  "
-              >
-                HD
-              </div>
-            )}
-
-            <img
-              src={evidence.previewUrl}
-              alt=""
-              className={`
-                  w-16
-                  h-16
-                  object-cover
-                  rounded-lg
-                  border-2
-                  ${i === index ? "border-blue-600" : "border-gray-200"}
-                `}
-            />
-          </button>
-        ))}
-      </div>
-
-      {/* Footer */}
-
-      <div
-        className="
-          border-t
-          bg-white
-          p-4
-        "
-      >
-        <button
-          type="button"
-          className="
-            w-full
-            py-3
-            rounded-xl
-            bg-blue-600
-            text-white
-            font-medium
-          "
-        >
-          Subir {items.length} imagen
-          {items.length === 1 ? "" : "es"}
-        </button>
-      </div>
-      <EvidenceViewerDialog
-        open={viewerOpen}
-        onClose={() => setViewerOpen(false)}
+      <EvidenceCropDialog
+        open={cropOpen}
         imageUrl={current.previewUrl}
-        notes={current.notes}
+        onClose={() => {
+          setCropOpen(false);
+        }}
+        onApply={async (crop) => {
+          const copy = [...items];
+
+          const processedFile = await processImage(copy[index].file, {
+            hd: copy[index].hd,
+
+            rotation: copy[index].rotation,
+
+            flipX: copy[index].flipX,
+
+            flipY: copy[index].flipY,
+
+            cropX: crop.x,
+            cropY: crop.y,
+
+            cropWidth: crop.width,
+
+            cropHeight: crop.height,
+          });
+
+          copy[index] = {
+            ...copy[index],
+
+            cropX: crop.x,
+            cropY: crop.y,
+
+            cropWidth: crop.width,
+            cropHeight: crop.height,
+
+            previewUrl: URL.createObjectURL(processedFile),
+          };
+
+          setItems(copy);
+        }}
       />
     </div>
   );

@@ -1,10 +1,22 @@
+type Options = {
+  hd?: boolean;
+};
+
 export async function compressImage(
   file: File,
+  options?: Options,
 ): Promise<File> {
   const image = await loadImage(file);
 
-  const maxWidth = 1920;
-  const maxHeight = 1920;
+  const maxWidth =
+    options?.hd
+      ? 2400
+      : 1600;
+
+  const maxHeight =
+    options?.hd
+      ? 2400
+      : 1600;
 
   let width = image.width;
   let height = image.height;
@@ -44,7 +56,9 @@ export async function compressImage(
       canvas.toBlob(
         resolve,
         "image/jpeg",
-        0.85,
+        options?.hd
+          ? 0.92
+          : 0.75,
       );
     },
   );

@@ -6,13 +6,7 @@ import { CachedEvidenceImage } from "./cached-evidence-image";
 
 import { EvidenceCacheBadge } from "./evidence-cache-badge";
 
-import {
-  Camera,
-  Image as ImageIcon,
-  Trash2,
-  FolderDown,
-  Share2,
-} from "lucide-react";
+import { Camera, Image as ImageIcon, Trash2, Share2 } from "lucide-react";
 import { useRef } from "react";
 import { ShipmentEvidenceEditor } from "./evidence-editor/shipment-evidence-editor";
 
@@ -21,7 +15,7 @@ import {
   type PendingEvidence,
 } from "../types/pending-evidence";
 import { createShipmentEvidence } from "../api/create-shipment-evidence";
-import { X } from "lucide-react";
+import { X, Send } from "lucide-react";
 import { shareEvidences } from "../services/share-evidences";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +30,7 @@ import { reopenShipmentEvidences } from "../api/reopen-shipment-evidences";
 import { saveEvidencesToFolder } from "../services/save-evidences-to-folder";
 
 import { EvidenceViewerDialog } from "./evidence-viewer-dialog";
+import { processImage } from "@/shared/utils/process-image";
 
 type Props = {
   open: boolean;
@@ -59,7 +54,7 @@ export function ShipmentEvidencesDialog({
   const [viewerOpen, setViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [viewerEvidence, setViewerEvidence] = useState<any>(null);
   const { data: evidences = [] } = useShipmentEvidences(shipmentId);
   const hasComments = evidences.some((e) => e.notes?.trim());
@@ -84,17 +79,20 @@ export function ShipmentEvidencesDialog({
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, notes }: { file: File; notes?: string }) => {
       console.log("[UPLOAD MUTATION]", {
         name: file.name,
         type: file.type,
         size: file.size,
+        notes,
       });
 
       return createShipmentEvidence({
         shipmentId,
 
         file,
+
+        notes,
 
         createdBy: profile?.id,
       });
@@ -176,6 +174,27 @@ export function ShipmentEvidencesDialog({
 
   const [notesValue, setNotesValue] = useState("");
 
+  const shareMenuItemClass = `
+  w-full
+  text-left
+  px-4
+  py-3
+
+  transition-all
+  duration-75
+
+  hover:bg-blue-50
+  hover:text-blue-700
+
+  active:bg-blue-100
+  active:text-blue-800
+
+  active:scale-[0.98]
+
+  focus:bg-blue-100
+  focus:outline-none
+`;
+
   if (!open) {
     return null;
   }
@@ -186,6 +205,7 @@ export function ShipmentEvidencesDialog({
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={(e) => {
           const files = Array.from(e.target.files ?? []);
@@ -194,8 +214,8 @@ export function ShipmentEvidencesDialog({
             return;
           }
 
-          if (files.length > 20) {
-            toast.error("Máximo 20 imágenes");
+          if (files.length > 30) {
+            toast.error("Máximo 30 imágenes");
 
             return;
           }
@@ -313,6 +333,7 @@ export function ShipmentEvidencesDialog({
               )}
 
               <button
+                title="Subir imágenes"
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="
@@ -341,6 +362,7 @@ export function ShipmentEvidencesDialog({
               {isOwnerCompanyUser &&
                 (allReviewed ? (
                   <button
+                    title="Desaprovar evidencias"
                     type="button"
                     onClick={() => setConfirmReopenOpen(true)}
                     className="
@@ -362,6 +384,7 @@ export function ShipmentEvidencesDialog({
                   </button>
                 ) : (
                   <button
+                    title="Aprobar evidencias"
                     type="button"
                     disabled={
                       !hasPendingEvidences || validateAllMutation.isPending
@@ -388,122 +411,11 @@ export function ShipmentEvidencesDialog({
                   </button>
                 ))}
 
-              <button
-                type="button"
-                onClick={() => {
-                  const input = document.createElement("input");
-
-                  input.type = "file";
-
-                  input.accept = "image/*";
-
-                  input.onchange = async () => {
-                    const file = input.files?.[0];
-
-                    if (!file) {
-                      return;
-                    }
-
-                    try {
-                      console.log("navigator.share", typeof navigator.share);
-
-                      console.log(
-                        "navigator.canShare",
-                        typeof navigator.canShare,
-                      );
-
-                      console.log("FILE", {
-                        name: file.name,
-                        type: file.type,
-                        size: file.size,
-                      });
-
-                      if (typeof navigator.share !== "function") {
-                        alert("navigator.share NO existe");
-
-                        return;
-                      }
-
-                      if (
-                        navigator.canShare &&
-                        !navigator.canShare({
-                          files: [file],
-                        })
-                      ) {
-                        alert("navigator.canShare devolvió false");
-
-                        return;
-                      }
-
-                      await navigator.share({
-                        title: "TMP Share Test",
-
-                        text: "Prueba temporal",
-
-                        files: [file],
-                      });
-
-                      alert("Share OK");
-                    } catch (error) {
-                      console.error("TMP SHARE ERROR", error);
-
-                      alert(
-                        error instanceof Error ? error.message : String(error),
-                      );
-                    }
-                  };
-
-                  input.click();
-                }}
-                className="
-    px-3
-    py-2
-    rounded-lg
-    border
-    bg-red-500
-    text-white
-    text-sm
-  "
-              >
-                TMP
-              </button>
-
-              {isMobile ? (
+              <div className="relative">
                 <button
+                  title="Compartir archivos"
                   type="button"
-                  onClick={async () => {
-                    if (!hasComments) {
-                      try {
-                        await shareEvidences({
-                          trackingNumber,
-                          evidences,
-                          includeComments: false,
-                        });
-
-                        toast.success("Evidencias compartidas");
-                      } catch (error) {
-                        console.error(error);
-
-                        if (
-                          error instanceof Error &&
-                          (error.message.includes("canceled") ||
-                            error.message.includes("AbortError"))
-                        ) {
-                          return;
-                        }
-
-                        toast.error(
-                          error instanceof Error
-                            ? error.message
-                            : "No fue posible compartir las evidencias",
-                        );
-                      }
-
-                      return;
-                    }
-
-                    setShareDialogOpen(true);
-                  }}
+                  onClick={() => setShareMenuOpen(!shareMenuOpen)}
                   className="
       flex
       items-center
@@ -524,58 +436,150 @@ export function ShipmentEvidencesDialog({
 
                   <span className="hidden sm:inline">Compartir</span>
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await saveEvidencesToFolder({
-                        trackingNumber,
-                        evidences,
-                      });
 
-                      toast.success("Evidencias guardadas");
-                    } catch (error) {
-                      console.error(error);
+                {shareMenuOpen && (
+                  <>
+                    <div
+                      className="
+        fixed
+        inset-0
+        z-[998]
+      "
+                      onClick={() => setShareMenuOpen(false)}
+                    />
+                    <div
+                      className={`
+  absolute
+  top-full
+  mt-2
+  min-w-[320px]
+  bg-white
+  border
+  rounded-xl
+  shadow-xl
+  overflow-hidden
+  z-[999]
 
-                      if (
-                        error instanceof Error &&
-                        (error.message.includes("canceled") ||
-                          error.message.includes("AbortError"))
-                      ) {
-                        return;
-                      }
+  ${isMobile ? "left-[-200px]" : "left-0"}
+`}
+                    >
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setShareMenuOpen(false);
 
-                      toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : "No fue posible compartir las evidencias",
-                      );
-                    }
-                  }}
-                  className="
-      flex
-      items-center
-      gap-2
-      px-3
-      py-2
-      border
-      rounded-lg
-      bg-white
-      shadow-sm
-      text-sm
-      font-medium
-      text-gray-700
-      hover:bg-gray-50
-    "
-                >
-                  <FolderDown size={18} />
+                          try {
+                            await shareEvidences({
+                              trackingNumber,
+                              evidences,
+                              includeComments: false,
+                            });
 
-                  <span className="hidden sm:inline">Guardar archivos</span>
-                </button>
-              )}
+                            toast.success("Evidencias compartidas");
+                          } catch (error) {
+                            console.error(error);
 
-              <button className="ml-auto flex items-center gap-2 px-3 py-2 border rounded-lg bg-white shadow-sm text-sm font-medium text-gray-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors">
+                            if (
+                              error instanceof Error &&
+                              (error.message.includes("canceled") ||
+                                error.message.includes("AbortError"))
+                            ) {
+                              return;
+                            }
+
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : "No fue posible compartir las evidencias",
+                            );
+                          }
+                        }}
+                        className={shareMenuItemClass}
+                      >
+                        📤 Compartir archivos
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setShareMenuOpen(false);
+
+                          try {
+                            await shareEvidences({
+                              trackingNumber,
+                              evidences,
+                              includeComments: true,
+                            });
+
+                            toast.success("Evidencias compartidas");
+                          } catch (error) {
+                            console.error(error);
+
+                            if (
+                              error instanceof Error &&
+                              (error.message.includes("canceled") ||
+                                error.message.includes("AbortError"))
+                            ) {
+                              return;
+                            }
+
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : "No fue posible compartir las evidencias",
+                            );
+                          }
+                        }}
+                        className={shareMenuItemClass}
+                      >
+                        📝 Compartir archivos + comentarios
+                      </button>
+
+                      <div className="border-t" />
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setShareMenuOpen(false);
+
+                          try {
+                            await saveEvidencesToFolder({
+                              trackingNumber,
+                              evidences,
+                            });
+
+                            toast.success("Evidencias guardadas");
+                          } catch (error) {
+                            console.error(error);
+
+                            if (
+                              error instanceof Error &&
+                              (error.message.includes("canceled") ||
+                                error.message.includes("AbortError"))
+                            ) {
+                              return;
+                            }
+
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : "No fue posible guardar las evidencias",
+                            );
+                          }
+                        }}
+                        className={shareMenuItemClass}
+                      >
+                        📁 Guardar archivos
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <button
+                title="Eliminar imágenes"
+                className="ml-auto flex items-center gap-2 px-3 py-2 border rounded-lg bg-white shadow-sm text-sm font-medium text-gray-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+              >
                 <Trash2 size={18} />
                 <span className="hidden sm:inline">Eliminar</span>
               </button>
@@ -837,78 +841,47 @@ Ingrese un comentario...
 
             setPendingEvidences([]);
           }}
-        />
-
-        <UiMessage
-          open={shareDialogOpen}
-          type="question"
-          title="Compartir evidencias"
-          message={
-            <>
-              ¿Desea incluir los comentarios de las evidencias?
-              <br />
-              <br />
-              Las fotografías siempre serán compartidas.
-            </>
-          }
-          cancelText="Sin comentarios"
-          confirmText="Con comentarios"
-          onClose={async () => {
-            setShareDialogOpen(false);
-
+          onUpload={async (items) => {
             try {
-              await shareEvidences({
-                trackingNumber,
-                evidences,
-                includeComments: false,
+              for (const item of items) {
+                const file = await processImage(item.file, {
+                  hd: item.hd,
+
+                  rotation: item.rotation,
+
+                  flipX: item.flipX,
+
+                  flipY: item.flipY,
+
+                  cropX: item.cropX,
+
+                  cropY: item.cropY,
+
+                  cropWidth: item.cropWidth,
+
+                  cropHeight: item.cropHeight,
+                });
+
+                await uploadMutation.mutateAsync({
+                  file,
+
+                  notes: item.notes,
+                });
+              }
+
+              await queryClient.invalidateQueries({
+                queryKey: ["shipment-evidences", shipmentId],
               });
 
-              toast.success("Evidencias compartidas");
+              toast.success(`${items.length} evidencia(s) subida(s)`);
+
+              setEditorOpen(false);
+
+              setPendingEvidences([]);
             } catch (error) {
               console.error(error);
 
-              if (
-                error instanceof Error &&
-                (error.message.includes("canceled") ||
-                  error.message.includes("AbortError"))
-              ) {
-                return;
-              }
-
-              toast.error(
-                error instanceof Error
-                  ? error.message
-                  : "No fue posible compartir las evidencias",
-              );
-            }
-          }}
-          onConfirm={async () => {
-            setShareDialogOpen(false);
-
-            try {
-              await shareEvidences({
-                trackingNumber,
-                evidences,
-                includeComments: true,
-              });
-
-              toast.success("Evidencias compartidas");
-            } catch (error) {
-              console.error(error);
-
-              if (
-                error instanceof Error &&
-                (error.message.includes("canceled") ||
-                  error.message.includes("AbortError"))
-              ) {
-                return;
-              }
-
-              toast.error(
-                error instanceof Error
-                  ? error.message
-                  : "No fue posible compartir las evidencias",
-              );
+              toast.error("No fue posible subir las evidencias");
             }
           }}
         />

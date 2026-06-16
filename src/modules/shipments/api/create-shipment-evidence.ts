@@ -10,13 +10,18 @@ import { generateThumbnail }
 
 type Input = {
     shipmentId: string;
+
     file: File;
+
+    notes?: string;
+
     createdBy?: string | null;
 };
 
 export async function createShipmentEvidence({
     shipmentId,
     file,
+    notes,
     createdBy,
 }: Input) {
     const supabase = createClient();
@@ -120,6 +125,7 @@ export async function createShipmentEvidence({
 
             created_company_id:
                 companyId,
+            notes: notes?.trim() ?? "",
 
             validated: false,
 
