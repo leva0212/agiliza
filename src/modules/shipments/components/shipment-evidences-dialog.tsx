@@ -10,10 +10,6 @@ import { Camera, Image as ImageIcon, Trash2, Share2 } from "lucide-react";
 import { useRef } from "react";
 import { ShipmentEvidenceEditor } from "./evidence-editor/shipment-evidence-editor";
 
-import {
-  createPendingEvidence,
-  type PendingEvidence,
-} from "../types/pending-evidence";
 import { createShipmentEvidence } from "../api/create-shipment-evidence";
 import { X, Send } from "lucide-react";
 import { shareEvidences } from "../services/share-evidences";
@@ -31,7 +27,10 @@ import { saveEvidencesToFolder } from "../services/save-evidences-to-folder";
 
 import { EvidenceViewerDialog } from "./evidence-viewer-dialog";
 import { processImage } from "@/shared/utils/process-image";
-
+import {
+  createCompressedPendingEvidence,
+  type PendingEvidence,
+} from "../types/pending-evidence";
 type Props = {
   open: boolean;
 
@@ -220,9 +219,15 @@ export function ShipmentEvidencesDialog({
             return;
           }
 
-          setPendingEvidences(files.map(createPendingEvidence));
+          (async () => {
+            const evidences = await Promise.all(
+              files.map(createCompressedPendingEvidence),
+            );
 
-          setEditorOpen(true);
+            setPendingEvidences(evidences);
+
+            setEditorOpen(true);
+          })();
 
           e.target.value = "";
         }}
@@ -241,7 +246,13 @@ export function ShipmentEvidencesDialog({
             return;
           }
 
-          setPendingEvidences([createPendingEvidence(file)]);
+          (async () => {
+            const evidence = await createCompressedPendingEvidence(file);
+
+            setPendingEvidences([evidence]);
+
+            setEditorOpen(true);
+          })();
 
           setEditorOpen(true);
 

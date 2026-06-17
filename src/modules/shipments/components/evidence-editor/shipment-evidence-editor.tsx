@@ -2,11 +2,20 @@
 
 import { useEffect, useState, useRef } from "react";
 
-import { X, RotateCw, FlipHorizontal, Crop, BadgeInfo } from "lucide-react";
+import {
+  X,
+  RotateCw,
+  FlipHorizontal,
+  Crop,
+  BadgeInfo,
+  RefreshCcw,
+  RotateCcw,
+} from "lucide-react";
 
 import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialog } from "./crop-dialog/evidence-crop-dialog";
 import { processImage } from "@/shared/utils/process-image";
+import { updateEvidencePreview } from "@/shared/utils/update-evidence-preview";
 type Props = {
   open: boolean;
 
@@ -134,13 +143,15 @@ export function ShipmentEvidenceEditor({
         >
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const copy = [...items];
 
               copy[index] = {
                 ...copy[index],
+
                 hd: !copy[index].hd,
               };
+              copy[index] = await updateEvidencePreview(copy[index]);
 
               setItems(copy);
             }}
@@ -160,16 +171,52 @@ export function ShipmentEvidenceEditor({
           >
             HD
           </button>
-
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const copy = [...items];
 
               copy[index] = {
                 ...copy[index],
-                rotation: copy[index].rotation + 90,
+
+                rotation:  - 90,
               };
+
+              copy[index] = await updateEvidencePreview(copy[index]);
+
+              setItems(copy);
+            }}
+            className="
+        w-10
+        h-10
+
+        rounded-full
+
+        bg-black/40
+        backdrop-blur
+
+        text-white
+
+        flex
+        items-center
+        justify-center
+      "
+          >
+            <RotateCcw size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              const copy = [...items];
+
+              copy[index] = {
+                ...copy[index],
+
+                rotation: 90,
+              };
+
+              copy[index] = await updateEvidencePreview(copy[index]);
 
               setItems(copy);
             }}
@@ -194,13 +241,16 @@ export function ShipmentEvidenceEditor({
 
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const copy = [...items];
 
               copy[index] = {
                 ...copy[index],
-                flipX: !copy[index].flipX,
+
+                flipX: true,
               };
+
+              copy[index] = await updateEvidencePreview(copy[index]);
 
               setItems(copy);
             }}
@@ -208,6 +258,89 @@ export function ShipmentEvidenceEditor({
         w-10
         h-10
 
+        rounded-full
+
+        bg-black/40
+        backdrop-blur
+
+        text-white
+
+        flex
+        items-center
+        justify-center
+      "
+          >
+            <FlipHorizontal size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const copy = [...items];
+
+              copy[index] = {
+                ...copy[index],
+
+                file: copy[index].originalFile,
+
+                previewUrl: copy[index].originalPreviewUrl,
+
+                hd: false,
+
+                rotation: 0,
+
+                flipX: false,
+
+                flipY: false,
+
+                cropX: 0,
+
+                cropY: 0,
+
+                cropWidth: 0,
+
+                cropHeight: 0,
+              };
+
+              setItems(copy);
+            }}
+            className="
+    w-10
+    h-10
+
+    rounded-full
+
+    bg-red-600
+
+    text-white
+
+    flex
+    items-center
+    justify-center
+  "
+            title="Reset"
+          >
+            <RefreshCcw size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              const copy = [...items];
+
+              copy[index] = {
+                ...copy[index],
+
+                flipY: true
+              };
+
+              copy[index] = await updateEvidencePreview(copy[index]);
+
+              setItems(copy);
+            }}
+            className="
+        w-10
+        h-10
+        rotate-90
         rounded-full
 
         bg-black/40
@@ -325,14 +458,6 @@ export function ShipmentEvidenceEditor({
               <img
                 src={current.previewUrl}
                 alt=""
-                style={{
-                  transform: `
-          rotate(${current.rotation}deg)
-          scaleX(
-            ${current.flipX ? -1 : 1}
-          )
-        `,
-                }}
                 className="
         max-w-full
         max-h-full
@@ -590,28 +715,21 @@ export function ShipmentEvidenceEditor({
       <EvidenceCropDialog
         open={cropOpen}
         imageUrl={current.previewUrl}
+        initialRotation={current.rotation}
+        initialFlipX={current.flipX}
+        initialFlipY={current.flipY}
+        initialCrop={{
+          x: current.cropX,
+          y: current.cropY,
+
+          width: current.cropWidth,
+          height: current.cropHeight,
+        }}
         onClose={() => {
           setCropOpen(false);
         }}
         onApply={async (crop) => {
           const copy = [...items];
-
-          const processedFile = await processImage(copy[index].file, {
-            hd: copy[index].hd,
-
-            rotation: copy[index].rotation,
-
-            flipX: copy[index].flipX,
-
-            flipY: copy[index].flipY,
-
-            cropX: crop.x,
-            cropY: crop.y,
-
-            cropWidth: crop.width,
-
-            cropHeight: crop.height,
-          });
 
           copy[index] = {
             ...copy[index],
@@ -621,9 +739,9 @@ export function ShipmentEvidenceEditor({
 
             cropWidth: crop.width,
             cropHeight: crop.height,
-
-            previewUrl: URL.createObjectURL(processedFile),
           };
+
+          copy[index] = await updateEvidencePreview(copy[index]);
 
           setItems(copy);
         }}

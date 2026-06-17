@@ -9,17 +9,41 @@ type Props = {
 
   onClose: () => void;
 
-  onApply: (crop: {
+  onApply: (result: {
     x: number;
     y: number;
     width: number;
     height: number;
+
+    rotation: number;
+
+    flipX: boolean;
+
+    flipY: boolean;
   }) => void;
+
+  initialCrop?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  initialRotation?: number;
+
+  initialFlipX?: boolean;
+
+  initialFlipY?: boolean;
 };
 
 export function EvidenceCropDialog({
   open,
   imageUrl,
+  initialCrop,
+
+  initialRotation,
+  initialFlipX,
+  initialFlipY,
+
   onClose,
   onApply,
 }: Props) {
@@ -30,6 +54,31 @@ export function EvidenceCropDialog({
     width: 300,
     height: 300,
   });
+
+  // =====================================================
+  // Transformations
+  // =====================================================
+
+  const [rotation, setRotation] = useState(initialRotation ?? 0);
+
+  const [flipX, setFlipX] = useState(initialFlipX ?? false);
+
+  const [flipY, setFlipY] = useState(initialFlipY ?? false);
+  // =====================================================
+  // Sync transformations
+  // =====================================================
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setRotation(initialRotation ?? 0);
+
+    setFlipX(initialFlipX ?? false);
+
+    setFlipY(initialFlipY ?? false);
+  }, [open, initialRotation, initialFlipX, initialFlipY]);
 
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -65,6 +114,16 @@ export function EvidenceCropDialog({
 
     const updateCrop = () => {
       const rect = image.getBoundingClientRect();
+      console.log({
+        rotation,
+
+        rectWidth: rect.width,
+        rectHeight: rect.height,
+
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+      });
+
       imageBoundsRef.current = {
         width: rect.width,
 
@@ -74,8 +133,6 @@ export function EvidenceCropDialog({
 
         top: 0,
       };
-
-      const margin = 0.1;
 
       const isLandscape = image.naturalWidth > image.naturalHeight;
 
@@ -93,14 +150,36 @@ export function EvidenceCropDialog({
         width = height * (image.naturalWidth / image.naturalHeight);
       }
 
+      // =====================================================
+      // Restaurar crop previo
+      // =====================================================
+
+      if (initialCrop && initialCrop.width > 0 && initialCrop.height > 0) {
+        setCropBox({
+          x: initialCrop.x * rect.width,
+
+          y: initialCrop.y * rect.height,
+
+          width: initialCrop.width * rect.width,
+
+          height: initialCrop.height * rect.height,
+        });
+
+        return;
+      }
+
+      // =====================================================
+      // Crop inicial centrado
+      // =====================================================
+
       setCropBox({
-        x: (rect.width - width) / 2,
+        x: 0,
 
-        y: (rect.height - height) / 2,
+        y: 0,
 
-        width,
+        width: rect.width,
 
-        height,
+        height: rect.height,
       });
     };
 
@@ -109,7 +188,7 @@ export function EvidenceCropDialog({
     }
 
     image.onload = updateCrop;
-  }, [open, imageUrl]);
+  }, [open, imageUrl, initialCrop]);
 
   if (!open) {
     return null;
@@ -151,15 +230,22 @@ export function EvidenceCropDialog({
             ref={imageRef}
             src={imageUrl}
             alt=""
+            /*style={{
+              transform: `
+      rotate(${rotation}deg)
+      scaleX(${flipX ? -1 : 1})
+      scaleY(${flipY ? -1 : 1})
+    `,
+            }}*/
             className="
-            max-w-[90vw]
-            max-h-[80vh]
+    max-w-[90vw]
+    max-h-[80vh]
 
-            object-contain
+    object-contain
 
-            pointer-events-none
-            select-none
-          "
+    pointer-events-none
+    select-none
+  "
           />
 
           {/* Overlay superior */}
@@ -452,34 +538,41 @@ export function EvidenceCropDialog({
         </div>
       </div>
 
+      {/* ===================================================== */}
+      {/* Transform buttons                                     */}
+      {/* ===================================================== */}
+
       <div
         className="
-        absolute
-        bottom-0
-        left-0
-        right-0
+    absolute
 
-        p-4
+    bottom-4
+    left-0
+    right-0
 
-        flex
-        gap-2
-      "
+    flex
+    justify-end
+    gap-3
+
+    px-4
+  "
       >
         <button
           type="button"
           onClick={onClose}
           className="
-          flex-1
-          h-12
+      w-12
+      h-12
 
-          rounded-xl
+      rounded-full
 
-          bg-white/20
+      bg-red-600
 
-          text-white
-        "
+      text-white
+    "
+          title="Cerrar"
         >
-          Cancelar
+          ✕
         </button>
 
         <button
@@ -497,22 +590,29 @@ export function EvidenceCropDialog({
               width: cropBox.width / imageWidth,
 
               height: cropBox.height / imageHeight,
+
+              rotation,
+
+              flipX,
+
+              flipY,
             });
 
             onClose();
           }}
           className="
-          flex-1
-          h-12
+      w-12
+      h-12
 
-          rounded-xl
+      rounded-full
 
-          bg-blue-600
+      bg-green-600
 
-          text-white
-        "
+      text-white
+    "
+          title="Aceptar"
         >
-          Aplicar
+          ✓
         </button>
       </div>
     </div>
