@@ -79,7 +79,6 @@ export function DashboardSidebar({ profile }: Props) {
 
       <aside
         className={`
-          min-h-[800]
           fixed
           top-0
           left-0
@@ -88,6 +87,9 @@ export function DashboardSidebar({ profile }: Props) {
           md:top-0
           shrink-0
           z-50
+          flex
+          flex-col
+          overflow-hidden
 
           bg-black
           text-white
@@ -100,21 +102,27 @@ export function DashboardSidebar({ profile }: Props) {
           ${sidebarOpen ? "w-64" : "w-20"}
         `}
       >
-        <div className="p-4 border-b border-gray-700 flex justify-between">
-          <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)}>
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-700 px-3">
+          <button
+            type="button"
+            aria-label="Contraer o expandir menú"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="flex size-10 items-center justify-center rounded-lg hover:bg-gray-800"
+          >
             ☰
           </button>
 
           <button
             type="button"
+            aria-label="Cerrar menú"
             onClick={() => setMobileOpen(false)}
-            className="md:hidden"
+            className="flex size-10 items-center justify-center rounded-lg hover:bg-gray-800 md:hidden"
           >
             ✕
           </button>
         </div>
 
-        <div className="px-4 py-3 border-b border-gray-700">
+        <div className="shrink-0 px-4 py-3 border-b border-gray-700">
           <div className="text-sm text-gray-400">Usuario</div>
 
           <div className="font-medium truncate">{profile.full_name}</div>
@@ -124,7 +132,10 @@ export function DashboardSidebar({ profile }: Props) {
           )}
         </div>
 
-        <nav className="p-3 space-y-2" onClick={handleMobileNavigation}>
+        <nav
+          className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
+          onClick={handleMobileNavigation}
+        >
           <Link
             href="/dashboard/tracking"
             className="block p-3 rounded-lg hover:bg-gray-800"
@@ -237,9 +248,10 @@ export function DashboardSidebar({ profile }: Props) {
         <div
           className="
             mt-auto
+            shrink-0
             flex
             justify-center
-            py-10
+            py-3
           "
         >
           <AppVersion showUpdateTooltip />

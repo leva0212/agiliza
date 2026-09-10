@@ -79,7 +79,7 @@ export function TrackingTable({
       {
         accessorKey: "created_at",
         header: "Fecha",
-        size: 132,
+        size: 150,
         Cell: ({ cell }) => {
           const date = new Date(cell.getValue<string>());
 
@@ -149,7 +149,7 @@ export function TrackingTable({
       baseColumns.push({
         id: "history",
         header: "Historial",
-        size: 96,
+        size: 140,
         enableColumnFilter: false,
         enableSorting: false,
         Cell: ({ row }) => (

@@ -202,7 +202,7 @@ export default function TrackingPage() {
           <h1 className="text-2xl font-bold">{title}</h1>
           <p className="mt-1 text-sm text-slate-500">Registros de la última semana por defecto.</p>
         </div>
-        <div className="flex w-full max-w-[320px] flex-col gap-2 sm:w-auto sm:max-w-none sm:flex-row">
+        <div className="flex w-full max-w-[320px] flex-row gap-2 sm:w-auto sm:max-w-none">
           <Tooltip title="Refrescar datos para obtener la información más reciente">
             <button
               type="button"
@@ -219,30 +219,39 @@ export default function TrackingPage() {
               />
             </button>
           </Tooltip>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="w-full rounded-lg border border-blue-600 px-4 py-2 font-medium text-blue-700 disabled:opacity-50 sm:w-auto"
-          >
-            {exporting ? "Exportando..." : "Exportar CSV"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedRecord(null);
-              setDialogOpen(true);
-            }}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white sm:w-auto"
-          >
-            Nuevo seguimiento
-          </button>
+          <Tooltip title="Exportar los registros filtrados a Excel">
+            <span className="flex-1 sm:flex-none">
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full whitespace-nowrap rounded-lg border border-blue-600 px-3 py-2 font-medium text-blue-700 disabled:opacity-50 sm:w-auto sm:px-4"
+              >
+                {exporting ? "Exportando..." : "Exportar CSV"}
+              </button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Crear un nuevo seguimiento">
+            <span className="flex-1 sm:flex-none">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRecord(null);
+                  setDialogOpen(true);
+                }}
+                className="w-full whitespace-nowrap rounded-lg bg-blue-600 px-3 py-2 font-medium text-white sm:w-auto sm:px-4"
+              >
+                <span className="sm:hidden">Nuevo</span>
+                <span className="hidden sm:inline">Nuevo seguimiento</span>
+              </button>
+            </span>
+          </Tooltip>
         </div>
       </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <label className="w-full max-w-[320px] text-sm text-slate-700 sm:w-auto">
-          Buscar cliente
+        <label className="grid w-full max-w-[320px] grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 sm:block sm:w-auto">
+          <span className="text-right sm:text-left">Buscar cliente</span>
           <input
             type="search"
             value={search}
@@ -251,21 +260,21 @@ export default function TrackingPage() {
               setPagination((value) => ({ ...value, pageIndex: 0 }));
             }}
             placeholder="Nombre o cédula"
-            className="mt-1 block w-full rounded-lg border p-2 sm:w-52"
+            className="min-w-0 w-full rounded-lg border p-2 sm:mt-1 sm:block sm:w-52"
           />
         </label>
-        <label className="w-full max-w-[320px] text-sm text-slate-700 sm:w-auto">
-          Desde
-          <input type="date" value={startDate} onChange={(event) => { setStartDate(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="mt-1 block w-full rounded-lg border p-2 sm:w-auto" />
+        <label className="grid w-full max-w-[320px] grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 sm:block sm:w-auto">
+          <span className="text-right sm:text-left">Desde</span>
+          <input type="date" value={startDate} onChange={(event) => { setStartDate(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 w-full rounded-lg border p-2 sm:mt-1 sm:block sm:w-auto" />
         </label>
-        <label className="w-full max-w-[320px] text-sm text-slate-700 sm:w-auto">
-          Hasta
-          <input type="date" value={endDate} onChange={(event) => { setEndDate(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="mt-1 block w-full rounded-lg border p-2 sm:w-auto" />
+        <label className="grid w-full max-w-[320px] grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 sm:block sm:w-auto">
+          <span className="text-right sm:text-left">Hasta</span>
+          <input type="date" value={endDate} onChange={(event) => { setEndDate(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 w-full rounded-lg border p-2 sm:mt-1 sm:block sm:w-auto" />
         </label>
         {isOwnerCompanyUser && (
-          <label className="w-full max-w-[320px] text-sm text-slate-700 sm:w-auto">
-            Empresa
-            <select value={companyId} onChange={(event) => { setCompanyId(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="mt-1 block w-full rounded-lg border p-2 sm:w-auto">
+          <label className="grid w-full max-w-[320px] grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 sm:block sm:w-auto">
+            <span className="text-right sm:text-left">Empresa</span>
+            <select value={companyId} onChange={(event) => { setCompanyId(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 w-full rounded-lg border p-2 sm:mt-1 sm:block sm:w-auto">
               <option value="">Todas las empresas</option>
               {companies.map((company) => (
                 <option key={company.id} value={company.id}>
@@ -275,16 +284,16 @@ export default function TrackingPage() {
             </select>
           </label>
         )}
-        <label className="w-full max-w-[320px] text-sm text-slate-700 sm:w-auto">
-          Estatus
-          <select value={status} onChange={(event) => { setStatus(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="mt-1 block w-full rounded-lg border p-2 sm:w-auto">
+        <label className="grid w-full max-w-[320px] grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 sm:block sm:w-auto">
+          <span className="text-right sm:text-left">Estatus</span>
+          <select value={status} onChange={(event) => { setStatus(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 w-full rounded-lg border p-2 sm:mt-1 sm:block sm:w-auto">
             <option value="">Todos los estados</option>
             {trackingStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>
-        <label className="w-full max-w-[320px] text-sm text-slate-700 sm:w-auto">
-          Provincia
-          <select value={provinceId} onChange={(event) => { setProvinceId(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="mt-1 block w-full rounded-lg border p-2 sm:w-auto">
+        <label className="grid w-full max-w-[320px] grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 sm:block sm:w-auto">
+          <span className="text-right sm:text-left">Provincia</span>
+          <select value={provinceId} onChange={(event) => { setProvinceId(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 w-full rounded-lg border p-2 sm:mt-1 sm:block sm:w-auto">
             <option value="">Todas las provincias</option>
             {provinces.map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}
           </select>
