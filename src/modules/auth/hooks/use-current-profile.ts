@@ -52,6 +52,7 @@ export async function getCurrentProfile() {
       company:companies(
         id,
         name,
+        trade_name,
         is_owner_company
       )
     `)

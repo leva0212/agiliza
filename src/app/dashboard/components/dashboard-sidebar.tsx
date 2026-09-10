@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { useRouter } from "next/navigation";
 
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -20,6 +20,8 @@ type Profile = {
   full_name: string;
 
   active: boolean;
+
+  is_owner_company_user: boolean;
 };
 
 type Props = {
@@ -49,6 +51,15 @@ export function DashboardSidebar({ profile }: Props) {
 
   const isCourier = profile.role === "courier";
   const isSeller = profile.role === "seller";
+  const canAccessInternalFeatures = profile.is_owner_company_user;
+
+  function handleMobileNavigation(event: MouseEvent<HTMLElement>) {
+    const clickedLink = event.target instanceof Element && event.target.closest("a");
+
+    if (clickedLink && window.matchMedia("(max-width: 767px)").matches) {
+      setMobileOpen(false);
+    }
+  }
 
   return (
     <>
@@ -108,11 +119,27 @@ export function DashboardSidebar({ profile }: Props) {
 
           <div className="font-medium truncate">{profile.full_name}</div>
 
-          <div className="text-xs text-gray-400">{profile.role}</div>
+          {isSuperAdmin && (
+            <div className="text-xs text-gray-400">{profile.role}</div>
+          )}
         </div>
 
-        <nav className="p-3 space-y-2">
-          {(isSuperAdmin || isCompanyAdmin) && (
+        <nav className="p-3 space-y-2" onClick={handleMobileNavigation}>
+          <Link
+            href="/dashboard/tracking"
+            className="block p-3 rounded-lg hover:bg-gray-800"
+          >
+            {sidebarOpen ? "📋 Seguimiento" : "📋"}
+          </Link>
+
+          <Link
+            href="/dashboard/coverage"
+            className="block p-3 rounded-lg hover:bg-gray-800"
+          >
+            {sidebarOpen ? "🗺️ Cobertura" : "🗺️"}
+          </Link>
+
+          {canAccessInternalFeatures && (isSuperAdmin || isCompanyAdmin) && (
             <Link
               href="/dashboard/shipments/list"
               className="block p-3 rounded-lg hover:bg-gray-800"
@@ -168,12 +195,6 @@ export function DashboardSidebar({ profile }: Props) {
               </Link>
 
               <Link
-                href="/dashboard/coverage"
-                className="block p-3 rounded-lg hover:bg-gray-800"
-              >
-                {sidebarOpen ? "🗺️ Cobertura" : "🗺️"}
-              </Link>
-              <Link
                 href="/dashboard/rates"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
@@ -189,7 +210,7 @@ export function DashboardSidebar({ profile }: Props) {
             </>
           )}
 
-          {isCourier && (
+          {canAccessInternalFeatures && isCourier && (
             <Link
               href="/dashboard/my-shipments"
               className="block p-3 rounded-lg hover:bg-gray-800"
@@ -221,7 +242,7 @@ export function DashboardSidebar({ profile }: Props) {
             py-10
           "
         >
-          <AppVersion />
+          <AppVersion showUpdateTooltip />
         </div>
       </aside>
 

@@ -59,8 +59,6 @@ export default function EditUserPage() {
   const [companyId, setCompanyId] = useState("");
 
   const [role, setRole] = useState("");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [unlinkRouteOpen, setUnlinkRouteOpen] = useState(false);
 
@@ -85,52 +83,6 @@ export default function EditUserPage() {
   const [permissions, setPermissions] = useState<any[]>([]);
 
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  useEffect(() => {
-    if (!initialFormState) {
-      return;
-    }
-
-    setHasUnsavedChanges(buildFormState() !== initialFormState);
-  }, [
-    fullName,
-
-    phone,
-
-    companyId,
-
-    role,
-
-    active,
-
-    canDeliver,
-
-    deliveryPay,
-
-    failedPay,
-
-    selectedPermissions,
-
-    selectedRoutes,
-
-    initialFormState,
-  ]);
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasUnsavedChanges) {
-        return;
-      }
-
-      event.preventDefault();
-
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [hasUnsavedChanges]);
 
   function buildFormState() {
     return JSON.stringify({
@@ -159,6 +111,27 @@ export default function EditUserPage() {
         .sort(),
     });
   }
+
+  const hasUnsavedChanges =
+    initialFormState !== "" && buildFormState() !== initialFormState;
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) {
+        return;
+      }
+
+      event.preventDefault();
+
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     async function load() {
@@ -303,7 +276,7 @@ export default function EditUserPage() {
 
       setMessageOpen(true);
 
-      setHasUnsavedChanges(false);
+      setInitialFormState(buildFormState());
     } catch (error: any) {
       setMessageTitle("Error");
 

@@ -28,7 +28,7 @@ import { saveEvidencesToFolder } from "../services/save-evidences-to-folder";
 import { EvidenceViewerDialog } from "./evidence-viewer-dialog";
 import { processImage } from "@/shared/utils/process-image";
 import {
-  createCompressedPendingEvidence,
+  createPendingEvidence,
   type PendingEvidence,
 } from "../types/pending-evidence";
 type Props = {
@@ -221,7 +221,7 @@ export function ShipmentEvidencesDialog({
 
           (async () => {
             const evidences = await Promise.all(
-              files.map(createCompressedPendingEvidence),
+              files.map(createPendingEvidence),
             );
 
             setPendingEvidences(evidences);
@@ -247,7 +247,7 @@ export function ShipmentEvidencesDialog({
           }
 
           (async () => {
-            const evidence = await createCompressedPendingEvidence(file);
+            const evidence = await createPendingEvidence(file);
 
             setPendingEvidences([evidence]);
 
@@ -855,7 +855,7 @@ Ingrese un comentario...
           onUpload={async (items) => {
             try {
               for (const item of items) {
-                const file = await processImage(item.file, {
+                const file = await processImage(item.originalFile, {
                   hd: item.hd,
 
                   rotation: item.rotation,

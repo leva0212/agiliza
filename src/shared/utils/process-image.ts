@@ -23,74 +23,151 @@ export async function processImage(
     const image =
         await loadImage(file);
 
-    const cropX =
-        Math.round(
-            (options.cropX ?? 0) *
-            image.width,
+    const angle =
+        ((options.rotation % 360) + 360) %
+        360;
+
+    
+    const rotated =
+        angle === 90 ||
+        angle === 270;
+
+    // =====================================
+    // Canvas 1
+    // Imagen transformada
+    // =====================================
+
+    const transformCanvas =
+        document.createElement(
+            "canvas",
         );
 
-    const cropY =
-        Math.round(
-            (options.cropY ?? 0) *
-            image.height,
+    const transformCtx =
+        transformCanvas.getContext(
+            "2d",
         );
 
-    const cropWidth =
-        Math.round(
-            (options.cropWidth ?? 1) *
-            image.width,
-        );
+    if (!transformCtx) {
+        return file;
+    }
 
-    const cropHeight =
-        Math.round(
-            (options.cropHeight ?? 1) *
-            image.height,
-        );
+    transformCanvas.width =
+        rotated
+            ? image.height
+            : image.width;
+
+    transformCanvas.height =
+        rotated
+            ? image.width
+            : image.height;
+
+    transformCtx.save();
+
+    transformCtx.translate(
+        transformCanvas.width / 2,
+        transformCanvas.height / 2,
+    );
+
+    transformCtx.rotate(
+        (angle * Math.PI) / 180,
+    );
+
+    transformCtx.scale(
+        options.flipX
+            ? -1
+            : 1,
+        options.flipY
+            ? -1
+            : 1,
+    );
+
+    transformCtx.drawImage(
+        image,
+        -image.width / 2,
+        -image.height / 2,
+        image.width,
+        image.height,
+    );
+
+    transformCtx.restore();
+
+    // =====================================
+    // Crop sobre imagen ya transformada
+    // =====================================
+
+    const cropXRatio = Math.min(
+        Math.max(options.cropX ?? 0, 0),
+        1,
+    );
+
+    const cropYRatio = Math.min(
+        Math.max(options.cropY ?? 0, 0),
+        1,
+    );
+
+    // Las evidencias sin recorte se inicializan con 0. En ese caso,
+    // se debe conservar la imagen completa y no crear un canvas 0 × 0.
+    const cropWidthRatio = Math.min(
+        options.cropWidth && options.cropWidth > 0
+            ? options.cropWidth
+            : 1,
+        1 - cropXRatio,
+    );
+
+    const cropHeightRatio = Math.min(
+        options.cropHeight && options.cropHeight > 0
+            ? options.cropHeight
+            : 1,
+        1 - cropYRatio,
+    );
+
+    const cropX = Math.round(
+        cropXRatio * transformCanvas.width,
+    );
+
+    const cropY = Math.round(
+        cropYRatio * transformCanvas.height,
+    );
+
+    const cropWidth = Math.max(
+        1,
+        Math.round(cropWidthRatio * transformCanvas.width),
+    );
+
+    const cropHeight = Math.max(
+        1,
+        Math.round(cropHeightRatio * transformCanvas.height),
+    );
+
+   
+
+    // =====================================
+    // Canvas 2
+    // Resultado crop
+    // =====================================
 
     const canvas =
-        document.createElement("canvas");
+        document.createElement(
+            "canvas",
+        );
 
     const ctx =
-        canvas.getContext("2d");
+        canvas.getContext(
+            "2d",
+        );
 
     if (!ctx) {
         return file;
     }
 
-    const angle =
-        ((options.rotation % 360) + 360) %
-        360;
+    canvas.width =
+        cropWidth;
 
-    const rotated =
-        angle === 90 ||
-        angle === 270;
-
-    canvas.width = rotated
-        ? cropHeight
-        : cropWidth;
-
-    canvas.height = rotated
-        ? cropWidth
-        : cropHeight;
-
-    ctx.save();
-
-    ctx.translate(
-        canvas.width / 2,
-        canvas.height / 2,
-    );
-
-    ctx.rotate(
-        (angle * Math.PI) / 180,
-    );
-
-    ctx.scale(
-        options.flipX ? -1 : 1,
-        options.flipY ? -1 : 1,
-    );
+    canvas.height =
+        cropHeight;
 
     ctx.drawImage(
-        image,
+        transformCanvas,
 
         cropX,
         cropY,
@@ -98,14 +175,12 @@ export async function processImage(
         cropWidth,
         cropHeight,
 
-        -cropWidth / 2,
-        -cropHeight / 2,
+        0,
+        0,
 
         cropWidth,
         cropHeight,
     );
-
-    ctx.restore();
 
     const resized =
         resizeCanvas(
@@ -130,13 +205,14 @@ export async function processImage(
             ".jpg",
         ),
         {
-            type: "image/jpeg",
+            type:
+                "image/jpeg",
+
             lastModified:
                 Date.now(),
         },
     );
 }
-
 function resizeCanvas(
     source: HTMLCanvasElement,
     maxSize: number,
@@ -176,6 +252,7 @@ function resizeCanvas(
     if (!ctx) {
         return source;
     }
+
 
     ctx.drawImage(
         source,

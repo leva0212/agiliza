@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-
+//import { ImageViewer } from "./image-viewer";
+import { ImageViewer } from "@/shared/components/image-viewer";
 import {
   X,
   RotateCw,
@@ -13,8 +14,7 @@ import {
 } from "lucide-react";
 
 import type { PendingEvidence } from "../../types/pending-evidence";
-import { EvidenceCropDialog } from "./crop-dialog/evidence-crop-dialog";
-import { processImage } from "@/shared/utils/process-image";
+import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
 import { updateEvidencePreview } from "@/shared/utils/update-evidence-preview";
 type Props = {
   open: boolean;
@@ -34,7 +34,7 @@ export function ShipmentEvidenceEditor({
 }: Props) {
   const [cropOpen, setCropOpen] = useState(false);
   const [index, setIndex] = useState(0);
-
+  const [zoom, setZoom] = useState(1);
   const [items, setItems] = useState<PendingEvidence[]>([]);
 
   const touchStartX = useRef<number | null>(null);
@@ -171,107 +171,7 @@ export function ShipmentEvidenceEditor({
           >
             HD
           </button>
-          <button
-            type="button"
-            onClick={async () => {
-              const copy = [...items];
 
-              copy[index] = {
-                ...copy[index],
-
-                rotation:  - 90,
-              };
-
-              copy[index] = await updateEvidencePreview(copy[index]);
-
-              setItems(copy);
-            }}
-            className="
-        w-10
-        h-10
-
-        rounded-full
-
-        bg-black/40
-        backdrop-blur
-
-        text-white
-
-        flex
-        items-center
-        justify-center
-      "
-          >
-            <RotateCcw size={18} />
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              const copy = [...items];
-
-              copy[index] = {
-                ...copy[index],
-
-                rotation: 90,
-              };
-
-              copy[index] = await updateEvidencePreview(copy[index]);
-
-              setItems(copy);
-            }}
-            className="
-        w-10
-        h-10
-
-        rounded-full
-
-        bg-black/40
-        backdrop-blur
-
-        text-white
-
-        flex
-        items-center
-        justify-center
-      "
-          >
-            <RotateCw size={18} />
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              const copy = [...items];
-
-              copy[index] = {
-                ...copy[index],
-
-                flipX: true,
-              };
-
-              copy[index] = await updateEvidencePreview(copy[index]);
-
-              setItems(copy);
-            }}
-            className="
-        w-10
-        h-10
-
-        rounded-full
-
-        bg-black/40
-        backdrop-blur
-
-        text-white
-
-        flex
-        items-center
-        justify-center
-      "
-          >
-            <FlipHorizontal size={18} />
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -320,40 +220,6 @@ export function ShipmentEvidenceEditor({
             title="Reset"
           >
             <RefreshCcw size={18} />
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              const copy = [...items];
-
-              copy[index] = {
-                ...copy[index],
-
-                flipY: true
-              };
-
-              copy[index] = await updateEvidencePreview(copy[index]);
-
-              setItems(copy);
-            }}
-            className="
-        w-10
-        h-10
-        rotate-90
-        rounded-full
-
-        bg-black/40
-        backdrop-blur
-
-        text-white
-
-        flex
-        items-center
-        justify-center
-      "
-          >
-            <FlipHorizontal size={18} />
           </button>
 
           <button
@@ -455,16 +321,7 @@ export function ShipmentEvidenceEditor({
       justify-center
     "
             >
-              <img
-                src={current.previewUrl}
-                alt=""
-                className="
-        max-w-full
-        max-h-full
-
-        object-contain
-      "
-              />
+              <ImageViewer src={current.previewUrl} />
             </div>
           </div>
         </div>
@@ -712,16 +569,16 @@ export function ShipmentEvidenceEditor({
           </button>
         </div>
       </div>
-      <EvidenceCropDialog
+
+      <EvidenceCropDialogCanvas
         open={cropOpen}
-        imageUrl={current.previewUrl}
+        imageUrl={current.originalPreviewUrl}
         initialRotation={current.rotation}
         initialFlipX={current.flipX}
         initialFlipY={current.flipY}
         initialCrop={{
           x: current.cropX,
           y: current.cropY,
-
           width: current.cropWidth,
           height: current.cropHeight,
         }}
@@ -735,10 +592,18 @@ export function ShipmentEvidenceEditor({
             ...copy[index],
 
             cropX: crop.x,
+
             cropY: crop.y,
 
             cropWidth: crop.width,
+
             cropHeight: crop.height,
+
+            rotation: crop.rotation,
+
+            flipX: crop.flipX,
+
+            flipY: crop.flipY,
           };
 
           copy[index] = await updateEvidencePreview(copy[index]);

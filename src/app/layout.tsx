@@ -1,5 +1,5 @@
 import { VersionCheck } from "@/app/version-check";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -50,6 +50,11 @@ export const metadata: Metadata = {
 
     shortcut: "/icons/icon-192.png",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 type RootLayoutProps = Readonly<{

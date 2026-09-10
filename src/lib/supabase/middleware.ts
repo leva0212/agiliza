@@ -6,6 +6,14 @@ import {
   type NextRequest,
 } from "next/server";
 
+function isExternalCompanyAllowedPath(pathname: string) {
+  return [
+    "/dashboard/tracking",
+    "/dashboard/coverage",
+    "/dashboard/change-password",
+  ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 export async function updateSession(
   request: NextRequest,
 ) {
@@ -109,7 +117,36 @@ export async function updateSession(
 
     );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (
+    user &&
+    request.nextUrl.pathname.startsWith("/dashboard") &&
+    !isExternalCompanyAllowedPath(request.nextUrl.pathname)
+  ) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company:companies(is_owner_company)")
+      .eq("id", user.id)
+      .maybeSingle();
+    const company = Array.isArray(profile?.company)
+      ? profile.company[0] ?? null
+      : profile?.company;
+
+    if (company?.is_owner_company !== true) {
+      const redirectResponse = NextResponse.redirect(
+        new URL("/dashboard/tracking", request.url),
+      );
+
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie);
+      });
+
+      return redirectResponse;
+    }
+  }
 
   return response;
 

@@ -143,7 +143,22 @@ export function ShipmentForm({ shipmentId }: Props) {
       return;
     }
 
-    setSelectedCompanyId(profile.company_id);
+    const profileCompanyId = profile.company_id;
+    let cancelled = false;
+
+    async function selectProfileCompany() {
+      await Promise.resolve();
+
+      if (!cancelled) {
+        setSelectedCompanyId(profileCompanyId);
+      }
+    }
+
+    void selectProfileCompany();
+
+    return () => {
+      cancelled = true;
+    };
   }, [profile, selectedCompanyId]);
 
   const { data: provinces = [] } = useQuery({
@@ -216,7 +231,21 @@ export function ShipmentForm({ shipmentId }: Props) {
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (coverage.length === 1) {
-      setRouteId(coverage[0].route_id);
+      let cancelled = false;
+
+      async function selectOnlyRoute() {
+        await Promise.resolve();
+
+        if (!cancelled) {
+          setRouteId(coverage[0].route_id);
+        }
+      }
+
+      void selectOnlyRoute();
+
+      return () => {
+        cancelled = true;
+      };
     }
   }, [coverage]);
 
@@ -226,6 +255,15 @@ export function ShipmentForm({ shipmentId }: Props) {
     }
 
     const shipment = shipmentQuery.data;
+    let cancelled = false;
+
+    async function populateShipment() {
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
     setNotes(shipment.notes ?? "");
     setCustomerIdentificationTypeId(shipment.customer_identification_type_id);
 
@@ -244,6 +282,13 @@ export function ShipmentForm({ shipmentId }: Props) {
     setNeighborhoodId(shipment.neighborhood?.id ?? null);
 
     setRouteId(shipment.route_id);
+    }
+
+    void populateShipment();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isEditing, shipmentQuery.data]);
 
   useEffect(() => {
@@ -251,8 +296,18 @@ export function ShipmentForm({ shipmentId }: Props) {
       return;
     }
 
-    setItems(
-      shipmentItemsQuery.data.map((item) => ({
+    const shipmentItems = shipmentItemsQuery.data;
+    let cancelled = false;
+
+    async function populateItems() {
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
+      setItems(
+      shipmentItems.map((item) => ({
         product_id: item.product_id,
 
         quantity: item.quantity,
@@ -262,6 +317,13 @@ export function ShipmentForm({ shipmentId }: Props) {
         deposit_amount: item.deposit_amount,
       })),
     );
+    }
+
+    void populateItems();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isEditing, shipmentItemsQuery.data]);
 
   useEffect(() => {
@@ -269,8 +331,18 @@ export function ShipmentForm({ shipmentId }: Props) {
       return;
     }
 
-    setContactMethods(
-      shipmentContactsQuery.data.map((contact) => ({
+    const shipmentContacts = shipmentContactsQuery.data;
+    let cancelled = false;
+
+    async function populateContactMethods() {
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
+      setContactMethods(
+      shipmentContacts.map((contact) => ({
         contact_name: contact.contact_name ?? "",
 
         contact_type: contact.contact_type ?? "customer",
@@ -290,6 +362,13 @@ export function ShipmentForm({ shipmentId }: Props) {
         notes: contact.notes ?? undefined,
       })),
     );
+    }
+
+    void populateContactMethods();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isEditing, shipmentContactsQuery.data]);
 
   //Copia de envío existente
@@ -299,6 +378,15 @@ export function ShipmentForm({ shipmentId }: Props) {
     }
 
     const shipment = copyShipmentQuery.data;
+    let cancelled = false;
+
+    async function populateCopiedShipment() {
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
     setNotes(shipment.notes ?? "");
     setCustomerIdentificationTypeId(shipment.customer_identification_type_id);
 
@@ -317,6 +405,13 @@ export function ShipmentForm({ shipmentId }: Props) {
 
     setRouteId(shipment.route_id);
     setSelectedCompanyId(shipment.company_id);
+    }
+
+    void populateCopiedShipment();
+
+    return () => {
+      cancelled = true;
+    };
   }, [copyFrom, copyShipmentQuery.data]);
 
   useEffect(() => {
@@ -324,8 +419,18 @@ export function ShipmentForm({ shipmentId }: Props) {
       return;
     }
 
-    setItems(
-      copyItemsQuery.data.map((item) => ({
+    const copiedItems = copyItemsQuery.data;
+    let cancelled = false;
+
+    async function populateCopiedItems() {
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
+      setItems(
+      copiedItems.map((item) => ({
         product_id: item.product_id,
 
         quantity: item.quantity,
@@ -341,6 +446,13 @@ export function ShipmentForm({ shipmentId }: Props) {
         notes: item.notes ?? undefined,
       })),
     );
+    }
+
+    void populateCopiedItems();
+
+    return () => {
+      cancelled = true;
+    };
   }, [copyFrom, copyItemsQuery.data]);
 
   useEffect(() => {
@@ -348,8 +460,18 @@ export function ShipmentForm({ shipmentId }: Props) {
       return;
     }
 
-    setContactMethods(
-      copyContactsQuery.data.map((contact) => ({
+    const copiedContacts = copyContactsQuery.data;
+    let cancelled = false;
+
+    async function populateCopiedContactMethods() {
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
+      setContactMethods(
+      copiedContacts.map((contact) => ({
         contact_name: contact.contact_name ?? "",
 
         contact_type: contact.contact_type ?? "customer",
@@ -369,6 +491,13 @@ export function ShipmentForm({ shipmentId }: Props) {
         notes: contact.notes ?? undefined,
       })),
     );
+    }
+
+    void populateCopiedContactMethods();
+
+    return () => {
+      cancelled = true;
+    };
   }, [copyFrom, copyContactsQuery.data]);
 
   function showMessage(

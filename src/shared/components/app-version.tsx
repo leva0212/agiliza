@@ -1,6 +1,12 @@
 "use client";
 
-export function AppVersion() {
+import Tooltip from "@mui/material/Tooltip";
+
+type AppVersionProps = {
+  showUpdateTooltip?: boolean;
+};
+
+export function AppVersion({ showUpdateTooltip = false }: AppVersionProps) {
 
   const version =
     process.env
@@ -16,20 +22,21 @@ export function AppVersion() {
     || "";
 
   const formattedBuildDate =
-    new Intl.DateTimeFormat(
-      "es-CR",
-      {
-        dateStyle: "short",
-        timeStyle: "short",
-        timeZone: "America/Costa_Rica",
-      },
-    ).format(
-      new Date(buildDate),
-    );
+    buildDate
+      ? new Intl.DateTimeFormat(
+        "es-CR",
+        {
+          dateStyle: "short",
+          timeStyle: "short",
+          timeZone: "America/Costa_Rica",
+        },
+      ).format(
+        new Date(buildDate),
+      )
+      : "No disponible";
 
-  return (
-
-    <div
+  const versionLabel = (
+    <span
       className="
         text-xs
         text-gray-500
@@ -38,15 +45,17 @@ export function AppVersion() {
     >
       version:
       {shortVersion}
-
-      {" • "}
-
-     {/* build:
-      {" "}
-      {formattedBuildDate}*/}
-
-    </div>
-
+    </span>
   );
+
+  if (showUpdateTooltip) {
+    return (
+      <Tooltip title={`Fecha última actualización: ${formattedBuildDate}`}>
+        {versionLabel}
+      </Tooltip>
+    );
+  }
+
+  return versionLabel;
 
 }

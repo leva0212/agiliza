@@ -35,7 +35,10 @@ export default async function DashboardLayout({
   role,
   full_name,
   active,
-  must_change_password
+  must_change_password,
+  company:companies(
+    is_owner_company
+  )
 `,
     )
 
@@ -57,12 +60,22 @@ export default async function DashboardLayout({
     redirect("/dashboard/change-password");
   }
 
+  const company = Array.isArray(profile.company)
+    ? profile.company[0] ?? null
+    : profile.company;
+  const isOwnerCompanyUser = company?.is_owner_company === true;
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <DashboardSidebar profile={profile} />
+      <DashboardSidebar
+        profile={{
+          ...profile,
+          is_owner_company_user: isOwnerCompanyUser,
+        }}
+      />
 
-      <main className="flex-1">
-        <div className="p-6">{children}</div>
+      <main className="min-w-0 flex-1">
+        <div className="p-3 sm:p-6">{children}</div>
       </main>
     </div>
   );

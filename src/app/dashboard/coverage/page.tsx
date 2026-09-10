@@ -24,20 +24,6 @@ export default function CoveragePage() {
 
   const STORAGE_KEY = "coverage_selected_province";
 
-  /*const [selectedProvince, setSelectedProvince] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(STORAGE_KEY) ?? "";
-    }
-    return "";
-  });*/
-useEffect(() => {
-  const saved =
-    localStorage.getItem(STORAGE_KEY);
-
-  if (saved) {
-    setSelectedProvince(saved);
-  }
-}, []);
   const [selectedProvince, setSelectedProvince] = useState("");
   const [coverageData, setCoverageData] = useState<CoverageRow[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,10 +33,35 @@ useEffect(() => {
   const [selectedCanton, setSelectedCanton] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSelectedProvince() {
+      await Promise.resolve();
+
+      const saved = localStorage.getItem(STORAGE_KEY);
+
+      if (saved && !cancelled) {
+        setSelectedProvince(saved);
+      }
+    }
+
+    void restoreSelectedProvince();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function handleProvinceChange(province: string) {
     setSelectedProvince(province);
+
     if (typeof window !== "undefined") {
-      province ? localStorage.setItem(STORAGE_KEY, province) : localStorage.removeItem(STORAGE_KEY);
+      if (province) {
+        localStorage.setItem(STORAGE_KEY, province);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
   }
 
@@ -118,8 +129,25 @@ useEffect(() => {
   }
 
   useEffect(() => {
-    if (!selectedProvince) return;
-    loadCoverage(selectedProvince);
+    if (!selectedProvince) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadSelectedProvinceCoverage() {
+      await Promise.resolve();
+
+      if (!cancelled) {
+        await loadCoverage(selectedProvince);
+      }
+    }
+
+    void loadSelectedProvinceCoverage();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedProvince]);
 
   return (

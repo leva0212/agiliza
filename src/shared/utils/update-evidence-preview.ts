@@ -10,7 +10,7 @@ export async function updateEvidencePreview(
 
     const processedFile =
         await processImage(
-            evidence.file,
+            evidence.originalFile,
             {
                 hd: evidence.hd,
 
@@ -69,24 +69,10 @@ export async function updateEvidencePreview(
         );
 
     return {
-    ...evidence,
+        ...evidence,
 
-    file: processedFile,
+        file: processedFile,
 
-    previewUrl,
-
-    rotation: 0,
-
-    flipX: false,
-
-    flipY: false,
-
-    cropX: 0,
-
-    cropY: 0,
-
-    cropWidth: 0,
-
-    cropHeight: 0,
-};
+        previewUrl,
+    };
 }
