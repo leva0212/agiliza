@@ -292,7 +292,10 @@ export default function ShipmentDetailPage() {
         </div>
 
         <div className="space-y-3">
-          <ShipmentAttachmentsCard shipmentId={shipmentId} />
+          <ShipmentAttachmentsCard
+            shipmentId={shipmentId}
+            trackingNumber={shipment.tracking_number}
+          />
           <ShipmentEvidencesCard
             shipmentId={shipmentId}
             trackingNumber={shipment.tracking_number}

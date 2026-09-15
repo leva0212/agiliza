@@ -13,6 +13,7 @@ import {
   HardDrive,
   Pencil,
   Trash2,
+  Share2,
   Upload,
   Video,
   X,
@@ -24,6 +25,7 @@ import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 import { createShipmentAttachment } from "../api/create-shipment-attachment";
 import { deleteShipmentAttachments } from "../api/delete-shipment-attachments";
 import { updateShipmentAttachmentNotes } from "../api/update-shipment-attachment-notes";
+import { shareShipmentAttachments } from "../services/share-shipment-attachments";
 import { useShipmentAttachments } from "../hooks/use-shipment-attachments";
 import { getAttachmentFormat } from "../utils/get-attachment-format";
 import { formatFileSize } from "../utils/format-file-size";
@@ -41,6 +43,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   shipmentId: string;
+  trackingNumber: string;
 };
 
 type UploadProgress = {
@@ -74,7 +77,7 @@ function AttachmentThumbnail({ attachment }: { attachment: ShipmentAttachment })
       <img
         src={attachment.file_url}
         alt={attachment.original_filename}
-        className="h-full w-full object-cover"
+        className="size-14 rounded object-cover"
       />
     );
   }
@@ -105,7 +108,7 @@ function AttachmentThumbnail({ attachment }: { attachment: ShipmentAttachment })
   return <FileText className="size-14 text-blue-600" />;
 }
 
-export function ShipmentAttachmentsDialog({ open, onClose, shipmentId }: Props) {
+export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingNumber }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
@@ -122,6 +125,7 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId }: Props) 
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [editingAttachment, setEditingAttachment] = useState<ShipmentAttachment | null>(null);
   const [editedNotes, setEditedNotes] = useState("");
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
   const activeAttachments = attachments.filter((attachment) => !attachment.deleted_at);
   const deletableAttachments = activeAttachments.filter(
@@ -175,6 +179,24 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId }: Props) 
         notes: "",
       })),
     ]);
+  }
+
+  async function shareAttachments(includeComments: boolean) {
+    setShareMenuOpen(false);
+
+    try {
+      await shareShipmentAttachments({
+        trackingNumber,
+        attachments: activeAttachments,
+        includeComments,
+      });
+      toast.success("Adjuntos compartidos");
+    } catch (error) {
+      if (error instanceof Error && (error.message.includes("canceled") || error.message.includes("AbortError"))) {
+        return;
+      }
+      toast.error(getErrorMessage(error, "No fue posible compartir los adjuntos."));
+    }
   }
 
   async function uploadPendingAttachments() {
@@ -300,6 +322,41 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId }: Props) 
                 <Upload size={18} />
                 Agregar archivos
               </button>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  title="Compartir adjuntos"
+                  disabled={activeAttachments.length === 0}
+                  onClick={() => setShareMenuOpen((current) => !current)}
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Share2 size={17} />
+                  <span className="hidden sm:inline">Compartir</span>
+                </button>
+
+                {shareMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-[60]" onClick={() => setShareMenuOpen(false)} />
+                    <div className="absolute left-0 top-full z-[61] mt-2 min-w-72 overflow-hidden rounded-xl border bg-white shadow-xl">
+                      <button
+                        type="button"
+                        onClick={() => shareAttachments(false)}
+                        className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50"
+                      >
+                        📤 Compartir archivos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => shareAttachments(true)}
+                        className="w-full border-t px-4 py-3 text-left text-sm hover:bg-slate-50"
+                      >
+                        📝 Compartir archivos + comentarios
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
 
               {selectionMode ? (
                 <>
@@ -460,11 +517,11 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId }: Props) 
                       <button
                         type="button"
                         onClick={() => window.open(attachment.file_url, "_blank", "noopener,noreferrer")}
-                        className="relative flex h-24 w-full items-center justify-center bg-slate-100"
+                        className="flex h-20 w-full items-center justify-center gap-3 bg-slate-100"
                         title={`Abrir ${attachment.original_filename}`}
                       >
                         <AttachmentThumbnail attachment={attachment} />
-                        <span className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-xs font-medium text-white">
+                        <span className="rounded bg-slate-700 px-2 py-0.5 text-xs font-medium text-white">
                           {format.type}
                         </span>
                       </button>
@@ -474,9 +531,6 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId }: Props) 
                           {attachment.original_filename}
                         </p>
                         <div className="flex flex-wrap gap-1.5 text-[11px] font-medium">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
-                            {format.type}
-                          </span>
                           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
                             {format.extension}
                           </span>

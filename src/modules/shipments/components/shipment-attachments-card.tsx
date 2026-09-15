@@ -15,6 +15,7 @@ import { ShipmentAttachmentsDialog } from "./shipment-attachments-dialog";
 
 type Props = {
   shipmentId: string;
+  trackingNumber: string;
 };
 
 function AttachmentCardThumbnail({
@@ -55,7 +56,7 @@ function AttachmentCardThumbnail({
   return <FileText size={24} className="text-blue-600" />;
 }
 
-export function ShipmentAttachmentsCard({ shipmentId }: Props) {
+export function ShipmentAttachmentsCard({ shipmentId, trackingNumber }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { data: attachments = [] } = useShipmentAttachments(shipmentId);
   const activeAttachments = attachments.filter((attachment) => !attachment.deleted_at);
@@ -125,6 +126,7 @@ export function ShipmentAttachmentsCard({ shipmentId }: Props) {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         shipmentId={shipmentId}
+        trackingNumber={trackingNumber}
       />
     </div>
   );
