@@ -81,6 +81,8 @@ export function ShipmentEvidencesDialog({
   const uploadAbortControllerRef = useRef<AbortController | null>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [shareSelectionMode, setShareSelectionMode] = useState(false);
+  const [selectedShareEvidenceIds, setSelectedShareEvidenceIds] = useState<string[]>([]);
   const [viewerEvidence, setViewerEvidence] = useState<any>(null);
   const { data: evidences = [] } = useShipmentEvidences(shipmentId);
   const hasComments = evidences.some((e) => e.notes?.trim());
@@ -244,6 +246,9 @@ export function ShipmentEvidencesDialog({
       deletableEvidences.some(
         (evidence) => evidence.id === evidenceId,
       ),
+  );
+  const selectedShareEvidences = activeVisibleEvidences.filter((evidence) =>
+    selectedShareEvidenceIds.includes(evidence.id),
   );
 
   const [confirmReviewOpen, setConfirmReviewOpen] = useState(false);
@@ -634,6 +639,7 @@ export function ShipmentEvidencesDialog({
                   </button>
                 ))}
 
+              {!selectionMode && (
               <div className="relative">
                 <button
                   title="Compartir archivos"
@@ -694,10 +700,15 @@ export function ShipmentEvidencesDialog({
                         onClick={async () => {
                           setShareMenuOpen(false);
 
+                          if (shareSelectionMode && selectedShareEvidences.length === 0) {
+                            toast.error("Seleccione al menos una evidencia para compartir.");
+                            return;
+                          }
+
                           try {
                             await shareEvidences({
                               trackingNumber,
-                              evidences: activeVisibleEvidences,
+                              evidences: shareSelectionMode ? selectedShareEvidences : activeVisibleEvidences,
                               includeComments: false,
                             });
 
@@ -730,10 +741,15 @@ export function ShipmentEvidencesDialog({
                         onClick={async () => {
                           setShareMenuOpen(false);
 
+                          if (shareSelectionMode && selectedShareEvidences.length === 0) {
+                            toast.error("Seleccione al menos una evidencia para compartir.");
+                            return;
+                          }
+
                           try {
                             await shareEvidences({
                               trackingNumber,
-                              evidences: activeVisibleEvidences,
+                              evidences: shareSelectionMode ? selectedShareEvidences : activeVisibleEvidences,
                               includeComments: true,
                             });
 
@@ -759,6 +775,20 @@ export function ShipmentEvidencesDialog({
                         className={shareMenuItemClass}
                       >
                         📝 Compartir archivos + comentarios
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShareMenuOpen(false);
+                          setSelectionMode(false);
+                          setSelectedEvidenceIds([]);
+                          setShareSelectionMode(true);
+                          setSelectedShareEvidenceIds([]);
+                        }}
+                        className={shareMenuItemClass}
+                      >
+                        ☑️ Seleccionar archivos para compartir
                       </button>
 
                       <div className="border-t" />
@@ -801,8 +831,27 @@ export function ShipmentEvidencesDialog({
                   </>
                 )}
               </div>
+              )}
 
-              {selectionMode ? (
+              {shareSelectionMode && !selectionMode && (
+                <>
+                  <span className="text-sm font-medium text-blue-700">
+                    {selectedShareEvidences.length} seleccionado{selectedShareEvidences.length === 1 ? "" : "s"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShareSelectionMode(false);
+                      setSelectedShareEvidenceIds([]);
+                    }}
+                    className="px-3 py-2 text-sm font-medium text-gray-600"
+                  >
+                    Cancelar selección
+                  </button>
+                </>
+              )}
+
+              {!shareSelectionMode && (selectionMode ? (
                 <>
                   <button
                     type="button"
@@ -842,6 +891,8 @@ export function ShipmentEvidencesDialog({
                       return;
                     }
 
+                    setShareSelectionMode(false);
+                    setSelectedShareEvidenceIds([]);
                     setSelectionMode(true);
                   }}
                   className="ml-auto flex items-center gap-2 px-3 py-2 border rounded-lg bg-white shadow-sm text-sm font-medium text-gray-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -849,7 +900,7 @@ export function ShipmentEvidencesDialog({
                   <Trash2 size={18} />
                   <span className="hidden sm:inline">Eliminar</span>
                 </button>
-              )}
+              ))}
             </div>
 
             {/* Evidence list */}
@@ -868,6 +919,7 @@ export function ShipmentEvidencesDialog({
                   const isSelected = selectedDeletableEvidenceIds.includes(
                     evidence.id,
                   );
+                  const isShareSelected = selectedShareEvidenceIds.includes(evidence.id);
 
                   if (evidence.deleted_at) {
                     return (
@@ -896,9 +948,29 @@ export function ShipmentEvidencesDialog({
                     key={evidence.id}
                     className={`break-inside-avoid relative mb-4 border rounded-xl p-3 bg-white shadow-sm transition-shadow hover:shadow-md ${
                       isSelected ? "ring-2 ring-red-500" : ""
-                    }`}
+                    } ${isShareSelected ? "ring-2 ring-blue-500" : ""}`}
                   >
-                    {selectionMode && canDelete && (
+                    {shareSelectionMode && !selectionMode && (
+                      <label className="absolute left-3 top-3 z-10 flex cursor-pointer items-center gap-2 rounded-full bg-blue-700/80 px-2 py-1 text-xs font-medium text-white shadow">
+                        <input
+                          type="checkbox"
+                          className="peer sr-only"
+                          checked={isShareSelected}
+                          onChange={() => {
+                            setSelectedShareEvidenceIds((current) => (
+                              current.includes(evidence.id)
+                                ? current.filter((id) => id !== evidence.id)
+                                : [...current, evidence.id]
+                            ));
+                          }}
+                        />
+                        <span className="flex size-4 items-center justify-center rounded border border-white/70 bg-white/80 peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-checked:[&>svg]:block">
+                          <Check className="hidden size-3 text-white" strokeWidth={3} />
+                        </span>
+                        Compartir
+                      </label>
+                    )}
+                    {selectionMode && !shareSelectionMode && canDelete && (
                       <label className="absolute right-3 top-3 z-10 flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-2 py-1 text-xs font-medium text-white shadow">
                         <input
                           type="checkbox"

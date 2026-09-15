@@ -126,6 +126,8 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
   const [editingAttachment, setEditingAttachment] = useState<ShipmentAttachment | null>(null);
   const [editedNotes, setEditedNotes] = useState("");
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [shareSelectionMode, setShareSelectionMode] = useState(false);
+  const [selectedShareAttachmentIds, setSelectedShareAttachmentIds] = useState<string[]>([]);
 
   const activeAttachments = attachments.filter((attachment) => !attachment.deleted_at);
   const deletableAttachments = activeAttachments.filter(
@@ -133,6 +135,9 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
   );
   const selectedDeletableIds = selectedAttachmentIds.filter((attachmentId) =>
     deletableAttachments.some((attachment) => attachment.id === attachmentId),
+  );
+  const selectedShareAttachments = activeAttachments.filter((attachment) =>
+    selectedShareAttachmentIds.includes(attachment.id),
   );
 
   const deleteMutation = useMutation({
@@ -184,10 +189,19 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
   async function shareAttachments(includeComments: boolean) {
     setShareMenuOpen(false);
 
+    const attachmentsToShare = shareSelectionMode
+      ? selectedShareAttachments
+      : activeAttachments;
+
+    if (attachmentsToShare.length === 0) {
+      toast.error("Seleccione al menos un adjunto para compartir.");
+      return;
+    }
+
     try {
       await shareShipmentAttachments({
         trackingNumber,
-        attachments: activeAttachments,
+        attachments: attachmentsToShare,
         includeComments,
       });
       toast.success("Adjuntos compartidos");
@@ -323,6 +337,7 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                 Agregar archivos
               </button>
 
+              {!selectionMode && (
               <div className="relative">
                 <button
                   type="button"
@@ -341,8 +356,21 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                     <div className="absolute left-0 top-full z-[61] mt-2 min-w-72 overflow-hidden rounded-xl border bg-white shadow-xl">
                       <button
                         type="button"
-                        onClick={() => shareAttachments(false)}
+                        onClick={() => {
+                          setShareMenuOpen(false);
+                          setSelectionMode(false);
+                          setSelectedAttachmentIds([]);
+                          setShareSelectionMode(true);
+                          setSelectedShareAttachmentIds([]);
+                        }}
                         className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50"
+                      >
+                        ☑️ Seleccionar archivos para compartir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => shareAttachments(false)}
+                        className="w-full border-t px-4 py-3 text-left text-sm hover:bg-slate-50"
                       >
                         📤 Compartir archivos
                       </button>
@@ -357,8 +385,27 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                   </>
                 )}
               </div>
+              )}
 
-              {selectionMode ? (
+              {shareSelectionMode && !selectionMode && (
+                <>
+                  <span className="text-sm font-medium text-blue-700">
+                    {selectedShareAttachments.length} seleccionado{selectedShareAttachments.length === 1 ? "" : "s"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShareSelectionMode(false);
+                      setSelectedShareAttachmentIds([]);
+                    }}
+                    className="px-3 py-2 text-sm font-medium text-slate-600"
+                  >
+                    Cancelar selección
+                  </button>
+                </>
+              )}
+
+              {!shareSelectionMode && (selectionMode ? (
                 <>
                   <button
                     type="button"
@@ -389,6 +436,8 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                       setSelectedAttachmentIds([deletableAttachments[0].id]);
                       setConfirmDeleteOpen(true);
                     } else {
+                      setShareSelectionMode(false);
+                      setSelectedShareAttachmentIds([]);
                       setSelectionMode(true);
                     }
                   }}
@@ -397,7 +446,7 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                   <Trash2 size={17} />
                   Eliminar
                 </button>
-              )}
+              ))}
             </section>
 
             {pendingAttachments.length > 0 && (
@@ -464,6 +513,7 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                     attachment.created_by === profile?.id ||
                     profile?.role === "super_admin";
                   const isSelected = selectedDeletableIds.includes(attachment.id);
+                  const isShareSelected = selectedShareAttachmentIds.includes(attachment.id);
                   const format = getAttachmentFormat(
                     attachment.original_filename,
                     attachment.mime_type,
@@ -493,9 +543,27 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                   return (
                     <article
                       key={attachment.id}
-                      className={`relative overflow-hidden rounded-xl border bg-white shadow-sm ${isSelected ? "ring-2 ring-red-500" : ""}`}
+                      className={`relative overflow-hidden rounded-xl border bg-white shadow-sm ${isSelected ? "ring-2 ring-red-500" : ""} ${isShareSelected ? "ring-2 ring-blue-500" : ""}`}
                     >
-                      {selectionMode && canDelete && (
+                      {shareSelectionMode && !selectionMode && (
+                        <label className="absolute left-2 top-2 z-10 flex cursor-pointer items-center gap-2 rounded-full bg-blue-700/80 px-2 py-1 text-xs font-medium text-white shadow">
+                          <input
+                            type="checkbox"
+                            className="peer sr-only"
+                            checked={isShareSelected}
+                            onChange={() => setSelectedShareAttachmentIds((current) => (
+                              current.includes(attachment.id)
+                                ? current.filter((id) => id !== attachment.id)
+                                : [...current, attachment.id]
+                            ))}
+                          />
+                          <span className="flex size-4 items-center justify-center rounded border border-white/70 bg-white/80 peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-checked:[&>svg]:block">
+                            <Check className="hidden size-3 text-white" strokeWidth={3} />
+                          </span>
+                          Compartir
+                        </label>
+                      )}
+                      {selectionMode && !shareSelectionMode && canDelete && (
                         <label className="absolute right-2 top-2 z-10 flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-2 py-1 text-xs font-medium text-white shadow">
                           <input
                             type="checkbox"

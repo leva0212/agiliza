@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { Providers } from "@/app/providers";
-import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,6 +60,15 @@ type RootLayoutProps = Readonly<{
   children: React.ReactNode;
 }>;
 
+const themeInitializationScript = `(() => {
+  try {
+    const mode = localStorage.getItem("agiliza-theme") || "system";
+    const isDark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", isDark);
+    document.documentElement.dataset.theme = mode;
+  } catch {}
+})();`;
+
 export default function RootLayout({
   children,
 }: RootLayoutProps) {
@@ -73,20 +81,17 @@ export default function RootLayout({
         h-full
         antialiased
       `}
+      suppressHydrationWarning
     >
-      <body className="min-h-screen bg-white text-black">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitializationScript }} />
+      </head>
+      <body className="min-h-screen bg-background text-foreground">
         <VersionCheck />
 
         <Providers>
           {children}
         </Providers>
-
-        <Toaster
-          richColors
-          position="top-center"
-          duration={2000}
-          closeButton
-        />
       </body>
     </html>
   );

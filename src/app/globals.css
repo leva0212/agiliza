@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f8fafc;
   --foreground: #1f2937;
@@ -8,6 +10,13 @@
   --primary-soft: #f5f3ff;
 
   --border-soft: #e5e7eb;
+}
+
+html.dark {
+  --background: #0b1120;
+  --foreground: #e5e7eb;
+  --primary-soft: #2e1065;
+  --border-soft: #334155;
 }
 
 @theme inline {
@@ -23,6 +32,58 @@ body {
   color: var(--foreground);
 
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Colores de las vistas existentes que usan utilidades Tailwind fijas. */
+html.dark .bg-white,
+html.dark .bg-white\/80 {
+  background-color: #111827 !important;
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-gray-100,
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-gray-200,
+html.dark .bg-slate-200 {
+  background-color: #334155 !important;
+}
+
+html.dark .text-black,
+html.dark .text-gray-900,
+html.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-gray-700,
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-gray-600,
+html.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-gray-500,
+html.dark .text-slate-500,
+html.dark .text-gray-400,
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+html.dark .border,
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+  border-color: #334155 !important;
 }
 
 /* ==========================================
@@ -68,11 +129,24 @@ textarea {
     transform 0.15s ease;
 }
 
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark select,
+html.dark textarea {
+  background-color: #111827;
+  color: #e5e7eb;
+  border-color: #475569;
+}
+
 /* Placeholder */
 
 input:not([type="checkbox"]):not([type="radio"])::placeholder,
 textarea::placeholder {
   color: #9ca3af;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"])::placeholder,
+html.dark textarea::placeholder {
+  color: #94a3b8;
 }
 
 /* Focus */
@@ -146,6 +220,10 @@ button:hover {
     0 1px 2px rgba(0, 0, 0, 0.04);
 
   padding: 20px;
+}
+
+html.dark .card-soft {
+  background: #111827;
 }
 
 .section-title {

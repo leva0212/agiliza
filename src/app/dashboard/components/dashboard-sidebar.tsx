@@ -7,8 +7,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { type MouseEvent, useState } from "react";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { type ThemeMode, useAppTheme } from "@/app/theme-provider";
 
 type Profile = {
   id: string;
@@ -34,6 +36,8 @@ export function DashboardSidebar({ profile }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const { mode, setMode } = useAppTheme();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -59,6 +63,11 @@ export function DashboardSidebar({ profile }: Props) {
     if (clickedLink && window.matchMedia("(max-width: 767px)").matches) {
       setMobileOpen(false);
     }
+  }
+
+  function selectTheme(themeMode: ThemeMode) {
+    setMode(themeMode);
+    setThemeMenuOpen(false);
   }
 
   return (
@@ -103,14 +112,42 @@ export function DashboardSidebar({ profile }: Props) {
         `}
       >
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-700 px-3">
-          <button
-            type="button"
-            aria-label="Contraer o expandir menú"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex size-10 items-center justify-center rounded-lg hover:bg-gray-800"
-          >
-            ☰
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Contraer o expandir menú"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex size-10 items-center justify-center rounded-lg hover:bg-gray-800"
+            >
+              ☰
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                title={`Tema: ${mode === "system" ? "Sistema" : mode === "dark" ? "Oscuro" : "Claro"}`}
+                aria-label="Cambiar tema"
+                onClick={() => setThemeMenuOpen((current) => !current)}
+                className="flex size-10 items-center justify-center rounded-lg text-gray-200 hover:bg-gray-800"
+              >
+                {mode === "dark" ? <Moon size={18} /> : mode === "light" ? <Sun size={18} /> : <Monitor size={18} />}
+              </button>
+
+              {themeMenuOpen && (
+                <div className="absolute left-0 top-full z-[70] mt-2 w-40 overflow-hidden rounded-xl border border-gray-700 bg-gray-900 p-1 shadow-xl">
+                  <button type="button" onClick={() => selectTheme("light")} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-800 ${mode === "light" ? "bg-gray-800 text-white" : "text-gray-300"}`}>
+                    <Sun size={16} /> Claro
+                  </button>
+                  <button type="button" onClick={() => selectTheme("dark")} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-800 ${mode === "dark" ? "bg-gray-800 text-white" : "text-gray-300"}`}>
+                    <Moon size={16} /> Oscuro
+                  </button>
+                  <button type="button" onClick={() => selectTheme("system")} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-800 ${mode === "system" ? "bg-gray-800 text-white" : "text-gray-300"}`}>
+                    <Monitor size={16} /> Sistema
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
           <button
             type="button"
