@@ -33,9 +33,10 @@ import { getShipmentStatusOption } from "@/modules/shipments/utils/get-shipment-
 import { useShipmentsRealtime } from "@/modules/shipments/hooks/use-shipments-realtime";
 import { ContactActionsDialog } from "@/components/contact-actions-dialog";
 import { ShipmentEvidencesCard } from "@/modules/shipments/components/shipment-evidences-card";
+import { ShipmentAttachmentsCard } from "@/modules/shipments/components/shipment-attachments-card";
 import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 export default function ShipmentDetailPage() {
-  useShipmentsRealtime();
+  useShipmentsRealtime(true);
   const router = useRouter();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -291,9 +292,9 @@ export default function ShipmentDetailPage() {
         </div>
 
         <div className="space-y-3">
+          <ShipmentAttachmentsCard shipmentId={shipmentId} />
           <ShipmentEvidencesCard
             shipmentId={shipmentId}
-            createdBy={profile?.id}
             trackingNumber={shipment.tracking_number}
           />
           <div

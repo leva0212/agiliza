@@ -35,6 +35,11 @@ export async function getShipmentEvidences(
             name,
             is_owner_company
           )
+        ),
+
+        deleted_by_profile:profiles!shipment_evidences_deleted_by_fkey(
+          id,
+          full_name
         )
       `)
       .eq(
@@ -89,6 +94,14 @@ export async function getShipmentEvidences(
             ? evidence.creator[0] ??
             null
             : evidence.creator,
+
+        deleted_by_profile:
+          Array.isArray(
+            evidence.deleted_by_profile,
+          )
+            ? evidence.deleted_by_profile[0] ??
+            null
+            : evidence.deleted_by_profile,
       }),
     );
 

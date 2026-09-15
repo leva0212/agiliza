@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from "react";
 //import { ImageViewer } from "./image-viewer";
-import { ImageViewer } from "@/shared/components/image-viewer";
 import {
   X,
+  ChevronLeft,
+  ChevronRight,
   RotateCw,
   FlipHorizontal,
   Crop,
@@ -24,6 +25,8 @@ type Props = {
   onClose: () => void;
 
   onUpload: (evidences: PendingEvidence[]) => Promise<void>;
+
+  isUploading?: boolean;
 };
 
 export function ShipmentEvidenceEditor({
@@ -31,6 +34,7 @@ export function ShipmentEvidenceEditor({
   evidences,
   onClose,
   onUpload,
+  isUploading = false,
 }: Props) {
   const [cropOpen, setCropOpen] = useState(false);
   const [index, setIndex] = useState(0);
@@ -174,15 +178,13 @@ export function ShipmentEvidenceEditor({
 
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const copy = [...items];
 
-              copy[index] = {
+              copy[index] = await updateEvidencePreview({
                 ...copy[index],
 
                 file: copy[index].originalFile,
-
-                previewUrl: copy[index].originalPreviewUrl,
 
                 hd: false,
 
@@ -199,7 +201,7 @@ export function ShipmentEvidenceEditor({
                 cropWidth: 0,
 
                 cropHeight: 0,
-              };
+              });
 
               setItems(copy);
             }}
@@ -321,11 +323,42 @@ export function ShipmentEvidenceEditor({
       justify-center
     "
             >
-              <ImageViewer src={current.previewUrl} />
+              <img
+                key={current.previewUrl}
+                src={current.previewUrl}
+                alt="Vista previa de evidencia"
+                className="block max-h-full max-w-full object-contain"
+              />
             </div>
           </div>
         </div>
       </div>
+
+      {items.length > 1 && (
+        <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-20 hidden items-center justify-between md:flex">
+          <button
+            type="button"
+            aria-label="Imagen anterior"
+            title="Imagen anterior"
+            disabled={index === 0}
+            onClick={() => setIndex((currentIndex) => currentIndex - 1)}
+            className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/65 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronLeft size={26} />
+          </button>
+
+          <button
+            type="button"
+            aria-label="Imagen siguiente"
+            title="Imagen siguiente"
+            disabled={index === items.length - 1}
+            onClick={() => setIndex((currentIndex) => currentIndex + 1)}
+            className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition-colors hover:bg-black/65 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronRight size={26} />
+          </button>
+        </div>
+      )}
 
       {/* Panel inferior */}
 
@@ -544,8 +577,13 @@ export function ShipmentEvidenceEditor({
           <button
             type="button"
             onClick={async () => {
+              if (isUploading) {
+                return;
+              }
+
               await onUpload(items);
             }}
+            disabled={isUploading}
             className="
     w-16
     h-16
@@ -563,6 +601,8 @@ export function ShipmentEvidenceEditor({
     justify-center
 
     shadow-xl
+    disabled:cursor-not-allowed
+    disabled:opacity-60
   "
           >
             ↑

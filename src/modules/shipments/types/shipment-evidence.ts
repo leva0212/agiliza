@@ -36,6 +36,10 @@ export type ShipmentEvidence = {
 
   created_by: string | null;
 
+  deleted_at: string | null;
+
+  deleted_by: string | null;
+
   validator?: {
     id: string;
     full_name: string;
@@ -55,5 +59,11 @@ export type ShipmentEvidence = {
 
       is_owner_company: boolean;
     } | null;
+  } | null;
+
+  deleted_by_profile?: {
+    id: string;
+
+    full_name: string;
   } | null;
 };

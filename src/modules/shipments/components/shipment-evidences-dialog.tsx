@@ -3,10 +3,11 @@
 import { useShipmentEvidences } from "../hooks/use-shipment-evidences";
 
 import { CachedEvidenceImage } from "./cached-evidence-image";
+import { formatFileSize } from "../utils/format-file-size";
 
 import { EvidenceCacheBadge } from "./evidence-cache-badge";
 
-import { Camera, Image as ImageIcon, Trash2, Share2 } from "lucide-react";
+import { ArrowLeft, Camera, Check, Image as ImageIcon, Trash2, Share2 } from "lucide-react";
 import { useRef } from "react";
 import { ShipmentEvidenceEditor } from "./evidence-editor/shipment-evidence-editor";
 
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { UiMessage } from "@/shared/components/ui-message";
 import { updateShipmentEvidenceNotes } from "../api/update-shipment-evidence-notes";
+import { deleteShipmentEvidences } from "../api/delete-shipment-evidence";
 
 import { reopenShipmentEvidences } from "../api/reopen-shipment-evidences";
 import { saveEvidencesToFolder } from "../services/save-evidences-to-folder";
@@ -28,7 +30,12 @@ import { saveEvidencesToFolder } from "../services/save-evidences-to-folder";
 import { EvidenceViewerDialog } from "./evidence-viewer-dialog";
 import { processImage } from "@/shared/utils/process-image";
 import {
-  createPendingEvidence,
+  ensureUploadNotAborted,
+  UploadAbortedError,
+} from "../utils/upload-file-with-progress";
+import { EvidenceUploadProgressDialog } from "./evidence-upload-progress-dialog";
+import {
+  createCompressedPendingEvidence,
   type PendingEvidence,
 } from "../types/pending-evidence";
 type Props = {
@@ -38,20 +45,40 @@ type Props = {
 
   shipmentId: string;
 
-  initialEvidenceId?: string;
-
   trackingNumber: string;
 };
+
+type EvidenceUploadProgress = {
+  currentFileName: string;
+  currentFileIndex: number;
+  totalFiles: number;
+  currentProgress: number;
+  totalProgress: number;
+  stage: "preparing" | "uploading" | "saving";
+};
+
+function getActionErrorMessage(error: unknown, fallback: string) {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+}
 
 export function ShipmentEvidencesDialog({
   open,
   onClose,
   shipmentId,
-  initialEvidenceId,
   trackingNumber,
 }: Props) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadAbortControllerRef = useRef<AbortController | null>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [viewerEvidence, setViewerEvidence] = useState<any>(null);
@@ -61,6 +88,11 @@ export function ShipmentEvidencesDialog({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const [editorOpen, setEditorOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<EvidenceUploadProgress | null>(null);
+  const [confirmCancelUploadOpen, setConfirmCancelUploadOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const [pendingEvidences, setPendingEvidences] = useState<PendingEvidence[]>(
     [],
@@ -78,7 +110,22 @@ export function ShipmentEvidencesDialog({
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, notes }: { file: File; notes?: string }) => {
+    mutationFn: async ({
+      file,
+      isProcessed,
+      hd,
+      notes,
+      signal,
+      onProgress,
+    }: {
+      file: File;
+      isProcessed?: boolean;
+      hd?: boolean;
+      notes?: string;
+      signal?: AbortSignal;
+      onProgress?: (progress: { stage: "preparing" | "uploading" | "saving"; percent: number }) => void;
+      suppressNotifications?: boolean;
+    }) => {
       console.log("[UPLOAD MUTATION]", {
         name: file.name,
         type: file.type,
@@ -91,28 +138,42 @@ export function ShipmentEvidencesDialog({
 
         file,
 
+        isProcessed,
+
+        hd,
+
         notes,
 
         createdBy: profile?.id,
+
+        signal,
+
+        onProgress,
       });
     },
 
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
       console.log("[UPLOAD SUCCESS]");
 
       await queryClient.invalidateQueries({
         queryKey: ["shipment-evidences", shipmentId],
       });
 
-      toast.success("Evidencia agregada");
+      if (!variables.suppressNotifications) {
+        toast.success("Evidencia agregada");
+      }
     },
 
-    onError: (error) => {
+    onError: (error, variables) => {
+      if (error instanceof UploadAbortedError) {
+        return;
+      }
+
       console.error("[UPLOAD ERROR]", error);
 
-      alert(error instanceof Error ? error.message : JSON.stringify(error));
-
-      toast.error("Error subiendo evidencia");
+      if (!variables.suppressNotifications) {
+        toast.error("Error subiendo evidencia");
+      }
     },
   });
 
@@ -153,16 +214,37 @@ export function ShipmentEvidencesDialog({
           evidence.creator?.company_id === profile?.company_id,
       );
 
-  const hasPendingEvidences = evidences.some((e) => !e.validated);
-  const pendingCount = visibleEvidences.filter((e) => !e.validated).length;
+  const activeVisibleEvidences = visibleEvidences.filter(
+    (evidence) => !evidence.deleted_at,
+  );
 
-  const allReviewed = visibleEvidences.length > 0 && pendingCount === 0;
+  const hasPendingEvidences = activeVisibleEvidences.some(
+    (evidence) => !evidence.validated,
+  );
+  const pendingCount = activeVisibleEvidences.filter(
+    (evidence) => !evidence.validated,
+  ).length;
 
-  const reviewedEvidence = visibleEvidences.find((e) => e.validated);
+  const allReviewed = activeVisibleEvidences.length > 0 && pendingCount === 0;
+
+  const reviewedEvidence = activeVisibleEvidences.find((e) => e.validated);
 
   const reviewedBy = reviewedEvidence?.validator;
 
   const reviewedAt = reviewedEvidence?.validated_at;
+
+  const deletableEvidences = visibleEvidences.filter(
+    (evidence) =>
+      !evidence.deleted_at &&
+      evidence.created_by === profile?.id,
+  );
+
+  const selectedDeletableEvidenceIds = selectedEvidenceIds.filter(
+    (evidenceId) =>
+      deletableEvidences.some(
+        (evidence) => evidence.id === evidenceId,
+      ),
+  );
 
   const [confirmReviewOpen, setConfirmReviewOpen] = useState(false);
 
@@ -172,6 +254,44 @@ export function ShipmentEvidencesDialog({
   const [selectedEvidence, setSelectedEvidence] = useState<any>(null);
 
   const [notesValue, setNotesValue] = useState("");
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteShipmentEvidences,
+
+    onSuccess: async ({
+      deletedIds,
+      storageCleanupFailed,
+    }) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["shipment-evidences", shipmentId],
+      });
+
+      setSelectedEvidenceIds([]);
+      setSelectionMode(false);
+      setViewerOpen(false);
+      setShareMenuOpen(false);
+
+      toast.success(
+        `${deletedIds.length} archivo(s) marcado(s) como eliminado(s)`,
+      );
+
+      if (storageCleanupFailed) {
+        toast.warning(
+          "El historial se conservó, pero no se pudo limpiar el archivo físico.",
+        );
+      }
+    },
+
+    onError: (error) => {
+      console.error("[DELETE EVIDENCES]", error);
+      toast.error(
+        getActionErrorMessage(
+          error,
+          "No fue posible eliminar los archivos seleccionados.",
+        ),
+      );
+    },
+  });
 
   const shareMenuItemClass = `
   w-full
@@ -193,6 +313,86 @@ export function ShipmentEvidencesDialog({
   focus:bg-blue-100
   focus:outline-none
 `;
+
+  async function handleUpload(items: PendingEvidence[]) {
+    const controller = new AbortController();
+    const completedEvidenceIds: string[] = [];
+
+    uploadAbortControllerRef.current = controller;
+
+    try {
+      for (const [index, item] of items.entries()) {
+        const updateProgress = (
+          currentProgress: number,
+          stage: EvidenceUploadProgress["stage"],
+        ) => {
+          setUploadProgress({
+            currentFileName: item.originalFile.name,
+            currentFileIndex: index + 1,
+            totalFiles: items.length,
+            currentProgress: Math.round(currentProgress),
+            totalProgress: Math.round(((index + currentProgress / 100) / items.length) * 100),
+            stage,
+          });
+        };
+
+        updateProgress(5, "preparing");
+
+        const file = await processImage(item.originalFile, {
+          hd: item.hd,
+          rotation: item.rotation,
+          flipX: item.flipX,
+          flipY: item.flipY,
+          cropX: item.cropX,
+          cropY: item.cropY,
+          cropWidth: item.cropWidth,
+          cropHeight: item.cropHeight,
+        });
+
+        ensureUploadNotAborted(controller.signal);
+        updateProgress(20, "preparing");
+
+        await uploadMutation.mutateAsync({
+          file,
+          isProcessed: true,
+          hd: item.hd,
+          notes: item.notes,
+          signal: controller.signal,
+          onProgress: ({ stage, percent }) => updateProgress(percent, stage),
+          suppressNotifications: true,
+        });
+
+        completedEvidenceIds.push(item.id);
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ["shipment-evidences", shipmentId],
+      });
+
+      toast.success(`${items.length} evidencia(s) subida(s)`);
+      setEditorOpen(false);
+      setPendingEvidences([]);
+    } catch (error) {
+      if (error instanceof UploadAbortedError) {
+        const remainingEvidences = items.filter(
+          (item) => !completedEvidenceIds.includes(item.id),
+        );
+
+        setPendingEvidences(remainingEvidences);
+        toast.info(
+          completedEvidenceIds.length > 0
+            ? `Carga cancelada. ${completedEvidenceIds.length} archivo(s) ya se guardaron.`
+            : "Carga cancelada.",
+        );
+      } else {
+        console.error(error);
+        toast.error("No fue posible subir las evidencias");
+      }
+    } finally {
+      uploadAbortControllerRef.current = null;
+      setUploadProgress(null);
+    }
+  }
 
   if (!open) {
     return null;
@@ -221,7 +421,7 @@ export function ShipmentEvidencesDialog({
 
           (async () => {
             const evidences = await Promise.all(
-              files.map(createPendingEvidence),
+              files.map(createCompressedPendingEvidence),
             );
 
             setPendingEvidences(evidences);
@@ -247,7 +447,7 @@ export function ShipmentEvidencesDialog({
           }
 
           (async () => {
-            const evidence = await createPendingEvidence(file);
+            const evidence = await createCompressedPendingEvidence(file);
 
             setPendingEvidences([evidence]);
 
@@ -262,7 +462,18 @@ export function ShipmentEvidencesDialog({
       <div className="fixed inset-0 z-50 bg-white flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur-sm px-5 py-1 flex items-center justify-between shadow-sm">
-          <div className="mt-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Volver"
+              title="Volver"
+              className="rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100"
+            >
+              <ArrowLeft size={20} />
+            </button>
+
+            <div className="mt-2">
             {allReviewed ? (
               <div
                 className="
@@ -288,6 +499,7 @@ export function ShipmentEvidencesDialog({
                 🟡 {pendingCount} evidencias pendientes
               </div>
             )}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -426,6 +638,7 @@ export function ShipmentEvidencesDialog({
                 <button
                   title="Compartir archivos"
                   type="button"
+                  disabled={activeVisibleEvidences.length === 0}
                   onClick={() => setShareMenuOpen(!shareMenuOpen)}
                   className="
       flex
@@ -441,6 +654,8 @@ export function ShipmentEvidencesDialog({
       font-medium
       text-gray-700
       hover:bg-gray-50
+      disabled:cursor-not-allowed
+      disabled:opacity-50
     "
                 >
                   <Share2 size={18} />
@@ -482,7 +697,7 @@ export function ShipmentEvidencesDialog({
                           try {
                             await shareEvidences({
                               trackingNumber,
-                              evidences,
+                              evidences: activeVisibleEvidences,
                               includeComments: false,
                             });
 
@@ -518,7 +733,7 @@ export function ShipmentEvidencesDialog({
                           try {
                             await shareEvidences({
                               trackingNumber,
-                              evidences,
+                              evidences: activeVisibleEvidences,
                               includeComments: true,
                             });
 
@@ -556,7 +771,7 @@ export function ShipmentEvidencesDialog({
                           try {
                             await saveEvidencesToFolder({
                               trackingNumber,
-                              evidences,
+                              evidences: activeVisibleEvidences,
                             });
 
                             toast.success("Evidencias guardadas");
@@ -587,28 +802,122 @@ export function ShipmentEvidencesDialog({
                 )}
               </div>
 
-              <button
-                title="Eliminar imágenes"
-                className="ml-auto flex items-center gap-2 px-3 py-2 border rounded-lg bg-white shadow-sm text-sm font-medium text-gray-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
-              >
-                <Trash2 size={18} />
-                <span className="hidden sm:inline">Eliminar</span>
-              </button>
+              {selectionMode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectionMode(false);
+                      setSelectedEvidenceIds([]);
+                    }}
+                    className="ml-auto px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      selectedDeletableEvidenceIds.length === 0 ||
+                      deleteMutation.isPending
+                    }
+                    onClick={() => setConfirmDeleteOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Trash2 size={18} />
+                    <span>
+                      Eliminar ({selectedDeletableEvidenceIds.length})
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  title="Eliminar imágenes propias"
+                  type="button"
+                  disabled={deletableEvidences.length === 0}
+                  onClick={() => {
+                    if (activeVisibleEvidences.length === 1) {
+                      setSelectedEvidenceIds([deletableEvidences[0].id]);
+                      setConfirmDeleteOpen(true);
+                      return;
+                    }
+
+                    setSelectionMode(true);
+                  }}
+                  className="ml-auto flex items-center gap-2 px-3 py-2 border rounded-lg bg-white shadow-sm text-sm font-medium text-gray-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 size={18} />
+                  <span className="hidden sm:inline">Eliminar</span>
+                </button>
+              )}
             </div>
 
             {/* Evidence list */}
-            {evidences.length === 0 ? (
+            {visibleEvidences.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400">
                 <ImageIcon size={40} className="mb-3 opacity-50" />
                 <p className="text-sm">Aún no hay evidencias registradas</p>
               </div>
             ) : (
               <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
-                {visibleEvidences.map((evidence) => (
+                {visibleEvidences.map((evidence) => {
+                  const canDelete =
+                    !evidence.deleted_at &&
+                    evidence.created_by === profile?.id;
+
+                  const isSelected = selectedDeletableEvidenceIds.includes(
+                    evidence.id,
+                  );
+
+                  if (evidence.deleted_at) {
+                    return (
+                      <div
+                        key={evidence.id}
+                        className="break-inside-avoid mb-4 rounded-xl border border-dashed border-red-200 bg-red-50/50 p-4 text-gray-500"
+                      >
+                        <div className="flex items-center gap-2 font-medium text-gray-700">
+                          <Trash2 size={18} />
+                          Archivo eliminado
+                        </div>
+                        <p className="mt-2 text-xs">
+                          {evidence.deleted_by_profile?.full_name ?? "Usuario"}{" "}
+                          lo eliminó el{" "}
+                          {new Date(evidence.deleted_at).toLocaleString("es-CR")}
+                        </p>
+                        <p className="mt-1 text-xs">
+                          Tamaño: {formatFileSize(evidence.file_size)}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
                   <div
                     key={evidence.id}
-                    className="break-inside-avoid mb-4 border rounded-xl p-3 bg-white shadow-sm hover:shadow-md transition-shadow"
+                    className={`break-inside-avoid relative mb-4 border rounded-xl p-3 bg-white shadow-sm transition-shadow hover:shadow-md ${
+                      isSelected ? "ring-2 ring-red-500" : ""
+                    }`}
                   >
+                    {selectionMode && canDelete && (
+                      <label className="absolute right-3 top-3 z-10 flex cursor-pointer items-center gap-2 rounded-full bg-black/45 px-2 py-1 text-xs font-medium text-white shadow">
+                        <input
+                          type="checkbox"
+                          className="peer sr-only"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedEvidenceIds((current) =>
+                              current.includes(evidence.id)
+                                ? current.filter((id) => id !== evidence.id)
+                                : [...current, evidence.id],
+                            );
+                          }}
+                        />
+                        <span className="flex size-4 items-center justify-center rounded border border-white/70 bg-white/80 peer-checked:border-red-600 peer-checked:bg-red-600 peer-checked:[&>svg]:block">
+                          <Check className="hidden size-3 text-white" strokeWidth={3} />
+                        </span>
+                        Seleccionar
+                      </label>
+                    )}
                     <div className="flex justify-center bg-gray-50 rounded-lg overflow-hidden">
                       <button
                         type="button"
@@ -718,9 +1027,13 @@ export function ShipmentEvidencesDialog({
                             : "Agregar comentario"}
                         </button>
                       </div>
+                      <div className="text-xs text-gray-500">
+                        Tamaño: {formatFileSize(evidence.file_size)}
+                      </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -794,6 +1107,45 @@ export function ShipmentEvidencesDialog({
           }}
         />
         <UiMessage
+          open={confirmDeleteOpen}
+          type="danger"
+          title="Eliminar archivo"
+          message={
+            <>
+              {selectedDeletableEvidenceIds.length === 1
+                ? "Se eliminará 1 archivo."
+                : `Se eliminarán ${selectedDeletableEvidenceIds.length} archivos.`}
+              <br />
+              <br />
+              La imagen dejará de estar disponible, pero se conservará el
+              mensaje “Archivo eliminado” con el usuario y la fecha para
+              mantener el contexto del envío.
+              <br />
+              <br />
+              ¿Desea continuar?
+            </>
+          }
+          cancelText="Cancelar"
+          confirmText={
+            deleteMutation.isPending
+              ? "Eliminando..."
+              : "Eliminar"
+          }
+          onClose={() => {
+            if (!deleteMutation.isPending) {
+              setConfirmDeleteOpen(false);
+            }
+          }}
+          onConfirm={() => {
+            if (selectedDeletableEvidenceIds.length === 0) {
+              return;
+            }
+
+            deleteMutation.mutate(selectedDeletableEvidenceIds);
+            setConfirmDeleteOpen(false);
+          }}
+        />
+        <UiMessage
           open={notesDialogOpen}
           type="question"
           title="Comentario"
@@ -852,48 +1204,32 @@ Ingrese un comentario...
 
             setPendingEvidences([]);
           }}
-          onUpload={async (items) => {
-            try {
-              for (const item of items) {
-                const file = await processImage(item.originalFile, {
-                  hd: item.hd,
+          onUpload={handleUpload}
+          isUploading={uploadProgress !== null}
+        />
 
-                  rotation: item.rotation,
+        <EvidenceUploadProgressDialog
+          open={uploadProgress !== null}
+          currentFileName={uploadProgress?.currentFileName ?? ""}
+          currentFileIndex={uploadProgress?.currentFileIndex ?? 0}
+          totalFiles={uploadProgress?.totalFiles ?? 0}
+          currentProgress={uploadProgress?.currentProgress ?? 0}
+          totalProgress={uploadProgress?.totalProgress ?? 0}
+          stage={uploadProgress?.stage ?? "preparing"}
+          onCancel={() => setConfirmCancelUploadOpen(true)}
+        />
 
-                  flipX: item.flipX,
-
-                  flipY: item.flipY,
-
-                  cropX: item.cropX,
-
-                  cropY: item.cropY,
-
-                  cropWidth: item.cropWidth,
-
-                  cropHeight: item.cropHeight,
-                });
-
-                await uploadMutation.mutateAsync({
-                  file,
-
-                  notes: item.notes,
-                });
-              }
-
-              await queryClient.invalidateQueries({
-                queryKey: ["shipment-evidences", shipmentId],
-              });
-
-              toast.success(`${items.length} evidencia(s) subida(s)`);
-
-              setEditorOpen(false);
-
-              setPendingEvidences([]);
-            } catch (error) {
-              console.error(error);
-
-              toast.error("No fue posible subir las evidencias");
-            }
+        <UiMessage
+          open={confirmCancelUploadOpen}
+          type="question"
+          title="Cancelar carga de archivos"
+          message="¿Desea cancelar la subida de archivos? Los archivos ya completados permanecerán guardados."
+          cancelText="Continuar subiendo"
+          confirmText="Cancelar carga"
+          onClose={() => setConfirmCancelUploadOpen(false)}
+          onConfirm={() => {
+            uploadAbortControllerRef.current?.abort();
+            setConfirmCancelUploadOpen(false);
           }}
         />
       </div>

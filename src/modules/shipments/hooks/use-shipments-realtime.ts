@@ -10,7 +10,9 @@ import {
   createClient,
 } from "@/lib/supabase/client";
 
-export function useShipmentsRealtime() {
+export function useShipmentsRealtime(
+  includeShipmentFiles = false,
+) {
 
   const queryClient =
     useQueryClient();
@@ -69,9 +71,39 @@ export function useShipmentsRealtime() {
             });
 
           },
-        )
+        );
 
-        .subscribe();
+    if (includeShipmentFiles) {
+      channel
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "shipment_evidences",
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: ["shipment-evidences"],
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "shipment_attachments",
+          },
+          () => {
+            queryClient.invalidateQueries({
+              queryKey: ["shipment-attachments"],
+            });
+          },
+        );
+    }
+
+    channel.subscribe();
 
     return () => {
 
@@ -81,6 +113,6 @@ export function useShipmentsRealtime() {
 
     };
 
-  }, [queryClient]);
+  }, [includeShipmentFiles, queryClient]);
 
 }

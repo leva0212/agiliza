@@ -7,23 +7,57 @@ import { generateId }
   from "@/shared/utils/generate-id";
 import { generateThumbnail }
     from "../utils/generate-thumbnail";
+import {
+    ensureUploadNotAborted,
+    UploadAbortedError,
+    uploadFileWithProgress,
+} from "../utils/upload-file-with-progress";
+
+export type ShipmentEvidenceUploadProgress = {
+    stage: "preparing" | "uploading" | "saving";
+    percent: number;
+};
 
 type Input = {
     shipmentId: string;
 
     file: File;
 
+    /**
+     * The evidence editor already applies crop, rotation and selected quality.
+     * Do not encode that resulting image for a second time.
+     */
+    isProcessed?: boolean;
+
+    /** Used only when this API receives an unprocessed file. */
+    hd?: boolean;
+
     notes?: string;
 
     createdBy?: string | null;
+
+    signal?: AbortSignal;
+
+    onProgress?: (progress: ShipmentEvidenceUploadProgress) => void;
 };
 
 export async function createShipmentEvidence({
     shipmentId,
     file,
+    isProcessed = false,
+    hd = false,
     notes,
     createdBy,
+    signal,
+    onProgress,
 }: Input) {
+    ensureUploadNotAborted(signal);
+
+    onProgress?.({
+        stage: "preparing",
+        percent: 25,
+    });
+
     const supabase = createClient();
     const {
         data: authData,
@@ -48,11 +82,28 @@ export async function createShipmentEvidence({
             profile?.company_id ?? null;
     }
 
-    const compressedFile = await compressImage(file);
+    const compressedFile = isProcessed
+        ? file
+        : await compressImage(file, { hd });
+
+    ensureUploadNotAborted(signal);
+
+    onProgress?.({
+        stage: "preparing",
+        percent: 35,
+    });
+
     const thumbnailFile =
         await generateThumbnail(
             compressedFile,
         );
+
+    ensureUploadNotAborted(signal);
+
+    onProgress?.({
+        stage: "preparing",
+        percent: 45,
+    });
 
     console.log(
         "[ShipmentEvidence] Thumbnail:",
@@ -90,73 +141,109 @@ export async function createShipmentEvidence({
     const fileName =
         `${shipmentId}/${generateId()}.${extension}`;
 
-    const uploadResult = await supabase.storage
-        .from("shipment-evidences")
-        .upload(fileName, compressedFile);
+    let storageUploaded = false;
 
-    if (uploadResult.error) {
-        throw uploadResult.error;
-    }
+    try {
+        await uploadFileWithProgress({
+            bucket: "shipment-evidences",
+            path: fileName,
+            file: compressedFile,
+            signal,
+            onProgress: (percent) => {
+                onProgress?.({
+                    stage: "uploading",
+                    percent: 45 + percent * 0.45,
+                });
+            },
+        });
 
-    const { data: publicUrlData } = supabase.storage
-        .from("shipment-evidences")
-        .getPublicUrl(fileName);
+        storageUploaded = true;
 
-    const fileUrl = publicUrlData.publicUrl;
+        ensureUploadNotAborted(signal);
 
-    const { data, error } = await supabase
-        .from("shipment_evidences")
-        .insert({
-            shipment_id: shipmentId,
+        onProgress?.({
+            stage: "saving",
+            percent: 92,
+        });
 
-            evidence_type: "photo",
+        const { data: publicUrlData } = supabase.storage
+            .from("shipment-evidences")
+            .getPublicUrl(fileName);
 
-            storage_path: fileName,
+        const fileUrl = publicUrlData.publicUrl;
 
-            file_url: fileUrl,
+        const { data, error } = await supabase
+            .from("shipment_evidences")
+            .insert({
+                shipment_id: shipmentId,
 
-            original_filename: file.name,
+                evidence_type: "photo",
 
-            mime_type: compressedFile.type,
+                storage_path: fileName,
 
-            file_size: compressedFile.size,
+                file_url: fileUrl,
 
-            created_by: createdBy ?? null,
+                original_filename: file.name,
 
-            created_company_id:
-                companyId,
-            notes: notes?.trim() ?? "",
+                mime_type: compressedFile.type,
 
-            validated: false,
+                file_size: compressedFile.size,
 
-            validated_at: null,
+                created_by: createdBy ?? null,
 
-            validated_by: null,
-        })
-        .select()
-        .single();
+                created_company_id:
+                    companyId,
+                notes: notes?.trim() ?? "",
 
-    if (error) {
+                validated: false,
+
+                validated_at: null,
+
+                validated_by: null,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        onProgress?.({
+            stage: "saving",
+            percent: 97,
+        });
+
+        console.log(
+            "[ShipmentEvidence] Guardada:",
+            {
+                shipmentId,
+                evidenceId: data.id,
+                fileUrl,
+                storagePath: fileName,
+            },
+        );
+
+        await cacheEvidenceFile(
+            data.id,
+            shipmentId,
+            fileUrl,
+            compressedFile,
+            thumbnailFile,
+        );
+
+        onProgress?.({
+            stage: "saving",
+            percent: 100,
+        });
+
+        return data;
+    } catch (error) {
+        if (storageUploaded && error instanceof UploadAbortedError) {
+            await supabase.storage
+                .from("shipment-evidences")
+                .remove([fileName]);
+        }
+
         throw error;
     }
-
-    console.log(
-        "[ShipmentEvidence] Guardada:",
-        {
-            shipmentId,
-            evidenceId: data.id,
-            fileUrl,
-            storagePath: fileName,
-        },
-    );
-
-    await cacheEvidenceFile(
-        data.id,
-        shipmentId,
-        fileUrl,
-        compressedFile,
-        thumbnailFile,
-    );
-
-    return data;
 }

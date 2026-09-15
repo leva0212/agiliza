@@ -19,6 +19,7 @@ export async function validateAllShipmentEvidences({
             validated_by: profileId,
         })
         .eq("shipment_id", shipmentId)
+        .is("deleted_at", null)
         .eq("validated", false);
 
     if (error) {

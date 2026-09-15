@@ -12,7 +12,8 @@ export async function reopenShipmentEvidences(
       validated_at: null,
       validated_by: null,
     })
-    .eq("shipment_id", shipmentId);
+    .eq("shipment_id", shipmentId)
+    .is("deleted_at", null);
 
   if (error) {
     throw error;

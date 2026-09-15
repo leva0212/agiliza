@@ -142,28 +142,43 @@ export function EvidenceCropDialogCanvas({
     imageHeight: number,
     rotation: number,
   ) {
-    const maxWidth = window.innerWidth * 0.9;
+    const visibleViewport = window.visualViewport;
+    const viewportWidth = visibleViewport?.width ?? window.innerWidth;
+    const viewportHeight = visibleViewport?.height ?? window.innerHeight;
+    const isMobileViewport = viewportWidth < 768;
 
-    const maxHeight = window.innerHeight * 0.8;
+    // On mobile, reserve room for the top edit controls and bottom actions.
+    // visualViewport reflects the area that remains visible below browser UI.
+    const maxWidth = isMobileViewport
+      ? Math.max(160, viewportWidth - 32)
+      : viewportWidth * 0.9;
 
-    let width = imageWidth;
-
-    let height = imageHeight;
-
-    const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
-
-    width *= ratio;
-
-    height *= ratio;
+    const maxHeight = isMobileViewport
+      ? Math.max(160, viewportHeight - 160)
+      : viewportHeight * 0.8;
 
     const normalizedRotation = ((rotation % 360) + 360) % 360;
 
     const rotated = normalizedRotation === 90 || normalizedRotation === 270;
 
-    return {
-      width: rotated ? height : width,
+    // Fit the already-oriented image. Fitting first and swapping dimensions
+    // afterward lets a rotated vertical image overflow a narrow mobile screen.
+    const orientedWidth = rotated ? imageHeight : imageWidth;
+    const orientedHeight = rotated ? imageWidth : imageHeight;
 
-      height: rotated ? width : height,
+    const ratio = Math.min(
+      maxWidth / orientedWidth,
+      maxHeight / orientedHeight,
+      1,
+    );
+
+    const width = orientedWidth * ratio;
+    const height = orientedHeight * ratio;
+
+    return {
+      width,
+
+      height,
 
       imageWidth: width,
 
@@ -241,20 +256,40 @@ export function EvidenceCropDialogCanvas({
   ]);
 
   useEffect(() => {
-    const image = imageRef.current;
-
-    if (!image) {
+    if (!open) {
       return;
     }
 
-    const size = calculateCanvasSize(image.width, image.height, rotation);
+    const updateCanvasSize = () => {
+      if (!imageRef.current) {
+        return;
+      }
 
-    setCanvasSize({
-      width: size.width,
+      const size = calculateCanvasSize(
+        imageRef.current.width,
+        imageRef.current.height,
+        rotation,
+      );
 
-      height: size.height,
-    });
-  }, [rotation]);
+      setCanvasSize({
+        width: size.width,
+
+        height: size.height,
+      });
+    };
+
+    updateCanvasSize();
+
+    const visibleViewport = window.visualViewport;
+
+    window.addEventListener("resize", updateCanvasSize);
+    visibleViewport?.addEventListener("resize", updateCanvasSize);
+
+    return () => {
+      window.removeEventListener("resize", updateCanvasSize);
+      visibleViewport?.removeEventListener("resize", updateCanvasSize);
+    };
+  }, [open, rotation]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -451,17 +486,27 @@ export function EvidenceCropDialogCanvas({
         <button
           type="button"
           onClick={() => {
+            const nextRotation = rotation - 90;
+            const image = imageRef.current;
+            const nextSize = image
+              ? calculateCanvasSize(image.width, image.height, nextRotation)
+              : canvasSize;
+            const previousWidth = Math.max(canvasSize.width, 1);
+            const previousHeight = Math.max(canvasSize.height, 1);
+
             setCropBox((prev) => ({
-              x: prev.y,
+              x: (prev.y / previousHeight) * nextSize.width,
 
-              y: canvasSize.width - (prev.x + prev.width),
+              y:
+                ((previousWidth - (prev.x + prev.width)) / previousWidth) *
+                nextSize.height,
 
-              width: prev.height,
+              width: (prev.height / previousHeight) * nextSize.width,
 
-              height: prev.width,
+              height: (prev.width / previousWidth) * nextSize.height,
             }));
 
-            setRotation((prev) => prev - 90);
+            setRotation(nextRotation);
           }}
           className="
       w-12
@@ -480,17 +525,27 @@ export function EvidenceCropDialogCanvas({
         <button
           type="button"
           onClick={() => {
+            const nextRotation = rotation + 90;
+            const image = imageRef.current;
+            const nextSize = image
+              ? calculateCanvasSize(image.width, image.height, nextRotation)
+              : canvasSize;
+            const previousWidth = Math.max(canvasSize.width, 1);
+            const previousHeight = Math.max(canvasSize.height, 1);
+
             setCropBox((prev) => ({
-              x: canvasSize.height - (prev.y + prev.height),
+              x:
+                ((previousHeight - (prev.y + prev.height)) / previousHeight) *
+                nextSize.width,
 
-              y: prev.x,
+              y: (prev.x / previousWidth) * nextSize.height,
 
-              width: prev.height,
+              width: (prev.height / previousHeight) * nextSize.width,
 
-              height: prev.width,
+              height: (prev.width / previousWidth) * nextSize.height,
             }));
 
-            setRotation((prev) => prev + 90);
+            setRotation(nextRotation);
           }}
           className="
       w-12
