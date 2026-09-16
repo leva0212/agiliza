@@ -34,8 +34,9 @@ import {
   UploadAbortedError,
 } from "../utils/upload-file-with-progress";
 import { EvidenceUploadProgressDialog } from "./evidence-upload-progress-dialog";
+import { useDialogBrowserBack } from "@/shared/hooks/use-dialog-browser-back";
 import {
-  createCompressedPendingEvidence,
+  createPendingEvidence,
   type PendingEvidence,
 } from "../types/pending-evidence";
 type Props = {
@@ -399,6 +400,17 @@ export function ShipmentEvidencesDialog({
     }
   }
 
+  const requestDialogClose = useDialogBrowserBack({
+    open,
+    blocked: uploadProgress !== null || uploadMutation.isPending,
+    historyKey: "shipment-evidences",
+    onClose,
+    onBlocked: () => {
+      toast.warning(
+        "Debe cancelar la carga de archivos o esperar a que finalice para salir de este diálogo.",
+      );
+    },
+  });
   if (!open) {
     return null;
   }
@@ -424,15 +436,8 @@ export function ShipmentEvidencesDialog({
             return;
           }
 
-          (async () => {
-            const evidences = await Promise.all(
-              files.map(createCompressedPendingEvidence),
-            );
-
-            setPendingEvidences(evidences);
-
-            setEditorOpen(true);
-          })();
+          setPendingEvidences(files.map(createPendingEvidence));
+          setEditorOpen(true);
 
           e.target.value = "";
         }}
@@ -451,14 +456,7 @@ export function ShipmentEvidencesDialog({
             return;
           }
 
-          (async () => {
-            const evidence = await createCompressedPendingEvidence(file);
-
-            setPendingEvidences([evidence]);
-
-            setEditorOpen(true);
-          })();
-
+          setPendingEvidences([createPendingEvidence(file)]);
           setEditorOpen(true);
 
           e.target.value = "";
@@ -470,7 +468,7 @@ export function ShipmentEvidencesDialog({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestDialogClose}
               aria-label="Volver"
               title="Volver"
               className="rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100"
@@ -507,7 +505,7 @@ export function ShipmentEvidencesDialog({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={requestDialogClose}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <X size={20} />

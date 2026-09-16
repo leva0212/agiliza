@@ -38,6 +38,7 @@ import {
   UploadAbortedError,
 } from "../utils/upload-file-with-progress";
 import { EvidenceUploadProgressDialog } from "./evidence-upload-progress-dialog";
+import { useDialogBrowserBack } from "@/shared/hooks/use-dialog-browser-back";
 
 type Props = {
   open: boolean;
@@ -276,6 +277,17 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
     }
   }
 
+  const requestDialogClose = useDialogBrowserBack({
+    open,
+    blocked: uploadProgress !== null,
+    historyKey: "shipment-attachments",
+    onClose,
+    onBlocked: () => {
+      toast.warning(
+        "Debe cancelar la carga de archivos o esperar a que finalice para salir de este diálogo.",
+      );
+    },
+  });
   if (!open) {
     return null;
   }
@@ -301,7 +313,7 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestDialogClose}
               aria-label="Volver"
               title="Volver"
               className="rounded-full p-2 text-slate-700 transition-colors hover:bg-slate-100"
@@ -317,7 +329,7 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestDialogClose}
             title="Cerrar"
             className="rounded-full p-2 text-slate-700 transition-colors hover:bg-slate-100"
           >

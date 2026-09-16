@@ -6,17 +6,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  RotateCw,
-  FlipHorizontal,
   Crop,
-  BadgeInfo,
   RefreshCcw,
-  RotateCcw,
 } from "lucide-react";
 
 import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
-import { updateEvidencePreview } from "@/shared/utils/update-evidence-preview";
+import { processImage } from "@/shared/utils/process-image";
+import { generateThumbnail } from "../../utils/generate-thumbnail";
 type Props = {
   open: boolean;
 
@@ -38,13 +35,197 @@ export function ShipmentEvidenceEditor({
 }: Props) {
   const [cropOpen, setCropOpen] = useState(false);
   const [index, setIndex] = useState(0);
-  const [zoom, setZoom] = useState(1);
   const [items, setItems] = useState<PendingEvidence[]>([]);
+  const [activePreviewUrl, setActivePreviewUrl] = useState("");
+  const [activePreviewLoading, setActivePreviewLoading] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState("");
+  const [thumbnailGenerationPaused, setThumbnailGenerationPaused] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const activePreviewUrlRef = useRef("");
+  const cropImageUrlRef = useRef("");
+  const thumbnailUrlsRef = useRef(new Set<string>());
+  const thumbnailEvidenceIdsRef = useRef(new Set<string>());
+  const imageWorkQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const current = items[index];
+  const currentId = current?.id;
+  const currentOriginalFile = current?.originalFile;
+  const currentHd = current?.hd;
+  const currentRotation = current?.rotation;
+  const currentFlipX = current?.flipX;
+  const currentFlipY = current?.flipY;
+  const currentCropX = current?.cropX;
+  const currentCropY = current?.cropY;
+  const currentCropWidth = current?.cropWidth;
+  const currentCropHeight = current?.cropHeight;
+  useEffect(() => {
+    if (!open || !currentOriginalFile) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadActivePreview() {
+      await Promise.resolve();
+
+      if (activePreviewUrlRef.current) {
+        URL.revokeObjectURL(activePreviewUrlRef.current);
+        activePreviewUrlRef.current = "";
+      }
+
+      setActivePreviewUrl("");
+      setActivePreviewLoading(true);
+
+      try {
+        const previewTask = imageWorkQueueRef.current.then(() => {
+          if (cancelled) return null;
+
+          return processImage(currentOriginalFile, {
+            hd: currentHd ?? false,
+            rotation: currentRotation ?? 0,
+            flipX: currentFlipX ?? false,
+            flipY: currentFlipY ?? false,
+            cropX: currentCropX,
+            cropY: currentCropY,
+            cropWidth: currentCropWidth || 1,
+            cropHeight: currentCropHeight || 1,
+          });
+        });
+
+        imageWorkQueueRef.current = previewTask.then(
+          () => undefined,
+          () => undefined,
+        );
+
+        const processedFile = await previewTask;
+
+        if (!processedFile) return;
+
+        const nextUrl = URL.createObjectURL(processedFile);
+
+        if (cancelled) {
+          URL.revokeObjectURL(nextUrl);
+          return;
+        }
+
+        activePreviewUrlRef.current = nextUrl;
+        setActivePreviewUrl(nextUrl);
+      } catch (error) {
+        console.error("[Evidence lazy preview]", error);
+      } finally {
+        if (!cancelled) {
+          setActivePreviewLoading(false);
+        }
+      }
+    }
+
+    void loadActivePreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    open,
+    currentId,
+    currentOriginalFile,
+    currentHd,
+    currentRotation,
+    currentFlipX,
+    currentFlipY,
+    currentCropX,
+    currentCropY,
+    currentCropWidth,
+    currentCropHeight,
+  ]);
+
+  useEffect(() => {
+    if (!open || evidences.length === 0 || thumbnailGenerationPaused) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function generateSmallThumbnails() {
+      for (const evidence of evidences) {
+        if (cancelled || thumbnailGenerationPaused) break;
+
+        try {
+          if (thumbnailEvidenceIdsRef.current.has(evidence.id)) continue;
+
+          const thumbnailTask = imageWorkQueueRef.current.then(() => {
+            if (cancelled) return null;
+            return generateThumbnail(evidence.originalFile, 160);
+          });
+
+          imageWorkQueueRef.current = thumbnailTask.then(
+            () => undefined,
+            () => undefined,
+          );
+
+          const thumbnail = await thumbnailTask;
+
+          if (!thumbnail) break;
+
+          const thumbnailUrl = URL.createObjectURL(thumbnail);
+
+          if (cancelled) {
+            URL.revokeObjectURL(thumbnailUrl);
+            break;
+          }
+
+          thumbnailUrlsRef.current.add(thumbnailUrl);
+          thumbnailEvidenceIdsRef.current.add(evidence.id);
+          setItems((currentItems) =>
+            currentItems.map((item) =>
+              item.id === evidence.id && !item.thumbnailUrl
+                ? { ...item, thumbnailUrl }
+                : item,
+            ),
+          );
+
+          await new Promise<void>((resolve) => {
+            window.requestAnimationFrame(() => resolve());
+          });
+        } catch (error) {
+          console.error("[Evidence thumbnail]", error);
+        }
+      }
+    }
+
+    void generateSmallThumbnails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [evidences, open, thumbnailGenerationPaused]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const thumbnailUrls = thumbnailUrlsRef.current;
+    const thumbnailEvidenceIds = thumbnailEvidenceIdsRef.current;
+
+    return () => {
+      if (activePreviewUrlRef.current) {
+        URL.revokeObjectURL(activePreviewUrlRef.current);
+        activePreviewUrlRef.current = "";
+      }
+
+      if (cropImageUrlRef.current) {
+        URL.revokeObjectURL(cropImageUrlRef.current);
+        cropImageUrlRef.current = "";
+      }
+
+      for (const thumbnailUrl of thumbnailUrls) {
+        URL.revokeObjectURL(thumbnailUrl);
+      }
+
+      thumbnailUrls.clear();
+      thumbnailEvidenceIds.clear();
+    };
+  }, [open]);
   useEffect(() => {
     if (!textareaRef.current) {
       return;
@@ -77,12 +258,53 @@ export function ShipmentEvidenceEditor({
 
     element.style.height = Math.min(element.scrollHeight, maxHeight) + "px";
   }
-  useEffect(() => {
-    if (open) {
-      setItems(evidences);
 
-      setIndex(0);
+  function closeCropDialog() {
+    setCropOpen(false);
+    setThumbnailGenerationPaused(false);
+
+    if (cropImageUrlRef.current) {
+      URL.revokeObjectURL(cropImageUrlRef.current);
+      cropImageUrlRef.current = "";
     }
+
+    setCropImageUrl("");
+  }
+
+  async function openCropDialog() {
+    if (!current) return;
+
+    setThumbnailGenerationPaused(true);
+    await imageWorkQueueRef.current;
+
+    if (cropImageUrlRef.current) {
+      URL.revokeObjectURL(cropImageUrlRef.current);
+    }
+
+    const nextUrl = URL.createObjectURL(current.originalFile);
+    cropImageUrlRef.current = nextUrl;
+    setCropImageUrl(nextUrl);
+    setCropOpen(true);
+  }
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    async function initializeEditor() {
+      await Promise.resolve();
+
+      if (!cancelled) {
+        setItems(evidences);
+        setIndex(0);
+      }
+    }
+
+    void initializeEditor();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, evidences]);
 
   if (!open || items.length === 0) {
@@ -147,15 +369,13 @@ export function ShipmentEvidenceEditor({
         >
           <button
             type="button"
-            onClick={async () => {
+            onClick={() => {
               const copy = [...items];
 
               copy[index] = {
                 ...copy[index],
-
                 hd: !copy[index].hd,
               };
-              copy[index] = await updateEvidencePreview(copy[index]);
 
               setItems(copy);
             }}
@@ -178,30 +398,21 @@ export function ShipmentEvidenceEditor({
 
           <button
             type="button"
-            onClick={async () => {
+            onClick={() => {
               const copy = [...items];
 
-              copy[index] = await updateEvidencePreview({
+              copy[index] = {
                 ...copy[index],
-
                 file: copy[index].originalFile,
-
                 hd: false,
-
                 rotation: 0,
-
                 flipX: false,
-
                 flipY: false,
-
                 cropX: 0,
-
                 cropY: 0,
-
                 cropWidth: 0,
-
                 cropHeight: 0,
-              });
+              };
 
               setItems(copy);
             }}
@@ -226,9 +437,8 @@ export function ShipmentEvidenceEditor({
 
           <button
             type="button"
-            onClick={() => {
-              setCropOpen(true);
-            }}
+            onClick={openCropDialog}
+
             className="
     w-10
     h-10
@@ -323,12 +533,23 @@ export function ShipmentEvidenceEditor({
       justify-center
     "
             >
-              <img
-                key={current.previewUrl}
-                src={current.previewUrl}
-                alt="Vista previa de evidencia"
-                className="block max-h-full max-w-full object-contain"
-              />
+              {activePreviewUrl ? (
+                <img
+                  key={activePreviewUrl}
+                  src={activePreviewUrl}
+                  alt="Vista previa de evidencia"
+                  className="block max-h-full max-w-full object-contain"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3 text-sm text-white/75">
+                  <div className="size-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span>
+                    {activePreviewLoading
+                      ? "Preparando imagen..."
+                      : "No fue posible mostrar la imagen"}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -399,6 +620,12 @@ export function ShipmentEvidenceEditor({
                   e.stopPropagation();
 
                   const nextItems = items.filter((x) => x.id !== evidence.id);
+
+                  if (evidence.thumbnailUrl) {
+                    URL.revokeObjectURL(evidence.thumbnailUrl);
+                    thumbnailUrlsRef.current.delete(evidence.thumbnailUrl);
+                    thumbnailEvidenceIdsRef.current.delete(evidence.id);
+                  }
 
                   if (nextItems.length === 0) {
                     onClose();
@@ -500,22 +727,38 @@ export function ShipmentEvidenceEditor({
                   setIndex(i);
                 }}
               >
-                <img
-                  src={evidence.previewUrl}
-                  alt=""
-                  className={`
-            w-17
-            h-17
-
-            object-cover
-
-            rounded-lg
-
-            border-2
-
-            ${i === index ? "border-blue-600" : "border-white/30"}
-          `}
-                />
+                {evidence.thumbnailUrl ? (
+                  <img
+                    src={evidence.thumbnailUrl}
+                    alt=""
+                    className={`
+              h-17
+              w-17
+              rounded-lg
+              border-2
+              object-cover
+              ${i === index ? "border-blue-600" : "border-white/30"}
+            `}
+                  />
+                ) : (
+                  <div
+                    className={`
+              flex
+              h-17
+              w-17
+              items-center
+              justify-center
+              rounded-lg
+              border-2
+              bg-white/10
+              text-xs
+              text-white/60
+              ${i === index ? "border-blue-600" : "border-white/30"}
+            `}
+                  >
+                    …
+                  </div>
+                )}
               </button>
             </div>
           ))}
@@ -581,7 +824,14 @@ export function ShipmentEvidenceEditor({
                 return;
               }
 
-              await onUpload(items);
+              setThumbnailGenerationPaused(true);
+
+              try {
+                await imageWorkQueueRef.current;
+                await onUpload(items);
+              } finally {
+                setThumbnailGenerationPaused(false);
+              }
             }}
             disabled={isUploading}
             className="
@@ -612,7 +862,7 @@ export function ShipmentEvidenceEditor({
 
       <EvidenceCropDialogCanvas
         open={cropOpen}
-        imageUrl={current.originalPreviewUrl}
+        imageUrl={cropImageUrl}
         initialRotation={current.rotation}
         initialFlipX={current.flipX}
         initialFlipY={current.flipY}
@@ -622,33 +872,24 @@ export function ShipmentEvidenceEditor({
           width: current.cropWidth,
           height: current.cropHeight,
         }}
-        onClose={() => {
-          setCropOpen(false);
-        }}
-        onApply={async (crop) => {
+        onClose={closeCropDialog}
+
+        onApply={(crop) => {
           const copy = [...items];
 
           copy[index] = {
             ...copy[index],
-
             cropX: crop.x,
-
             cropY: crop.y,
-
             cropWidth: crop.width,
-
             cropHeight: crop.height,
-
             rotation: crop.rotation,
-
             flipX: crop.flipX,
-
             flipY: crop.flipY,
           };
 
-          copy[index] = await updateEvidencePreview(copy[index]);
-
           setItems(copy);
+          closeCropDialog();
         }}
       />
     </div>

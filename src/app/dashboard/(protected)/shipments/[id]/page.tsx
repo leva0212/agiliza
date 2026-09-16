@@ -469,7 +469,18 @@ export default function ShipmentDetailPage() {
       "
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="font-bold mb-2">Acciones</div>
+            <div className="mb-2 flex items-center justify-between">
+              <div className="font-bold">Acciones</div>
+              <button
+                type="button"
+                aria-label="Cerrar acciones"
+                title="Cerrar"
+                onClick={() => setActionsOpen(false)}
+                className="flex size-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
             <button
               onClick={() => {
                 setActionsOpen(false);
@@ -480,8 +491,15 @@ export default function ShipmentDetailPage() {
     w-full
     text-left
     p-3
-    rounded
-    hover:bg-gray-100
+    rounded-xl
+    border
+    border-slate-200/80
+    dark:border-slate-700/70
+    transition-colors
+    hover:bg-blue-50
+    hover:text-blue-700
+    dark:hover:bg-blue-950/60
+    dark:hover:text-blue-200
     flex
     items-center
     gap-3
@@ -493,6 +511,34 @@ export default function ShipmentDetailPage() {
             </button>
 
             <button
+              type="button"
+              onClick={() => {
+                setActionsOpen(false);
+                router.push(`/dashboard/shipments/${shipmentId}/edit`);
+              }}
+              className="
+    w-full
+    text-left
+    p-3
+    rounded-xl
+    border
+    border-slate-200/80
+    dark:border-slate-700/70
+    transition-colors
+    hover:bg-violet-50
+    hover:text-violet-700
+    dark:hover:bg-violet-950/60
+    dark:hover:text-violet-200
+    flex
+    items-center
+    gap-3
+  "
+            >
+              <Pencil size={18} />
+
+              <span>Modificar envío</span>
+            </button>
+            <button
               onClick={() => {
                 setActionsOpen(false);
 
@@ -503,8 +549,15 @@ export default function ShipmentDetailPage() {
     w-full
     text-left
     p-3
-    rounded
-    hover:bg-gray-100
+    rounded-xl
+    border
+    border-slate-200/80
+    dark:border-slate-700/70
+    transition-colors
+    hover:bg-cyan-50
+    hover:text-cyan-700
+    dark:hover:bg-cyan-950/60
+    dark:hover:text-cyan-200
     flex
     items-center
     gap-3
@@ -520,9 +573,16 @@ export default function ShipmentDetailPage() {
     w-full
     text-left
     p-3
-    rounded
+    rounded-xl
+    border
+    border-red-200/70
+    dark:border-red-900/50
     text-red-600
+    transition-colors
     hover:bg-red-50
+    dark:text-red-400
+    dark:hover:bg-red-950/60
+    dark:hover:text-red-200
     flex
     items-center
     gap-3
@@ -531,6 +591,15 @@ export default function ShipmentDetailPage() {
               <Ban size={18} />
 
               <span>Cancelar envío</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActionsOpen(false)}
+              className="flex w-full items-center gap-3 rounded-xl border border-slate-200/80 p-3 text-left transition-colors hover:bg-slate-100 dark:border-slate-700/70 dark:hover:bg-slate-700 dark:hover:text-white"
+            >
+              <XCircle size={18} />
+              <span>Cerrar</span>
             </button>
           </div>
         </div>

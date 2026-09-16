@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CreateShipmentContactMethodInput } from "../types/shipment-contact-method";
 
 import { createShipmentContactMethods } from "../api/create-shipment-contact-methods";
@@ -229,6 +229,8 @@ export function ShipmentForm({ shipmentId }: Props) {
     "success" | "error" | "warning" | "info" | "question"
   >("info");
   const [saving, setSaving] = useState(false);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const initialFormSnapshot = useRef<string | null>(null);
   useEffect(() => {
     if (coverage.length === 1) {
       let cancelled = false;
@@ -500,6 +502,39 @@ export function ShipmentForm({ shipmentId }: Props) {
     };
   }, [copyFrom, copyContactsQuery.data]);
 
+  function getFormSnapshot() {
+    return JSON.stringify({
+      customerIdentificationTypeId,
+      customerIdentification,
+      customerName,
+      customerAddress,
+      provinceId,
+      cantonId,
+      districtId,
+      neighborhoodId,
+      routeId,
+      selectedCompanyId,
+      notes,
+      contactMethods,
+      items,
+    });
+  }
+
+  const formDataReady = isEditing
+    ? shipmentQuery.isSuccess && shipmentItemsQuery.isSuccess && shipmentContactsQuery.isSuccess
+    : !copyFrom || (copyShipmentQuery.isSuccess && copyItemsQuery.isSuccess && copyContactsQuery.isSuccess);
+
+  useEffect(() => {
+    if (!formDataReady || initialFormSnapshot.current !== null) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      initialFormSnapshot.current = getFormSnapshot();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [formDataReady, contactMethods, items, customerAddress, customerIdentification, customerIdentificationTypeId, customerName, districtId, neighborhoodId, notes, provinceId, cantonId, routeId, selectedCompanyId]);
   function showMessage(
     title: string,
     message: React.ReactNode,
@@ -839,14 +874,69 @@ export function ShipmentForm({ shipmentId }: Props) {
     setItems([]);
   }
 
+  function discardChanges() {
+    setDiscardDialogOpen(false);
+    router.push("/dashboard/shipments/list");
+  }
+
+  function handleCancel() {
+    if (saving) {
+      return;
+    }
+
+    const hasUnsavedChanges = initialFormSnapshot.current !== null
+      ? initialFormSnapshot.current !== getFormSnapshot()
+      : Boolean(
+        customerIdentificationTypeId ||
+        customerIdentification ||
+        customerName ||
+        customerAddress ||
+        provinceId ||
+        cantonId ||
+        districtId ||
+        neighborhoodId ||
+        routeId ||
+        notes ||
+        contactMethods.length ||
+        items.length,
+      );
+
+    if (hasUnsavedChanges) {
+      setDiscardDialogOpen(true);
+      return;
+    }
+
+    discardChanges();
+  }
+
   return (
     <div className="max-w-[400px] mx-auto border border-blue-300 rounded-xl p-4 space-y-4">
-      <h1 className="text-2xl font-bold">
-        {isEditing
-          ? `Editar envío ${shipmentQuery.data?.tracking_number ?? ""}`
-          : "Nuevo envío"}
-      </h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">
+          {isEditing
+            ? `Editar envío ${shipmentQuery.data?.tracking_number ?? ""}`
+            : "Nuevo envío"}
+        </h1>
 
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleCancel}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleSave}
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
+      </div>
       {canChooseCompany && (
         <div
           className="
@@ -1694,6 +1784,16 @@ export function ShipmentForm({ shipmentId }: Props) {
         message={messageText}
         type={messageType}
         onClose={() => setMessageOpen(false)}
+      />
+      <UiMessage
+        open={discardDialogOpen}
+        title="¿Descartar cambios?"
+        message="Los cambios sin guardar se perderán."
+        type="question"
+        cancelText="Seguir editando"
+        confirmText="Descartar cambios"
+        onClose={() => setDiscardDialogOpen(false)}
+        onConfirm={discardChanges}
       />
     </div>
   );

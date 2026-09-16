@@ -114,13 +114,7 @@ Muchas gracias.`,
           <button
             type="button"
             onClick={() => window.open(`tel:${cleanPhone}`)}
-            className="
-              w-full
-              border
-              rounded-xl
-              p-3
-              text-left
-            "
+            className="w-full rounded-xl border border-slate-200/60 p-3 text-left transition-colors hover:bg-blue-50 hover:text-blue-700 active:bg-blue-100 dark:border-slate-700/40 dark:bg-blue-950/30 dark:text-blue-100 dark:hover:bg-blue-900/60 dark:hover:text-blue-100 dark:active:bg-blue-800/70"
           >
             📞 Llamar
           </button>
@@ -130,13 +124,7 @@ Muchas gracias.`,
             onClick={() =>
               window.open(`https://wa.me/506${cleanPhone}`, "_blank")
             }
-            className="
-              w-full
-              border
-              rounded-xl
-              p-3
-              text-left
-            "
+            className="w-full rounded-xl border border-slate-200/60 p-3 text-left transition-colors hover:bg-green-50 hover:text-green-700 active:bg-green-100 dark:border-slate-700/40 dark:bg-green-950/30 dark:text-green-100 dark:hover:bg-green-900/60 dark:hover:text-green-100 dark:active:bg-green-800/70"
           >
             💬 Abrir WhatsApp
           </button>
@@ -149,13 +137,7 @@ Muchas gracias.`,
                 "_blank",
               )
             }
-            className="
-              w-full
-              border
-              rounded-xl
-              p-3
-              text-left
-            "
+            className="w-full rounded-xl border border-slate-200/60 p-3 text-left transition-colors hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 dark:border-slate-700/40 dark:bg-emerald-950/30 dark:text-emerald-100 dark:hover:bg-emerald-900/60 dark:hover:text-emerald-100 dark:active:bg-emerald-800/70"
           >
             📝 WhatsApp con mensaje
           </button>
@@ -163,13 +145,7 @@ Muchas gracias.`,
           <button
             type="button"
             onClick={() => window.open(`sms:${cleanPhone}`)}
-            className="
-              w-full
-              border
-              rounded-xl
-              p-3
-              text-left
-            "
+            className="w-full rounded-xl border border-slate-200/60 p-3 text-left transition-colors hover:bg-indigo-50 hover:text-indigo-700 active:bg-indigo-100 dark:border-slate-700/40 dark:bg-indigo-950/30 dark:text-indigo-100 dark:hover:bg-indigo-900/60 dark:hover:text-indigo-100 dark:active:bg-indigo-800/70"
           >
             ✉ SMS
           </button>
@@ -195,18 +171,11 @@ Muchas gracias.`,
 
               onClose();
             }}
-            className="
-              w-full
-              border
-              rounded-xl
-              p-3
-              text-left
-            "
+            className="w-full rounded-xl border border-slate-200/60 p-3 text-left transition-colors hover:bg-slate-100 hover:text-slate-800 active:bg-slate-200 dark:border-slate-700/40 dark:bg-slate-800/70 dark:text-slate-100 dark:hover:bg-slate-700 dark:hover:text-white dark:active:bg-slate-600"
           >
             📋 Copiar número
           </button>
         </div>
-
         <button
           type="button"
           onClick={onClose}
@@ -216,6 +185,10 @@ Muchas gracias.`,
             border
             rounded-xl
             p-3
+            transition-colors
+            hover:bg-gray-100
+            dark:hover:bg-slate-700/70
+            dark:hover:text-white
           "
         >
           Cerrar
