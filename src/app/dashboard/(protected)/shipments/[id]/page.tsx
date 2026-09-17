@@ -35,12 +35,15 @@ import { ContactActionsDialog } from "@/components/contact-actions-dialog";
 import { ShipmentEvidencesCard } from "@/modules/shipments/components/shipment-evidences-card";
 import { ShipmentAttachmentsCard } from "@/modules/shipments/components/shipment-attachments-card";
 import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
+import { ShipmentDeliveryDialog } from "@/modules/shipments/components/shipment-delivery-dialog";
+import { completeShipmentDelivery } from "@/modules/shipments/api/complete-shipment-delivery";
 export default function ShipmentDetailPage() {
   useShipmentsRealtime(true);
   const router = useRouter();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState("");
 
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -70,6 +73,39 @@ export default function ShipmentDetailPage() {
 
       setActionsOpen(false);
     },
+
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "No fue posible cambiar el estado",
+      );
+    },
+  });
+
+  const completeDeliveryMutation = useMutation({
+    mutationFn: completeShipmentDelivery,
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["shipment", shipmentId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["shipment-status-history", shipmentId],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["shipments"] }),
+      ]);
+
+      setDeliveryDialogOpen(false);
+      setStatusDialogOpen(false);
+      setActionsOpen(false);
+      toast.success("Entrega registrada correctamente");
+    },
+
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No fue posible confirmar la entrega",
+      );
+    },
   });
 
   const { data: shipment, isLoading: shipmentLoading } = useQuery({
@@ -94,6 +130,15 @@ export default function ShipmentDetailPage() {
 
     queryFn: () => getShipmentContactMethods(shipmentId),
   });
+
+  const assignedDepositAmount = items.reduce(
+    (total, item) => total + Number(item.deposit_amount || 0),
+    0,
+  );
+  const assignedShippingFee = items.reduce(
+    (total, item) => total + Number(item.shipping_fee || 0),
+    0,
+  );
 
   if (shipmentLoading || itemsLoading) {
     return <div className="p-6">Cargando...</div>;
@@ -620,6 +665,9 @@ export default function ShipmentDetailPage() {
           <div
             className="
         bg-white
+        text-slate-900
+        dark:bg-slate-900
+        dark:text-slate-100
         rounded-2xl
         p-4
         w-full
@@ -639,13 +687,19 @@ export default function ShipmentDetailPage() {
                   return (
                     <button
                       key={option.value}
-                      onClick={() =>
+                      onClick={() => {
+                        if (option.value === "delivered") {
+                          setStatusDialogOpen(false);
+                          setDeliveryDialogOpen(true);
+                          return;
+                        }
+
                         updateStatusMutation.mutate({
                           shipmentId,
 
                           status: option.value,
-                        })
-                      }
+                        });
+                      }}
                       className={`
             w-full
             p-3
@@ -672,6 +726,13 @@ export default function ShipmentDetailPage() {
           mt-4
           w-full
           border
+          border-slate-300
+          text-slate-700
+          transition-colors
+          hover:bg-slate-100
+          dark:border-slate-600
+          dark:text-slate-100
+          dark:hover:bg-slate-800
           rounded-lg
           p-3
         "
@@ -681,6 +742,16 @@ export default function ShipmentDetailPage() {
           </div>
         </div>
       )}
+      <ShipmentDeliveryDialog
+        open={deliveryDialogOpen}
+        shipmentId={shipmentId}
+        currentUserId={profile?.id}
+        assignedDepositAmount={assignedDepositAmount}
+        assignedShippingFee={assignedShippingFee}
+        isSubmitting={completeDeliveryMutation.isPending}
+        onCancel={() => setDeliveryDialogOpen(false)}
+        onConfirm={(input) => completeDeliveryMutation.mutate(input)}
+      />
       <NavigationDialog
         open={navigationOpen}
         onClose={() => setNavigationOpen(false)}

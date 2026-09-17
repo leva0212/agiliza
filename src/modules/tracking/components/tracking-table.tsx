@@ -47,7 +47,7 @@ export function TrackingTable({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              title="Editar seguimiento"
+              title="Editar tracking"
               onClick={() => onEdit(row.original)}
               className="rounded-lg p-2 text-blue-700 hover:bg-blue-50"
             >

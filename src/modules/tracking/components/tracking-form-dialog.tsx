@@ -111,7 +111,7 @@ export function TrackingFormDialog({
         <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 sm:px-6 sm:py-4">
           <div>
             <h2 className="text-xl font-bold text-slate-900">
-              {record ? "Editar seguimiento" : "Nuevo seguimiento"}
+              {record ? "Editar tracking" : "Nuevo tracking"}
             </h2>
             {record && (
               <p className="mt-1 text-sm text-slate-500">

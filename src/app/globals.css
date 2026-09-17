@@ -145,6 +145,19 @@ html.dark .hover\:text-gray-900:hover,
 html.dark .hover\:text-slate-900:hover {
   color: #f8fafc !important;
 }
+/* Profundidad visual para diálogos y menús flotantes en modo oscuro. */
+html.dark [role="dialog"],
+html.dark [role="menu"],
+html.dark .MuiDialog-paper,
+html.dark .MuiPopover-paper,
+html.dark .MuiMenu-paper,
+html.dark .fixed.inset-0 > [class*="rounded"],
+html.dark .absolute[class*="rounded"][class*="shadow"] {
+  border: 0.3px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow:
+    0 0 0 0.3px rgba(255, 255, 255, 0.16),
+    0 18px 45px rgba(0, 0, 0, 0.42);
+}
 
 /* ==========================================
    ANIMACIONES

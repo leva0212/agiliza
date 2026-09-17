@@ -48,7 +48,7 @@ export async function downloadTrackingExcel({
   includeCompany,
 }: DownloadTrackingExcelOptions) {
   const workbook = new Workbook();
-  const worksheet = workbook.addWorksheet("Seguimiento", {
+  const worksheet = workbook.addWorksheet("Tracking", {
     views: [{ state: "frozen", ySplit: 5 }],
   });
   const headers = [
@@ -63,7 +63,7 @@ export async function downloadTrackingExcel({
   const lastColumn = headers.length;
 
   worksheet.mergeCells(1, 1, 1, lastColumn);
-  worksheet.getCell("A1").value = "Seguimiento de envíos";
+  worksheet.getCell("A1").value = "Tracking de envíos";
   worksheet.getCell("A1").font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
   worksheet.getCell("A1").fill = {
     type: "pattern",
@@ -130,5 +130,5 @@ export async function downloadTrackingExcel({
   };
 
   const buffer = await workbook.xlsx.writeBuffer();
-  downloadFile(buffer, `seguimiento-${filters.startDate}-a-${filters.endDate}.xlsx`);
+  downloadFile(buffer, `tracking-${filters.startDate}-a-${filters.endDate}.xlsx`);
 }

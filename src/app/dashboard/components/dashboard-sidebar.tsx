@@ -177,7 +177,7 @@ export function DashboardSidebar({ profile }: Props) {
             href="/dashboard/tracking"
             className="block p-3 rounded-lg hover:bg-gray-800"
           >
-            {sidebarOpen ? "📋 Seguimiento" : "📋"}
+            {sidebarOpen ? "📋 Tracking" : "📋"}
           </Link>
 
           <Link

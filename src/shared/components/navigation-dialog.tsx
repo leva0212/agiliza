@@ -103,10 +103,12 @@ export function NavigationDialog({
         bg-gradient-to-b
         from-white
         to-sky-50
+        dark:from-slate-900
+        dark:to-slate-950
         rounded-3xl
         shadow-2xl
         border
-        border-sky-200
+        border-sky-200 dark:border-sky-800
         p-6
       "
             >
@@ -121,8 +123,8 @@ export function NavigationDialog({
             px-3
             py-1
             rounded-full
-            bg-sky-100
-            text-sky-700
+            bg-sky-100 dark:bg-sky-950
+            text-sky-700 dark:text-sky-300
             text-xs
             font-semibold
             mb-3
@@ -135,7 +137,7 @@ export function NavigationDialog({
                         className="
             font-bold
             text-xl
-            text-blue-900
+            text-blue-900 dark:text-sky-100
           "
                     >
                         Abrir ubicación
@@ -144,7 +146,7 @@ export function NavigationDialog({
                     <p
                         className="
             text-sm
-            text-slate-600
+            text-slate-600 dark:text-slate-400
           "
                     >
                         Seleccione una opción
@@ -172,7 +174,7 @@ export function NavigationDialog({
             w-full
             rounded-2xl
             border
-            border-sky-200
+            border-sky-200 dark:border-sky-800
             bg-white
             p-4
             flex
@@ -187,18 +189,18 @@ export function NavigationDialog({
 
                         <MapPin
                             size={22}
-                            className="text-blue-700"
+                            className="text-blue-700 dark:text-blue-300"
                         />
 
                         <div className="text-left">
 
-                            <div className="font-semibold text-blue-900">
+                            <div className="font-semibold text-blue-900 dark:text-sky-100">
 
                                 Google Maps
 
                             </div>
 
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
 
                                 Abrir ubicación
 
@@ -228,7 +230,7 @@ export function NavigationDialog({
             w-full
             rounded-2xl
             border
-            border-sky-200
+            border-sky-200 dark:border-sky-800
             bg-white
             p-4
             flex
@@ -244,18 +246,18 @@ export function NavigationDialog({
 
                         <Navigation
                             size={22}
-                            className="text-sky-600"
+                            className="text-sky-600 dark:text-sky-300"
                         />
 
                         <div className="text-left">
 
-                            <div className="font-semibold text-blue-900">
+                            <div className="font-semibold text-blue-900 dark:text-sky-100">
 
                                 Waze
 
                             </div>
 
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
 
                                 Navegación paso a paso
 
@@ -282,7 +284,7 @@ export function NavigationDialog({
             w-full
             rounded-2xl
             border
-            border-sky-200
+            border-sky-200 dark:border-sky-800
             bg-white
             p-4
             flex
@@ -297,18 +299,18 @@ export function NavigationDialog({
 
                             <Apple
                                 size={22}
-                                className="text-slate-700"
+                                className="text-slate-700 dark:text-slate-200"
                             />
 
                             <div className="text-left">
 
-                                <div className="font-semibold text-blue-900">
+                                <div className="font-semibold text-blue-900 dark:text-sky-100">
 
                                     Apple Maps
 
                                 </div>
 
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
 
                                     Navegación integrada iPhone
 
@@ -351,7 +353,7 @@ export function NavigationDialog({
             w-full
             rounded-2xl
             border
-            border-sky-200
+            border-sky-200 dark:border-sky-800
             bg-white
             p-4
             flex
@@ -366,18 +368,18 @@ export function NavigationDialog({
 
                         <Copy
                             size={22}
-                            className="text-blue-700"
+                            className="text-blue-700 dark:text-blue-300"
                         />
 
                         <div className="text-left">
 
-                            <div className="font-semibold text-blue-900">
+                            <div className="font-semibold text-blue-900 dark:text-sky-100">
 
                                 Copiar coordenadas
 
                             </div>
 
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
 
                                 Copiar al portapapeles
 
