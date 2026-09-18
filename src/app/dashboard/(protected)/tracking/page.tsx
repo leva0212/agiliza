@@ -210,7 +210,7 @@ export default function TrackingPage() {
           <div className="relative flex flex-col items-center gap-4 sm:flex-row">
             <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl border border-sky-200/80 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-white">
               <Image
-                src="/images/agiliza-logo.jpg"
+                src="/images/agiliza-logo-corporate.jpg"
                 alt="Agiliza"
                 width={90}
                 height={90}

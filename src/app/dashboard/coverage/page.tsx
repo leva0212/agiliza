@@ -159,7 +159,7 @@ export default function CoveragePage() {
         <div className="bg-white border border-sky-600 rounded-2xl shadow-sm p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             <Image
-              src="/images/agiliza-logo.jpg"
+              src="/images/agiliza-logo-corporate.jpg"
               alt="Agiliza"
               loading="eager"
               priority
