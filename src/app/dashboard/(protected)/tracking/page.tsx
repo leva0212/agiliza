@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PaginationState } from "@tanstack/react-table";
-import Tooltip from "@mui/material/Tooltip";
 import { FileSpreadsheet, Plus, RefreshCw, Search } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -34,6 +33,7 @@ import {
 import {
   TrackingTable,
 } from "@/modules/tracking/components/tracking-table";
+import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
 import type {
   TrackingRecord,
   TrackingRecordInput,
@@ -187,10 +187,7 @@ export default function TrackingPage() {
     }
   }
 
-  const title = useMemo(
-    () => isOwnerCompanyUser ? "Tracking de empresas" : "Mi tracking",
-    [isOwnerCompanyUser],
-  );
+
 
   if (profileQuery.isLoading) {
     return (
@@ -204,30 +201,42 @@ export default function TrackingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <AppBarActions>
+        <AppBarActionButton
+          label="Refrescar datos para obtener la información más reciente"
+          onClick={() => { void recordsQuery.refetch(); }}
+          disabled={recordsQuery.isFetching}
+        >
+          <RefreshCw size={19} className={recordsQuery.isFetching ? "animate-spin" : undefined} />
+        </AppBarActionButton>
+        <AppBarActionButton
+          label="Exportar los registros filtrados a Excel"
+          tone="success"
+          onClick={handleExport}
+          disabled={exporting}
+        >
+          <FileSpreadsheet size={19} />
+        </AppBarActionButton>
+        <AppBarActionButton
+          label="Crear un nuevo registro de tracking"
+          tone="primary"
+          onClick={() => {
+            setSelectedRecord(null);
+            setDialogOpen(true);
+          }}
+        >
+          <Plus size={19} />
+        </AppBarActionButton>
+      </AppBarActions>
       <div className="mx-auto max-w-[1280px] space-y-4 px-3 py-4 sm:px-6 sm:py-6">
-        <section className="relative overflow-hidden rounded-2xl border border-sky-600 bg-gradient-to-br from-white via-sky-50 to-blue-50 p-4 shadow-sm dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/40 sm:p-6">
-          <div className="absolute -right-16 -top-20 size-52 rounded-full bg-sky-300/20 blur-3xl dark:bg-blue-600/10" />
-          <div className="relative flex flex-col items-center gap-4 sm:flex-row">
-            <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl border border-sky-200/80 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-white">
-              <Image
-                src="/images/agiliza-logo-corporate.jpg"
-                alt="Agiliza"
-                width={90}
-                height={90}
-                priority
-                className="h-full w-full object-contain"
-              />
+        <section className="relative overflow-hidden rounded-2xl border border-sky-600 bg-gradient-to-r from-white to-sky-50 px-4 py-3 shadow-sm dark:from-slate-900 dark:to-blue-950/40">
+          <div className="relative flex items-center gap-3">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-sky-200/80 bg-white p-1 shadow-sm dark:border-slate-700">
+              <Image src="/images/agiliza-logo-corporate.jpg" alt="Agiliza" width={52} height={52} priority className="h-full w-full object-contain" />
             </div>
-            <div className="text-center sm:text-left">
-              <div className="mb-2 inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-800 dark:bg-blue-950 dark:text-blue-200">
-                Gestión de entregas
-              </div>
-              <h1 className="text-2xl font-bold text-blue-950 dark:text-blue-100 sm:text-3xl">
-                {title}
-              </h1>
-              <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-                Consulte, filtre y actualice el tracking de entregas desde un solo lugar.
-              </p>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">Gestión de entregas</div>
+              <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">Consulte, filtre y actualice entregas desde un solo lugar.</p>
             </div>
           </div>
         </section>
@@ -244,55 +253,6 @@ export default function TrackingPage() {
               </p>
             </div>
 
-            <div className="flex w-full max-w-[360px] flex-row gap-2 sm:w-auto sm:max-w-none">
-              <Tooltip title="Refrescar datos para obtener la información más reciente">
-                <button
-                  type="button"
-                  aria-label="Refrescar datos"
-                  onClick={() => {
-                    void recordsQuery.refetch();
-                  }}
-                  disabled={recordsQuery.isFetching}
-                  className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-sky-300 text-sky-700 transition-colors hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-sky-800 dark:text-sky-300 dark:hover:bg-sky-950"
-                >
-                  <RefreshCw
-                    size={18}
-                    className={recordsQuery.isFetching ? "animate-spin" : undefined}
-                  />
-                </button>
-              </Tooltip>
-
-              <Tooltip title="Exportar los registros filtrados a Excel">
-                <span className="flex-1 sm:flex-none">
-                  <button
-                    type="button"
-                    onClick={handleExport}
-                    disabled={exporting}
-                    className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-emerald-500 px-3 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:opacity-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-950 sm:w-auto sm:px-4"
-                  >
-                    <FileSpreadsheet size={17} />
-                    <span>{exporting ? "Exportando..." : "Excel"}</span>
-                  </button>
-                </span>
-              </Tooltip>
-
-              <Tooltip title="Crear un nuevo registro de tracking">
-                <span className="flex-1 sm:flex-none">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedRecord(null);
-                      setDialogOpen(true);
-                    }}
-                    className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-blue-700 px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-800 sm:w-auto sm:px-4"
-                  >
-                    <Plus size={17} />
-                    <span className="sm:hidden">Nuevo</span>
-                    <span className="hidden sm:inline">Nuevo tracking</span>
-                  </button>
-                </span>
-              </Tooltip>
-            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

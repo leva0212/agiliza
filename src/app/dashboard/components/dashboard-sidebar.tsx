@@ -12,7 +12,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { type ThemeMode, useAppTheme } from "@/app/theme-provider";
 
-type Profile = {
+export type DashboardProfile = {
   id: string;
 
   company_id: string | null;
@@ -27,15 +27,19 @@ type Profile = {
 };
 
 type Props = {
-  profile: Profile;
+  profile: DashboardProfile;
+  expanded: boolean;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
 };
 
-export function DashboardSidebar({ profile }: Props) {
+export function DashboardSidebar({
+  profile,
+  expanded,
+  mobileOpen,
+  onCloseMobile,
+}: Props) {
   const router = useRouter();
-
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const { mode, setMode } = useAppTheme();
 
@@ -61,7 +65,7 @@ export function DashboardSidebar({ profile }: Props) {
     const clickedLink = event.target instanceof Element && event.target.closest("a");
 
     if (clickedLink && window.matchMedia("(max-width: 767px)").matches) {
-      setMobileOpen(false);
+      onCloseMobile();
     }
   }
 
@@ -82,7 +86,7 @@ export function DashboardSidebar({ profile }: Props) {
             z-40
             md:hidden
           "
-          onClick={() => setMobileOpen(false)}
+          onClick={() => onCloseMobile()}
         />
       )}
 
@@ -108,19 +112,12 @@ export function DashboardSidebar({ profile }: Props) {
 
           ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
 
-          ${sidebarOpen ? "w-64" : "w-20"}
+          w-64
+          ${expanded ? "md:w-64" : "md:w-20"}
         `}
       >
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-gray-700 px-3">
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Contraer o expandir menú"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex size-10 items-center justify-center rounded-lg hover:bg-gray-800"
-            >
-              ☰
-            </button>
 
             <div className="relative">
               <button
@@ -152,7 +149,7 @@ export function DashboardSidebar({ profile }: Props) {
           <button
             type="button"
             aria-label="Cerrar menú"
-            onClick={() => setMobileOpen(false)}
+            onClick={() => onCloseMobile()}
             className="flex size-10 items-center justify-center rounded-lg hover:bg-gray-800 md:hidden"
           >
             ✕
@@ -174,17 +171,24 @@ export function DashboardSidebar({ profile }: Props) {
           onClick={handleMobileNavigation}
         >
           <Link
+            href="/dashboard"
+            className="block p-3 rounded-lg hover:bg-gray-800"
+          >
+            {expanded ? "🏠 Inicio" : "🏠"}
+          </Link>
+
+          <Link
             href="/dashboard/tracking"
             className="block p-3 rounded-lg hover:bg-gray-800"
           >
-            {sidebarOpen ? "📋 Tracking" : "📋"}
+            {expanded ? "📋 Tracking" : "📋"}
           </Link>
 
           <Link
             href="/dashboard/coverage"
             className="block p-3 rounded-lg hover:bg-gray-800"
           >
-            {sidebarOpen ? "🗺️ Cobertura" : "🗺️"}
+            {expanded ? "🗺️ Cobertura" : "🗺️"}
           </Link>
 
           {canAccessInternalFeatures && (isSuperAdmin || isCompanyAdmin) && (
@@ -192,7 +196,7 @@ export function DashboardSidebar({ profile }: Props) {
               href="/dashboard/shipments/list"
               className="block p-3 rounded-lg hover:bg-gray-800"
             >
-              {sidebarOpen ? "📦 Envíos" : "📦"}
+              {expanded ? "📦 Envíos" : "📦"}
             </Link>
           )}
 
@@ -202,21 +206,21 @@ export function DashboardSidebar({ profile }: Props) {
                 href="/dashboard/routes/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
-                {sidebarOpen ? "📋 Ver rutas" : "📋"}
+                {expanded ? "📋 Ver rutas" : "📋"}
               </Link>
 
               <Link
                 href="/dashboard/routes"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
-                {sidebarOpen ? "➕ Crear ruta" : "➕"}
+                {expanded ? "➕ Crear ruta" : "➕"}
               </Link>
 
               <Link
                 href="/dashboard/companies/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
-                {sidebarOpen ? "🏢 Empresas" : "🏢"}
+                {expanded ? "🏢 Empresas" : "🏢"}
               </Link>
 
               <Link
@@ -228,7 +232,7 @@ export function DashboardSidebar({ profile }: Props) {
     hover:bg-gray-800
   "
               >
-                {sidebarOpen ? "📦 Productos" : "📦"}
+                {expanded ? "📦 Productos" : "📦"}
               </Link>
               <Link
                 href="/dashboard/inventory/list"
@@ -239,21 +243,21 @@ export function DashboardSidebar({ profile }: Props) {
     hover:bg-gray-800
   "
               >
-                {sidebarOpen ? "📦 Inventario" : "📦"}
+                {expanded ? "📦 Inventario" : "📦"}
               </Link>
 
               <Link
                 href="/dashboard/rates"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
-                {sidebarOpen ? "💰 Tarifas" : "💰"}
+                {expanded ? "💰 Tarifas" : "💰"}
               </Link>
 
               <Link
                 href="/dashboard/users/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
-                {sidebarOpen ? "👤 Usuarios" : "👤"}
+                {expanded ? "👤 Usuarios" : "👤"}
               </Link>
             </>
           )}
@@ -263,7 +267,7 @@ export function DashboardSidebar({ profile }: Props) {
               href="/dashboard/my-shipments"
               className="block p-3 rounded-lg hover:bg-gray-800"
             >
-              {sidebarOpen ? "🚚 Mis entregas" : "🚚"}
+              {expanded ? "🚚 Mis entregas" : "🚚"}
             </Link>
           )}
 
@@ -278,7 +282,7 @@ export function DashboardSidebar({ profile }: Props) {
               hover:bg-red-900
             "
           >
-            {sidebarOpen ? "🚪 Cerrar sesión" : "🚪"}
+            {expanded ? "🚪 Cerrar sesión" : "🚪"}
           </button>
         </nav>
 
@@ -295,23 +299,6 @@ export function DashboardSidebar({ profile }: Props) {
         </div>
       </aside>
 
-      <button
-        type="button"
-        onClick={() => setMobileOpen(true)}
-        className="
-          fixed
-          top-4
-          left-4
-          z-30
-          md:hidden
-          bg-black
-          text-white
-          p-2
-          rounded-lg
-        "
-      >
-        ☰
-      </button>
     </>
   );
 }

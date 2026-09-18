@@ -1,11 +1,13 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
 import { useRouter } from "next/navigation";
 
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
+import { AppBarActionLink, AppBarActions } from "@/shared/components/app-bar-actions";
 import { UiMessage } from "@/shared/components/ui-message";
 
 import { deleteRoute } from "@/modules/routes/api/delete-route";
@@ -115,26 +117,15 @@ export default function RoutesListPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 animate-fade-in">
       <div className="card-soft">
-        {/* HEADER */}
+        <AppBarActions>
+          <AppBarActionLink href="/dashboard/routes" label="Nueva ruta" tone="success">
+            <Plus size={20} />
+          </AppBarActionLink>
+        </AppBarActions>
 
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Gestión de Rutas</h1>
-
-            <p className="text-sm text-gray-500">
-              Consulte, edite o elimine rutas existentes.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard/routes")}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
-          >
-            + Nueva Ruta
-          </button>
-        </div>
-
+        <p className="mb-4 text-sm text-gray-500 dark:text-slate-400">
+          Consulte, edite o elimine rutas existentes.
+        </p>
         {/* TABLE */}
 
         <MaterialReactTable

@@ -1,8 +1,8 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 
-import { useRouter } from "next/navigation";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -12,8 +12,8 @@ import { getShipments } from "@/modules/shipments/api/get-shipments";
 
 import { ShipmentsTable } from "@/modules/shipments/components/shipments-table";
 import { useShipmentsRealtime } from "@/modules/shipments/hooks/use-shipments-realtime";
+import { AppBarActionLink, AppBarActions } from "@/shared/components/app-bar-actions";
 export default function ShipmentsListPage() {
-  const router = useRouter();
   useShipmentsRealtime();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -55,17 +55,11 @@ export default function ShipmentsListPage() {
 
   return (
     <div className="p-6 max-w-[1000px] mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Envíos</h1>
-
-        <button
-          type="button"
-          onClick={() => router.push("/dashboard/shipments")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Nuevo envío
-        </button>
-      </div>
+      <AppBarActions>
+        <AppBarActionLink href="/dashboard/shipments" label="Nuevo envío">
+          <Plus size={20} />
+        </AppBarActionLink>
+      </AppBarActions>
       <div
         className="
     mb-4

@@ -13,6 +13,7 @@ import { updateUser } from "@/modules/users/api/update-user";
 import { getCompaniesOptions } from "@/modules/companies/api/get-companies-options";
 
 import { UiMessage } from "@/shared/components/ui-message";
+import { usePageCloseGuard } from "@/shared/components/page-close-guard";
 import { READ_ONLY_INPUT_CLASS } from "@/shared/constants/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPermissions } from "@/modules/permissions/api/get-permissions";
@@ -114,6 +115,8 @@ export default function EditUserPage() {
 
   const hasUnsavedChanges =
     initialFormState !== "" && buildFormState() !== initialFormState;
+
+  usePageCloseGuard(hasUnsavedChanges);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -306,7 +309,7 @@ export default function EditUserPage() {
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 border p-4 sm:p-6 rounded-xl">
       {/*<div className="max-w-2xl mx-auto space-y-4 max-w-[800px] border p-6 rounded-xl">*/}
-      <h1 className="text-2xl font-bold">Editar usuario</h1>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block mb-1 font-medium">Correo electrónico</label>

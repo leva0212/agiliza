@@ -155,24 +155,11 @@ export default function CoveragePage() {
       {/* Contenedor con padding responsivo */}
       <div className="max-w-5xl mx-auto px-3 py-4 sm:px-6 sm:py-6 space-y-4">
 
-        {/* HEADER */}
-        <div className="bg-white border border-sky-600 rounded-2xl shadow-sm p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-            <Image
-              src="/images/agiliza-logo-corporate.jpg"
-              alt="Agiliza"
-              loading="eager"
-              priority
-              width={90}
-              height={90}
-              className="object-contain shrink-0"
-            />
-            <div className="text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-bold text-blue-900">Cobertura Agiliza</h1>
-              <p className="text-sm text-slate-600 mt-1">
-                Cobertura por zonas, días de visita y barrios atendidos.
-              </p>
-            </div>
+        {/* Identidad corporativa compacta; el título vive en la AppBar. */}
+        <div className="rounded-2xl border border-sky-600 bg-white px-4 py-3 shadow-sm dark:bg-slate-900">
+          <div className="flex items-center gap-3">
+            <Image src="/images/agiliza-logo-corporate.jpg" alt="Agiliza" loading="eager" priority width={54} height={54} className="shrink-0 object-contain" />
+            <p className="text-sm text-slate-600 dark:text-slate-300">Cobertura por zonas, días de visita y barrios atendidos.</p>
           </div>
         </div>
 

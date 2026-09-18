@@ -80,14 +80,6 @@ export default function ChangePasswordPage() {
       space-y-4
     "
     >
-      <h1
-        className="
-        text-2xl
-        font-bold
-      "
-      >
-        Cambiar contraseña
-      </h1>
 
       <p
         className="

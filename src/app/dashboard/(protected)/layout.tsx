@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { DashboardSidebar } from "../components/dashboard-sidebar";
+import { DashboardShell } from "../components/dashboard-shell";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -66,17 +66,14 @@ export default async function DashboardLayout({
   const isOwnerCompanyUser = company?.is_owner_company === true;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <DashboardSidebar
-        profile={{
-          ...profile,
-          is_owner_company_user: isOwnerCompanyUser,
-        }}
-      />
-
-      <main className="min-w-0 flex-1">
-        <div className="p-3 sm:p-6">{children}</div>
-      </main>
-    </div>
+    <DashboardShell
+      profile={{
+        ...profile,
+        is_owner_company_user: isOwnerCompanyUser,
+      }}
+      contentClassName="p-3 sm:p-6"
+    >
+      {children}
+    </DashboardShell>
   );
 }

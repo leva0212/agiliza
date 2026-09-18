@@ -81,11 +81,11 @@ export default function InventoryListPage() {
   if (error) {
     return <div className="p-6">Error al cargar inventario</div>;
   }
-  
+
 
   return (
     <div className="p-2 space-y-1">
-      <h1 className="text-lg font-bold">Inventario</h1>
+
       {/* ===== INICIO FILTROS INVENTARIO ===== */}
 
       {/* INICIO FILTROS */}
@@ -120,7 +120,7 @@ export default function InventoryListPage() {
       "
           />
 
-          
+
 <div className={`flex-1`}>
             <SearchSelector             
               label="Mensajero"

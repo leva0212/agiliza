@@ -172,7 +172,7 @@ export default function CompaniesPage() {
 
   return (
     <div className="max-w-4xl p-6">
-      <h1 className="text-2xl font-bold mb-6">Empresa</h1>
+
 
       <div className="bg-white rounded-xl border p-6 max-w-[600px]">
         <div className="grid gap-5">

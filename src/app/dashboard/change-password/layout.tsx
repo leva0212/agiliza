@@ -1,9 +1,11 @@
+import { DashboardShell } from "../components/dashboard-shell";
+
 export default function ChangePasswordLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
 
-  return children;
+  return <DashboardShell>{children}</DashboardShell>;
 
 }

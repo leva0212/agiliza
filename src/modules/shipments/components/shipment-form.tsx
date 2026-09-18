@@ -1,5 +1,6 @@
 "use client";
 
+import { Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CreateShipmentContactMethodInput } from "../types/shipment-contact-method";
 
@@ -28,7 +29,9 @@ import { createShipment } from "../api/create-shipment";
 import { createShipmentItems } from "../api/create-shipment-item";
 import { useRouter } from "next/navigation";
 
+import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
 import { UiMessage } from "@/shared/components/ui-message";
+import { usePageCloseGuard } from "@/shared/components/page-close-guard";
 import { getShipment } from "../api/get-shipment";
 
 import { getShipmentItems } from "../api/get-shipment-items";
@@ -879,27 +882,29 @@ export function ShipmentForm({ shipmentId }: Props) {
     router.push("/dashboard/shipments/list");
   }
 
+  const hasUnsavedChanges = initialFormSnapshot.current !== null
+    ? initialFormSnapshot.current !== getFormSnapshot()
+    : Boolean(
+      customerIdentificationTypeId ||
+      customerIdentification ||
+      customerName ||
+      customerAddress ||
+      provinceId ||
+      cantonId ||
+      districtId ||
+      neighborhoodId ||
+      routeId ||
+      notes ||
+      contactMethods.length ||
+      items.length,
+    );
+
+  usePageCloseGuard(hasUnsavedChanges);
+
   function handleCancel() {
     if (saving) {
       return;
     }
-
-    const hasUnsavedChanges = initialFormSnapshot.current !== null
-      ? initialFormSnapshot.current !== getFormSnapshot()
-      : Boolean(
-        customerIdentificationTypeId ||
-        customerIdentification ||
-        customerName ||
-        customerAddress ||
-        provinceId ||
-        cantonId ||
-        districtId ||
-        neighborhoodId ||
-        routeId ||
-        notes ||
-        contactMethods.length ||
-        items.length,
-      );
 
     if (hasUnsavedChanges) {
       setDiscardDialogOpen(true);
@@ -911,32 +916,16 @@ export function ShipmentForm({ shipmentId }: Props) {
 
   return (
     <div className="max-w-[400px] mx-auto border border-blue-300 rounded-xl p-4 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">
-          {isEditing
-            ? `Editar envío ${shipmentQuery.data?.tracking_number ?? ""}`
-            : "Nuevo envío"}
-        </h1>
-
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleCancel}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleSave}
-            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {saving ? "Guardando..." : "Guardar"}
-          </button>
-        </div>
-      </div>
+      <AppBarActions>
+        <AppBarActionButton
+          label={saving ? "Guardando envío" : "Guardar envío"}
+          tone="primary"
+          disabled={saving}
+          onClick={handleSave}
+        >
+          <Save size={19} />
+        </AppBarActionButton>
+      </AppBarActions>
       {canChooseCompany && (
         <div
           className="

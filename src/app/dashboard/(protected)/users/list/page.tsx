@@ -1,10 +1,11 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getUsers } from "@/modules/users/services/get-users";
 import { UsersTable } from "../../../../../modules/users/components/users-table";
-import Link from "next/link";
+import { AppBarActionLink, AppBarActions } from "@/shared/components/app-bar-actions";
 
 export default function UsersListPage() {
   const {
@@ -29,24 +30,11 @@ export default function UsersListPage() {
 
   return (
     <div className="space-y-4 max-w-[900px] mx-auto">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Usuarios</h1>
-
-        <Link
-          href="/dashboard/users/new"
-          className="
-      bg-blue-600
-      hover:bg-blue-700
-      text-white
-      px-4
-      py-2
-      rounded-lg
-      font-medium
-    "
-        >
-          + Nuevo usuario
-        </Link>
-      </div>
+      <AppBarActions>
+        <AppBarActionLink href="/dashboard/users/new" label="Nuevo usuario">
+          <Plus size={20} />
+        </AppBarActionLink>
+      </AppBarActions>
 
       <UsersTable data={data} />
     </div>

@@ -1642,9 +1642,6 @@ export default function RoutesPage() {
   return (
     <div className="max-w-[450px] lg:max-w-6xl mx-auto p-6">
       <div className="bg-white border rounded-xl shadow-sm p-6">
-        <h1 className="text-2xl font-bold mb-6">
-          {routeId ? "Editar Ruta" : "Nueva Ruta"}
-        </h1>
 
         {/* NOMBRE */}
         <div className=" gap-4 mb-6 max-w-[300px]">

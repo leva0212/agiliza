@@ -148,7 +148,7 @@ export function ProductForm({ productId }: ProductFormProps) {
 
   return (
     <div className="max-w-[600px] p-6">
-      <h1 className="text-2xl font-bold mb-6">Producto</h1>
+
 
       <div className="bg-white rounded-xl border p-6 max-w-[700px]">
         <div className="grid gap-5">

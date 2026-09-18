@@ -33,7 +33,7 @@ export default function NewUserPage() {
   const selectedCompany = companies.find((company) => company.id === companyId);
 
   const isSystemCompany = selectedCompany?.is_system_company === true;
- 
+
 
   const [loading, setLoading] = useState(false);
 
@@ -111,7 +111,7 @@ export default function NewUserPage() {
 
   return (
     <div className="max-w-2xl mx-auto max-w-[400px] border p-6 rounded-xl space-y-6">
-      <h1 className="text-2xl font-bold">Nuevo usuario</h1>
+
 
       <div className="space-y-4">
         <input
