@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -129,6 +129,13 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [shareSelectionMode, setShareSelectionMode] = useState(false);
   const [selectedShareAttachmentIds, setSelectedShareAttachmentIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
+  }, []);
 
   const activeAttachments = attachments.filter((attachment) => !attachment.deleted_at);
   const deletableAttachments = activeAttachments.filter(

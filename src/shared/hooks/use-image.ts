@@ -1,60 +1,45 @@
 import { useEffect, useState } from "react";
 
 export interface ImageInfo {
-
-    width: number;
-
-    height: number;
-
-    loaded: boolean;
-
+  width: number;
+  height: number;
+  loaded: boolean;
 }
 
-export function useImage(
-    src: string,
-): ImageInfo {
+const EMPTY_IMAGE: ImageInfo = { width: 0, height: 0, loaded: false };
+type LoadedImage = ImageInfo & { src: string };
 
-    const [image, setImage] =
-        useState<ImageInfo>({
-            width: 0,
-            height: 0,
-            loaded: false,
+export function useImage(src: string): ImageInfo {
+  const [image, setImage] = useState<LoadedImage | null>(null);
+
+  useEffect(() => {
+    if (!src) return;
+
+    let cancelled = false;
+    const img = new Image();
+
+    img.onload = () => {
+      if (!cancelled) {
+        setImage({
+          src,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          loaded: true,
         });
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled) setImage(null);
+    };
+    img.src = src;
 
-    useEffect(() => {
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+      img.src = "";
+    };
+  }, [src]);
 
-        if (!src) {
-
-            setImage({
-                width: 0,
-                height: 0,
-                loaded: false,
-            });
-
-            return;
-
-        }
-
-        const img = new Image();
-
-        img.onload = () => {
-
-            setImage({
-
-                width: img.naturalWidth,
-
-                height: img.naturalHeight,
-
-                loaded: true,
-
-            });
-
-        };
-
-        img.src = src;
-
-    }, [src]);
-
-    return image;
-
+  return image?.src === src ? image : EMPTY_IMAGE;
 }

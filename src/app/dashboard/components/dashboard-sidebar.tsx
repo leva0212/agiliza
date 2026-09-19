@@ -58,7 +58,6 @@ export function DashboardSidebar({
   const isCompanyAdmin = profile.role === "company_admin";
 
   const isCourier = profile.role === "courier";
-  const isSeller = profile.role === "seller";
   const canAccessInternalFeatures = profile.is_owner_company_user;
 
   function handleMobileNavigation(event: MouseEvent<HTMLElement>) {
@@ -170,21 +169,21 @@ export function DashboardSidebar({
           className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
           onClick={handleMobileNavigation}
         >
-          <Link
+          <Link prefetch={false}
             href="/dashboard"
             className="block p-3 rounded-lg hover:bg-gray-800"
           >
             {expanded ? "🏠 Inicio" : "🏠"}
           </Link>
 
-          <Link
+          <Link prefetch={false}
             href="/dashboard/tracking"
             className="block p-3 rounded-lg hover:bg-gray-800"
           >
             {expanded ? "📋 Tracking" : "📋"}
           </Link>
 
-          <Link
+          <Link prefetch={false}
             href="/dashboard/coverage"
             className="block p-3 rounded-lg hover:bg-gray-800"
           >
@@ -192,7 +191,7 @@ export function DashboardSidebar({
           </Link>
 
           {canAccessInternalFeatures && (isSuperAdmin || isCompanyAdmin) && (
-            <Link
+            <Link prefetch={false}
               href="/dashboard/shipments/list"
               className="block p-3 rounded-lg hover:bg-gray-800"
             >
@@ -202,28 +201,28 @@ export function DashboardSidebar({
 
           {isSuperAdmin && (
             <>
-              <Link
+              <Link prefetch={false}
                 href="/dashboard/routes/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
                 {expanded ? "📋 Ver rutas" : "📋"}
               </Link>
 
-              <Link
+              <Link prefetch={false}
                 href="/dashboard/routes"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
                 {expanded ? "➕ Crear ruta" : "➕"}
               </Link>
 
-              <Link
+              <Link prefetch={false}
                 href="/dashboard/companies/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
                 {expanded ? "🏢 Empresas" : "🏢"}
               </Link>
 
-              <Link
+              <Link prefetch={false}
                 href="/dashboard/products/list"
                 className="
     block
@@ -234,7 +233,7 @@ export function DashboardSidebar({
               >
                 {expanded ? "📦 Productos" : "📦"}
               </Link>
-              <Link
+              <Link prefetch={false}
                 href="/dashboard/inventory/list"
                 className="
     block
@@ -246,14 +245,14 @@ export function DashboardSidebar({
                 {expanded ? "📦 Inventario" : "📦"}
               </Link>
 
-              <Link
+              <Link prefetch={false}
                 href="/dashboard/rates"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
                 {expanded ? "💰 Tarifas" : "💰"}
               </Link>
 
-              <Link
+              <Link prefetch={false}
                 href="/dashboard/users/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >
@@ -263,7 +262,7 @@ export function DashboardSidebar({
           )}
 
           {canAccessInternalFeatures && isCourier && (
-            <Link
+            <Link prefetch={false}
               href="/dashboard/my-shipments"
               className="block p-3 rounded-lg hover:bg-gray-800"
             >
@@ -295,7 +294,7 @@ export function DashboardSidebar({
             py-3
           "
         >
-          <AppVersion showUpdateTooltip />
+          <AppVersion showUpdateTooltip={expanded || mobileOpen} />
         </div>
       </aside>
 

@@ -59,10 +59,6 @@ export function ImageViewer({ src, alt, className, style }: ImageViewerProps) {
     if (container.width === 0 || container.height === 0) {
       return;
     }
-    console.log("container:", container.width, container.height);
-
-    console.log("image:", image.loaded, image.width, image.height);
-
     const viewport = {
       viewport: {
         width: container.width,

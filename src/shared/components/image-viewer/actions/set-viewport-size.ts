@@ -15,12 +15,6 @@ export function setViewportSizeAction(
     size: Size,
 ): ImageViewerState {
 
-    console.log(
-        "Reducer viewport:",
-        state.viewport.viewport,
-        "Nuevo:",
-        size,
-    );
 
     return syncViewer({
         ...state,

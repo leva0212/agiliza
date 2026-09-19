@@ -246,6 +246,19 @@ export function EvidenceCropDialogCanvas({
     };
 
     image.src = imageUrl;
+    const canvas = canvasRef.current;
+
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+      image.src = "";
+      if (imageRef.current === image) imageRef.current = null;
+
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+    };
   }, [
     open,
     imageUrl,

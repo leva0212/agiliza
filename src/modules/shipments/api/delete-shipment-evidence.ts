@@ -34,9 +34,17 @@ export async function deleteShipmentEvidences(
 
     let storageCleanupFailed = false;
 
-    const storagePaths = deletedEvidences
-        .map((evidence) => evidence.evidence_storage_path)
-        .filter((path): path is string => Boolean(path));
+    const storagePaths = deletedEvidences.flatMap((evidence) => {
+        const path = evidence.evidence_storage_path;
+        if (!path) return [];
+
+        const lastSlash = path.lastIndexOf("/");
+        const directory = lastSlash >= 0 ? path.slice(0, lastSlash) : "";
+        const filename = lastSlash >= 0 ? path.slice(lastSlash + 1) : path;
+        const basename = filename.replace(/\.[^.]+$/, "");
+        const thumbnailPath = `${directory ? `${directory}/` : ""}thumbnails/${basename}.jpg`;
+        return [path, thumbnailPath];
+    });
 
     if (storagePaths.length > 0) {
         const { error: storageError } = await supabase.storage
@@ -58,10 +66,6 @@ export async function deleteShipmentEvidences(
         ),
     );
 
-    console.log(
-        "[ShipmentEvidence] Eliminadas:",
-        deletedEvidences.map((evidence) => evidence.evidence_id),
-    );
 
     return {
         deletedIds: deletedEvidences.map(

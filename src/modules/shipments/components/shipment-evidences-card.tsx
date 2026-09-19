@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import { Camera } from "lucide-react";
@@ -7,7 +8,11 @@ import { Camera } from "lucide-react";
 import { useShipmentEvidences } from "../hooks/use-shipment-evidences";
 
 import { CachedEvidenceThumbnail } from "./cached-evidence-thumbnail";
-import { ShipmentEvidencesDialog } from "./shipment-evidences-dialog";
+
+const ShipmentEvidencesDialog = dynamic(
+  () => import("./shipment-evidences-dialog").then((module) => module.ShipmentEvidencesDialog),
+  { ssr: false },
+);
 
 type Props = {
   shipmentId: string;
@@ -87,6 +92,7 @@ export function ShipmentEvidencesCard({
                   <CachedEvidenceThumbnail
                     evidenceId={evidence.id}
                     fileUrl={evidence.file_url}
+                    thumbnailUrl={evidence.thumbnail_url}
                     className="
                     w-full
                     aspect-square
@@ -119,15 +125,14 @@ export function ShipmentEvidencesCard({
             No hay evidencias registradas.
           </div>
         )}
-
-        <ShipmentEvidencesDialog
-          open={galleryOpen}
-          trackingNumber={trackingNumber}
-          onClose={() => {
-            setGalleryOpen(false);
-          }}
-          shipmentId={shipmentId}
-        />
+        {galleryOpen && (
+          <ShipmentEvidencesDialog
+            open
+            trackingNumber={trackingNumber}
+            onClose={() => setGalleryOpen(false)}
+            shipmentId={shipmentId}
+          />
+        )}
       </div>
     </div>
   );

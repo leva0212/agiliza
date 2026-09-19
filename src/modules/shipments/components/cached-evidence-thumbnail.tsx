@@ -1,43 +1,29 @@
 "use client";
 
-import {
-  useEvidenceThumbnail,
-} from "../hooks/use-evidence-thumbnail";
+import { useEvidenceThumbnail } from "../hooks/use-evidence-thumbnail";
 
 type Props = {
   evidenceId: string;
-
   fileUrl: string | null;
-
+  thumbnailUrl?: string | null;
   className?: string;
 };
 
 export function CachedEvidenceThumbnail({
   evidenceId,
   fileUrl,
+  thumbnailUrl,
   className,
 }: Props) {
-  const thumbnailUrl =
-    useEvidenceThumbnail(
-      evidenceId,
-    );
-
-  if (
-    thumbnailUrl
-  ) {
-    return (
-      <img
-        src={thumbnailUrl}
-        alt=""
-        className={className}
-      />
-    );
-  }
+  const localThumbnailUrl = useEvidenceThumbnail(evidenceId);
+  const src = localThumbnailUrl ?? thumbnailUrl ?? fileUrl ?? "";
 
   return (
     <img
-      src={fileUrl ?? ""}
+      src={src}
       alt=""
+      loading="lazy"
+      decoding="async"
       className={className}
     />
   );

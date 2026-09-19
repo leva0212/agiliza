@@ -80,9 +80,7 @@ export function ImageViewer({ src, alt, className, style }: ImageViewerProps) {
       onPointerMove={gestures.onPointerMove}
       onPointerUp={gestures.onPointerUp}
       onPointerCancel={gestures.onPointerCancel}
-      onDoubleClick={() => {
-        console.log("DIV DOUBLE CLICK");
-      }}
+      onDoubleClick={() => {      }}
       //onDoubleClick={doubleClick.onDoubleClick}
       style={{
         position: "relative",

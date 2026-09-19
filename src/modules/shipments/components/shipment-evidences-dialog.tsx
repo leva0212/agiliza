@@ -8,7 +8,7 @@ import { formatFileSize } from "../utils/format-file-size";
 import { EvidenceCacheBadge } from "./evidence-cache-badge";
 
 import { ArrowLeft, Camera, Check, Image as ImageIcon, Trash2, Share2 } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ShipmentEvidenceEditor } from "./evidence-editor/shipment-evidence-editor";
 
 import { createShipmentEvidence } from "../api/create-shipment-evidence";
@@ -97,6 +97,13 @@ export function ShipmentEvidencesDialog({
   const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      uploadAbortControllerRef.current?.abort();
+      uploadAbortControllerRef.current = null;
+    };
+  }, []);
+
   const [pendingEvidences, setPendingEvidences] = useState<PendingEvidence[]>(
     [],
   );
@@ -129,12 +136,6 @@ export function ShipmentEvidencesDialog({
       onProgress?: (progress: { stage: "preparing" | "uploading" | "saving"; percent: number }) => void;
       suppressNotifications?: boolean;
     }) => {
-      console.log("[UPLOAD MUTATION]", {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        notes,
-      });
 
       return createShipmentEvidence({
         shipmentId,
@@ -156,7 +157,6 @@ export function ShipmentEvidencesDialog({
     },
 
     onSuccess: async (_, variables) => {
-      console.log("[UPLOAD SUCCESS]");
 
       await queryClient.invalidateQueries({
         queryKey: ["shipment-evidences", shipmentId],

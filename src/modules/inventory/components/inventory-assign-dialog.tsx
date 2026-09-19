@@ -455,11 +455,6 @@ export function InventoryAssignDialog({
                       movementType === "Salida"
                         ? -movementQuantity
                         : movementQuantity;
-
-                    console.log("movementType:", movementType);
-
-                    console.log("signedQuantity:", signedQuantity);
-
                     await onSave({
                       courier_id: courierId,
 

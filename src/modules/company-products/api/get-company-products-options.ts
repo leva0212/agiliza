@@ -30,23 +30,11 @@ export async function getCompanyProductsOptions(
 
     .eq("active", true);
 
-  console.log(
-    "getCompanyProductsOptions companyId:",
-    companyId,
-  );
 
-  console.log(
-    "getCompanyProductsOptions companyId:",
-    companyId,
-  );
 
   if (error) {
     throw error;
   }
-  console.log(
-    "company_products raw:",
-    data,
-  );
   const result = (data ?? []).map((row: any) => ({
     id: row.product.id,
     name: row.product.name,
@@ -54,10 +42,6 @@ export async function getCompanyProductsOptions(
     default_shipping_fee: row.product.default_shipping_fee,
   }));
 
-  console.log(
-    "company_products mapped:",
-    result,
-  );
 
   return result;
 }

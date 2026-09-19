@@ -38,7 +38,6 @@ import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 import { ShipmentDeliveryDialog } from "@/modules/shipments/components/shipment-delivery-dialog";
 import { completeShipmentDelivery } from "@/modules/shipments/api/complete-shipment-delivery";
 export default function ShipmentDetailPage() {
-  useShipmentsRealtime(true);
   const router = useRouter();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -50,6 +49,7 @@ export default function ShipmentDetailPage() {
   const params = useParams();
   const { data: profile } = useCurrentProfile();
   const shipmentId = params.id as string;
+  useShipmentsRealtime(true, shipmentId);
 
   const queryClient = useQueryClient();
 
@@ -149,7 +149,6 @@ export default function ShipmentDetailPage() {
   }
 
   const currentStatus = getShipmentStatusOption(shipment.status);
-  console.log("Estado actual:", shipment.status);
 
   return (
     <div className="max-w-4xl max-w-[500px] p-1 space-y-6">

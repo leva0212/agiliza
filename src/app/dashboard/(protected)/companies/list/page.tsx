@@ -31,26 +31,4 @@ export default function CompaniesListPage() {
   if (error) {
     return <div className="p-6">Error al cargar empresas</div>;
   }
-  console.log("Data de empresas:", data);
-
-  return (
-    <div className="p-6 max-w-[900px]">
-      <AppBarActions>
-        <AppBarActionLink href="/dashboard/companies" label="Nueva empresa">
-          <Plus size={20} />
-        </AppBarActionLink>
-      </AppBarActions>
-
-      {isLoading ? (
-        <div>Cargando...</div>
-      ) : (
-        <CompaniesTable
-          data={data?.data || []}
-          pagination={pagination}
-          setPagination={setPagination}
-          totalRows={data?.total || 0}
-        />
-      )}
-    </div>
-  );
 }

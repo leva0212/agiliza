@@ -120,6 +120,17 @@ export async function updateSession(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (user && request.nextUrl.pathname === "/login") {
+    const redirectResponse = NextResponse.redirect(
+      new URL("/dashboard", request.url),
+    );
+
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+
+    return redirectResponse;
+  }
 
   if (
     user &&

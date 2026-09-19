@@ -116,34 +116,14 @@ export async function getCourierDeliveryRates(
     data,
     error,
   } = await query;
-  console.log(
-    "error",
-    error,
-  );
 
   if (
     error
   ) {
     throw error;
   }
-  console.log(
-    "courier delivery rates raw",
-    data,
-  );
 
-  console.log(
-    "courierId",
-    courierId,
-  );
 
-  console.log(
-    "routeId",
-    routeId,
-  );
-  console.log(
-  "courierRates",
-  data,
-);
 
   return (data ?? []).map(
     (rate: any) => ({

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import {
   Archive,
@@ -11,7 +12,11 @@ import {
 } from "lucide-react";
 import { useShipmentAttachments } from "../hooks/use-shipment-attachments";
 import { getAttachmentFormat } from "../utils/get-attachment-format";
-import { ShipmentAttachmentsDialog } from "./shipment-attachments-dialog";
+
+const ShipmentAttachmentsDialog = dynamic(
+  () => import("./shipment-attachments-dialog").then((module) => module.ShipmentAttachmentsDialog),
+  { ssr: false },
+);
 
 type Props = {
   shipmentId: string;
@@ -31,7 +36,7 @@ function AttachmentCardThumbnail({
   const normalizedMimeType = mimeType ?? "";
 
   if (normalizedMimeType.startsWith("image/")) {
-    return <img src={fileUrl} alt="" className="size-7 object-cover" />;
+    return <img src={fileUrl} alt="" loading="lazy" decoding="async" className="size-7 object-cover" />;
   }
 
   if (normalizedMimeType.startsWith("video/")) {
@@ -121,13 +126,14 @@ export function ShipmentAttachmentsCard({ shipmentId, trackingNumber }: Props) {
       ) : (
         <p className="mt-3 text-sm text-slate-500">No hay adjuntos registrados.</p>
       )}
-
-      <ShipmentAttachmentsDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        shipmentId={shipmentId}
-        trackingNumber={trackingNumber}
-      />
+      {dialogOpen && (
+        <ShipmentAttachmentsDialog
+          open
+          onClose={() => setDialogOpen(false)}
+          shipmentId={shipmentId}
+          trackingNumber={trackingNumber}
+        />
+      )}
     </div>
   );
 }

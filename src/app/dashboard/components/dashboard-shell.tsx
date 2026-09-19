@@ -1,8 +1,8 @@
 "use client";
 
 import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { PageCloseGuardProvider } from "@/shared/components/page-close-guard";
 import { UiMessage } from "@/shared/components/ui-message";
@@ -17,7 +17,7 @@ type Props = {
   contentClassName?: string;
 };
 
-function getPageTitle(pathname: string, searchParams: URLSearchParams) {
+function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has">) {
   if (pathname === "/dashboard" || pathname === "/dashboard/") return "Inicio";
   if (pathname === "/dashboard/tracking") return "Tracking";
   if (pathname === "/dashboard/coverage") return "Cobertura";
@@ -40,34 +40,39 @@ function getPageTitle(pathname: string, searchParams: URLSearchParams) {
   if (pathname === "/dashboard/change-password") return "Cambiar contraseña";
   return "Agiliza";
 }
+function DashboardPageTitle({ pathname }: { pathname: string }) {
+  const searchParams = useSearchParams();
+  return getPageTitle(pathname, searchParams);
+}
 
 export function DashboardShell({ children, profile, contentClassName = "" }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [closeConfirmationOpen, setCloseConfirmationOpen] = useState(false);
   const routeHistoryRef = useRef<string[]>([]);
   const skipNextHistoryEntryRef = useRef(false);
-  const pageTitle = getPageTitle(pathname, new URLSearchParams(searchQuery));
 
   const handleGuardChange = useCallback((dirty: boolean) => {
     setHasUnsavedChanges(dirty);
   }, []);
 
   useEffect(() => {
-    setSearchQuery(window.location.search);
-    setHasUnsavedChanges(false);
+    const resetDirtyState = window.setTimeout(() => {
+      setHasUnsavedChanges(false);
+    }, 0);
 
     if (skipNextHistoryEntryRef.current) {
       skipNextHistoryEntryRef.current = false;
-      return;
+      return () => window.clearTimeout(resetDirtyState);
     }
 
     const history = routeHistoryRef.current;
     if (history.at(-1) !== pathname) history.push(pathname);
+
+    return () => window.clearTimeout(resetDirtyState);
   }, [pathname]);
 
   function closeCurrentPage() {
@@ -95,7 +100,7 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
   return (
     <PageCloseGuardProvider onChange={handleGuardChange}>
       <>
-        <div className="flex min-h-screen bg-gray-50 dark:bg-slate-950">
+        <div className="flex min-h-screen overscroll-y-none bg-gray-50 dark:bg-slate-950">
           {profile && (
             <DashboardSidebar
               profile={profile}
@@ -106,7 +111,7 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
           )}
 
           <div className="flex min-w-0 flex-1 flex-col">
-            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b-2 border-sky-200/80 bg-gradient-to-r from-white via-sky-50/80 to-white px-3 shadow-[0_7px_20px_-12px_rgba(15,23,42,0.65),inset_0_-1px_0_rgba(14,165,233,0.12)] backdrop-blur-md dark:border-sky-900/70 dark:from-slate-900 dark:via-slate-800/95 dark:to-slate-900 sm:h-16 sm:px-5">
+            <header className="fixed inset-x-0 top-0 z-30 flex h-14 shrink-0 touch-manipulation items-center gap-3 border-b-2 border-sky-200/80 bg-gradient-to-r from-white via-sky-50 to-white px-3 shadow-[0_7px_20px_-12px_rgba(15,23,42,0.65),inset_0_-1px_0_rgba(14,165,233,0.12)] dark:border-sky-900/70 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 sm:h-16 sm:px-5 md:sticky md:inset-x-auto md:backdrop-blur-md">
               {profile && (
                 <>
                   <button
@@ -138,7 +143,9 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
                 <div className="flex items-center gap-2">
                   <span className="hidden size-2 rounded-full bg-sky-500 sm:block" />
                   <h1 className="truncate text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-lg">
-                    {pageTitle}
+                    <Suspense fallback="Agiliza">
+                      <DashboardPageTitle pathname={pathname} />
+                    </Suspense>
                   </h1>
                 </div>
                 <p className="hidden text-xs text-slate-500 dark:text-slate-400 sm:block">
@@ -159,7 +166,7 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
               </button>
             </header>
 
-            <main className="min-w-0 flex-1">
+            <main className="min-w-0 flex-1 pt-14 sm:pt-16 md:pt-0">
               <div className={contentClassName}>{children}</div>
             </main>
           </div>

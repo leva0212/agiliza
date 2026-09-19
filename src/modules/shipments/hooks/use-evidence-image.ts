@@ -1,65 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-import {
-    getEvidenceImageUrl,
-} from "../services/evidence-cache-service";
+import { getEvidenceImageUrl } from "../services/evidence-cache-service";
 
 export function useEvidenceImage(
-    evidenceId: string,
-    shipmentId: string,
-    fileUrl: string | null,
+  evidenceId: string,
+  shipmentId: string,
+  fileUrl: string | null,
 ) {
-    const [imageUrl, setImageUrl] =
-        useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-        let mounted = true;
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
 
-        let objectUrl: string | null =
-            null;
+    async function load() {
+      if (!fileUrl) {
+        setImageUrl(null);
+        return;
+      }
 
-        async function load() {
-            if (!fileUrl) {
-                return;
-            }
+      const url = await getEvidenceImageUrl(evidenceId, shipmentId, fileUrl);
 
-            const url =
-                await getEvidenceImageUrl(
-                    evidenceId,
-                    shipmentId,
-                    fileUrl,
-                );
+      if (cancelled) {
+        if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+        return;
+      }
 
-            if (!mounted) {
-                return;
-            }
+      objectUrl = url;
+      setImageUrl(url);
+    }
 
-            objectUrl = url;
+    void load();
 
-            setImageUrl(url);
-        }
+    return () => {
+      cancelled = true;
+      if (objectUrl?.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
+    };
+  }, [evidenceId, shipmentId, fileUrl]);
 
-        load();
-
-        return () => {
-            mounted = false;
-
-            if (
-                objectUrl &&
-                objectUrl.startsWith("blob:")
-            ) {
-                URL.revokeObjectURL(
-                    objectUrl,
-                );
-            }
-        };
-    }, [
-        evidenceId,
-        shipmentId,
-        fileUrl,
-    ]);
-
-    return imageUrl;
+  return imageUrl;
 }

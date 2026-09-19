@@ -137,9 +137,6 @@ export function ShipmentForm({ shipmentId }: Props) {
 
   const effectiveCompanyId = selectedCompanyId ?? profile?.company_id ?? null;
 
-  console.log("selectedCompanyId", selectedCompanyId);
-
-  console.log("effectiveCompanyId", effectiveCompanyId);
 
   useEffect(() => {
     if (!profile || selectedCompanyId) {
@@ -197,8 +194,6 @@ export function ShipmentForm({ shipmentId }: Props) {
 
     enabled: !!effectiveCompanyId,
   });
-
-  console.log("companyProducts", companyProducts);
   const shipmentQuery = useQuery({
     enabled: isEditing,
 

@@ -122,10 +122,6 @@ company:companies(
   ) {
     throw error;
   }
-  console.log(
-    "delivery rates",
-    data,
-  );
 
   return (data ?? []).map(
     (rate: any) => ({

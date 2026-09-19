@@ -32,10 +32,6 @@ const supabase = createClient();
 
   }
 
-  console.log(
-    "district coverage api:",
-    data
-  );
 
   return data || [];
 

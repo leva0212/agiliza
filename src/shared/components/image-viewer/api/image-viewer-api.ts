@@ -87,7 +87,6 @@ zoomOut(point) {
 
         },
         setViewportSize(size) {
-    console.log("setViewportSize()", size);
 
     dispatch({
         type: "set-viewport-size",

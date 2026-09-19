@@ -22,7 +22,6 @@ export function useDoubleClick(
   function onDoubleClick(
     event: React.MouseEvent,
   ) {
-    console.log("DOUBLE CLICK");
     event.preventDefault();
 
     const element =

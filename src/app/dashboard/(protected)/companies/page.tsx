@@ -75,10 +75,6 @@ export default function CompaniesPage() {
   async function handleSave() {
     try {
       if (companyId) {
-        console.log({
-          deliveryCharge,
-          failedCharge,
-        });
         await updateCompany({
           id: companyId,
 
