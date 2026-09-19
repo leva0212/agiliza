@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
 import { toast } from "sonner";
@@ -429,16 +431,12 @@ export function CoverageNeighborhoodsDialog({
           >
 
             <MaterialReactTable
+              {...standardMrtFeatures}
               columns={columns}
               data={data}
               localization={
                 MRT_Localization_ES
               }
-              enableSorting={false}
-              enableColumnFilters={false}
-              enableDensityToggle={false}
-              enableFullScreenToggle={false}
-              enableColumnActions={false}
               enablePagination={false}
             />
 

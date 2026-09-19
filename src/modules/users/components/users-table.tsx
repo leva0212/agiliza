@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { User } from "@/modules/users/types/user";
 import { MaterialReactTable, MRT_ColumnDef } from "material-react-table";
 
@@ -284,7 +286,7 @@ const [
   return (
     <>
       {" "}
-      <MaterialReactTable columns={columns} data={data} />
+      <MaterialReactTable {...standardMrtFeatures} columns={columns} data={data} />
       <UiMessage
         open={dialogOpen}
         title={selectedUser?.active ? "Desactivar usuario" : "Activar usuario"}

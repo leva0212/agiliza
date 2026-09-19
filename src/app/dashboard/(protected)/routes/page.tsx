@@ -1640,8 +1640,8 @@ export default function RoutesPage() {
   }
 
   return (
-    <div className="max-w-[450px] lg:max-w-6xl mx-auto p-6">
-      <div className="bg-white border rounded-xl shadow-sm p-6">
+    <div className="mx-auto w-full max-w-none px-0 py-3 sm:px-4 lg:max-w-6xl lg:p-6">
+      <div className="rounded-xl border bg-white px-3 py-4 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
 
         {/* NOMBRE */}
         <div className=" gap-4 mb-6 max-w-[300px]">
@@ -1989,8 +1989,8 @@ export default function RoutesPage() {
 
         {/* TABLA DE COBERTURA */}
         {routeId && coverageView?.length > 0 && (
-          <div className="mt-10">
-            <h2 className="text-xl font-semibold mb-4">Cobertura actual</h2>
+          <div className="mt-10 -mx-3 sm:mx-0">
+            <h2 className="mb-4 px-3 text-xl font-semibold sm:px-0">Cobertura actual</h2>
             <CoverageGroupedTable
               data={coverageView}
               pagination={coveragePagination}

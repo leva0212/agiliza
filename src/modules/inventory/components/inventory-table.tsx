@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo } from "react";
 
 import {
@@ -230,6 +232,7 @@ export function InventoryTable({
   return (
 
     <MaterialReactTable
+      {...standardMrtFeatures}
 
       columns={
         columns
@@ -269,31 +272,9 @@ export function InventoryTable({
           "small",
 
       }}
-        
-
-      enableSorting={
-        false
-      }
-
-      enableColumnFilters={
-        false
-      }
-
-      enableDensityToggle={
-        true
-      }
       initialState={{
-    density: 'compact', // 'comfortable' | 'compact' | 'spacious'
-  }}
-
-      enableFullScreenToggle={
-        false
-      }
-
-      enableColumnActions={
-        false
-      }
-
+        density: "compact",
+      }}
     />
 
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo } from "react";
 
 import {
@@ -97,6 +99,7 @@ export function ProductsTable({
   return (
 
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={
@@ -120,11 +123,6 @@ export function ProductsTable({
         size:
           "small",
       }}
-      enableSorting={false}
-      enableColumnFilters={false}
-      enableDensityToggle={false}
-      enableFullScreenToggle={false}
-      enableColumnActions={false}
       enableRowActions
       renderRowActions={({
         row,

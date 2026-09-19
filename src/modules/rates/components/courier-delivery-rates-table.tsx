@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo } from "react";
 
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
@@ -156,16 +158,10 @@ export function CourierDeliveryRatesTable({
 
   return (
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={MRT_Localization_ES}
-      enableColumnFilters
-      enableColumnOrdering
-      enableSorting
-      enableDensityToggle
-      enableFullScreenToggle
-      enableColumnActions
-      enableGlobalFilter
       initialState={{
         density: "compact",
       }}

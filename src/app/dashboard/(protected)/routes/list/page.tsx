@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
@@ -115,7 +117,7 @@ export default function RoutesListPage() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto p-6 animate-fade-in">
+    <div className="mx-auto w-full max-w-7xl px-0 py-3 sm:p-6 animate-fade-in">
       <div className="card-soft">
         <AppBarActions>
           <AppBarActionLink href="/dashboard/routes" label="Nueva ruta" tone="success">
@@ -129,6 +131,7 @@ export default function RoutesListPage() {
         {/* TABLE */}
 
         <MaterialReactTable
+          {...standardMrtFeatures}
           columns={columns}
           localization={MRT_Localization_ES}
           data={routesResponse?.data || []}

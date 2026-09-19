@@ -54,7 +54,7 @@ export default function ShipmentsListPage() {
   });
 
   return (
-    <div className="p-6 max-w-[1000px] mx-auto">
+    <div className="mx-auto w-full max-w-[1000px] px-0 py-3 sm:p-6">
       <AppBarActions>
         <AppBarActionLink href="/dashboard/shipments" label="Nuevo envío">
           <Plus size={20} />

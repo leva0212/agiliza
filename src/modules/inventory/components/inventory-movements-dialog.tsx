@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useEffect, useMemo, useState } from "react";
 
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
@@ -352,6 +354,7 @@ export function InventoryMovementsDialog({
         </div>
 
         <MaterialReactTable
+          {...standardMrtFeatures}
           columns={columns}
           data={data}
           localization={

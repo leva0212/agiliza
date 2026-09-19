@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo } from "react";
 import { Copy, Info, Pencil } from "lucide-react";
 import {
@@ -189,17 +191,10 @@ export function TrackingTable({
 
   return (
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={MRT_Localization_ES}
-      enableColumnOrdering
-      enableSorting
-      enableDensityToggle
-      enableFullScreenToggle
-      enableColumnFilters
-      enableGlobalFilter={false}
-      enableColumnResizing
-      columnResizeMode="onChange"
       manualPagination
       rowCount={totalRows}
       state={{ pagination }}

@@ -1,77 +1,33 @@
-import {
-  createClient,
-} from "@/lib/supabase/client";
+import type { ShipmentStatus } from "../types/shipment";
 
+export type ShipmentStatusHistoryEntry = {
+  id: string;
+  shipment_id: string;
+  previous_status: ShipmentStatus | null;
+  status: ShipmentStatus;
+  notes: string | null;
+  created_at: string;
+  created_by: string | null;
+  profile: {
+    id: string;
+    full_name: string;
+    company_id: string | null;
+  } | null;
+};
 export async function getShipmentStatusHistory(
   shipmentId: string,
-) {
+): Promise<ShipmentStatusHistoryEntry[]> {
+  const response = await fetch(
+    `/api/shipments/${encodeURIComponent(shipmentId)}/status-history`,
+    { cache: "no-store" },
+  );
+  const payload = await response.json();
 
-  const supabase =
-    createClient();
-
-  const {
-    data,
-    error,
-  } = await supabase
-
-    .from(
-      "shipment_status_history",
-    )
-
-    .select(`
-      id,
-
-      shipment_id,
-
-      previous_status,
-
-      status,
-
-      notes,
-
-      created_at,
-
-      created_by,
-
-      profile:profiles(
-        id,
-        full_name
-      )
-    `)
-
-    .eq(
-      "shipment_id",
-      shipmentId,
-    )
-
-    .order(
-      "created_at",
-      {
-        ascending: false,
-      },
+  if (!response.ok) {
+    throw new Error(
+      payload.message ?? "No fue posible cargar el historial del envío",
     );
-
-  if (error) {
-    throw error;
   }
 
-  return (
-
-    data ?? []
-
-  ).map(
-    item => ({
-
-      ...item,
-
-      profile:
-        Array.isArray(
-          item.profile,
-        )
-          ? item.profile[0] ?? null
-          : item.profile,
-
-    }),
-  );
-
+  return payload.data ?? [];
 }

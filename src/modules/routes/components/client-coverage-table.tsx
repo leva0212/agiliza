@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo } from "react";
 
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
@@ -211,6 +213,7 @@ export function ClientCoverageTable({
 
   return (
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={MRT_Localization_ES}
@@ -232,11 +235,6 @@ export function ClientCoverageTable({
 
         size: "small",
       }}
-      enableSorting={false}
-      enableColumnFilters={false}
-      enableDensityToggle={false}
-      enableFullScreenToggle={false}
-      enableColumnActions={false}
     />
   );
 }

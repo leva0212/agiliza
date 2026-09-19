@@ -122,7 +122,7 @@ export default function RatesPage() {
   //console.log("Tarifas configuradas");
   //console.log("courierRates", courierRates);
   return (
-    <div className="p-6 space-y-6">
+    <div className="w-full space-y-6 px-0 py-3 sm:p-6">
 
       <div
         className="

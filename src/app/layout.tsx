@@ -23,17 +23,17 @@ export const metadata: Metadata = {
 
   description: "Plataforma logística multiempresa",
 
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=3",
 
   icons: {
     icon: [
       {
-        url: "/icons/agiliza-icon-192-v2.png",
+        url: "/icons/agiliza-icon-192-v3.png",
         sizes: "192x192",
         type: "image/png",
       },
       {
-        url: "/icons/agiliza-icon-512-v2.png",
+        url: "/icons/agiliza-icon-512-v3.png",
         sizes: "512x512",
         type: "image/png",
       },
@@ -41,13 +41,13 @@ export const metadata: Metadata = {
 
     apple: [
       {
-        url: "/icons/agiliza-apple-touch-icon-v2.png",
+        url: "/icons/agiliza-apple-touch-icon-v3.png",
         sizes: "180x180",
         type: "image/png",
       },
     ],
 
-    shortcut: "/icons/agiliza-icon-192-v2.png",
+    shortcut: "/icons/agiliza-icon-192-v3.png",
   },
 };
 

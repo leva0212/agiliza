@@ -230,7 +230,7 @@ export default function TrackingPage() {
           <Plus size={19} />
         </AppBarActionButton>
       </AppBarActions>
-      <div className="mx-auto max-w-[1280px] space-y-4 px-3 py-4 sm:px-6 sm:py-6">
+      <div className="mx-auto w-full max-w-[1280px] space-y-4 px-0 py-4 sm:px-6 sm:py-6">
         <section className="relative overflow-hidden rounded-2xl border border-sky-600 bg-gradient-to-r from-white to-sky-50 px-4 py-3 shadow-sm dark:from-slate-900 dark:to-blue-950/40">
           <div className="relative flex items-center gap-3">
             <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-sky-200/80 bg-white p-1 shadow-sm dark:border-slate-700">

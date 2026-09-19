@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 
 import { MRT_Localization_ES } from "material-react-table/locales/es";
@@ -206,16 +208,10 @@ export function ShipmentsTable({
 
   return (
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={MRT_Localization_ES}
-      enableColumnFilters={true}
-      enableColumnOrdering={true}
-      enableSorting={true}
-      enableDensityToggle={true}
-      enableFullScreenToggle={true}
-      enableColumnActions={true}
-      enableGlobalFilter={true}
       manualPagination
       rowCount={totalRows}
       state={{

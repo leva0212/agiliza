@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo } from "react";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
@@ -105,6 +107,7 @@ export function CoverageGroupedTable({
 
   return (
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={MRT_Localization_ES}
@@ -117,11 +120,6 @@ export function CoverageGroupedTable({
         onClick: (e) => e.stopPropagation(),
         sx: { pointerEvents: "auto" },
       }}
-      enableSorting={false}
-      enableColumnFilters={false}
-      enableDensityToggle={false}
-      enableFullScreenToggle={false}
-      enableColumnActions={false}
       enablePagination
       manualPagination
       rowCount={totalRows}

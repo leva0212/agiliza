@@ -49,7 +49,7 @@ export default function ProductsListPage() {
 
   return (
 
-    <div className="p-6 max-w-[1000px]">
+    <div className="w-full max-w-[1000px] px-0 py-3 sm:p-6">
 
       <AppBarActions>
         <AppBarActionLink href="/dashboard/products/new" label="Nuevo producto">

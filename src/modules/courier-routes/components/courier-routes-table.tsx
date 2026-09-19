@@ -1,5 +1,7 @@
 "use client";
 
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
+
 import { useMemo } from "react";
 
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
@@ -34,14 +36,10 @@ export function CourierRoutesTable({
 
   return (
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={MRT_Localization_ES}
-      enableSorting={false}
-      enableColumnFilters={false}
-      enableDensityToggle={false}
-      enableFullScreenToggle={false}
-      enableColumnActions={false}
       enableRowActions
       layoutMode="grid"
       displayColumnDefOptions={{
@@ -85,6 +83,7 @@ export function CourierRoutesTable({
 }
 /*"use client";
 
+
 import { useMemo } from "react";
 
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
@@ -119,14 +118,10 @@ export function CourierRoutesTable({
 
   return (
     <MaterialReactTable
+      {...standardMrtFeatures}
       columns={columns}
       data={data}
       localization={MRT_Localization_ES}
-      enableSorting={false}
-      enableColumnFilters={false}
-      enableDensityToggle={false}
-      enableFullScreenToggle={false}
-      enableColumnActions={false}
       enableRowActions
       layoutMode="grid"
       muiTablePaperProps={{
