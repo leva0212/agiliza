@@ -25,6 +25,34 @@ type Props = {
 };
 
 const defaultStatus: TrackingStatus = "EN RUTA";
+function normalizeForm(input: TrackingRecordInput): TrackingRecordInput {
+  return {
+    ...input,
+    company_id: input.company_id.trim(),
+    full_name: input.full_name.trim(),
+    identification: input.identification.trim(),
+    province_id: Number(input.province_id),
+    comment: input.comment.trim(),
+  };
+}
+
+function hasEditableChanges(
+  current: TrackingRecordInput,
+  initial: TrackingRecordInput,
+  canManageStatus: boolean,
+) {
+  const commonFieldsChanged =
+    current.full_name !== initial.full_name ||
+    current.identification !== initial.identification ||
+    current.province_id !== initial.province_id;
+
+  if (!canManageStatus) return commonFieldsChanged;
+
+  return commonFieldsChanged ||
+    current.company_id !== initial.company_id ||
+    current.status !== initial.status ||
+    current.comment !== initial.comment;
+}
 
 function getInitialForm(
   record: TrackingRecord | null,
@@ -69,6 +97,20 @@ export function TrackingFormDialog({
   if (!open) {
     return null;
   }
+  const normalizedForm = normalizeForm(form);
+  const initialForm = normalizeForm(getInitialForm(record, defaultCompanyId));
+  const hasChanges = !record || hasEditableChanges(
+    normalizedForm,
+    initialForm,
+    canManageStatus,
+  );
+  const isFormValid = Boolean(
+    normalizedForm.company_id &&
+    normalizedForm.full_name &&
+    normalizedForm.identification &&
+    normalizedForm.province_id,
+  );
+  const canSave = !saving && isFormValid && hasChanges;
 
   const updateField = <Key extends keyof TrackingRecordInput>(
     key: Key,
@@ -80,19 +122,14 @@ export function TrackingFormDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!form.full_name.trim() || !form.identification.trim() || !form.province_id) {
+    if (!canSave) {
       return;
     }
 
     setSaving(true);
 
     try {
-      await onSave({
-        ...form,
-        full_name: form.full_name.trim(),
-        identification: form.identification.trim(),
-        comment: form.comment.trim(),
-      });
+      await onSave(normalizedForm);
     } finally {
       setSaving(false);
     }
@@ -212,8 +249,9 @@ export function TrackingFormDialog({
           </button>
           <button
             type="submit"
-            disabled={saving}
-            className="rounded-xl bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+            disabled={!canSave}
+            title={record && !hasChanges ? "No hay cambios por guardar" : undefined}
+            className="rounded-xl bg-blue-600 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Guardando..." : "Guardar"}
           </button>

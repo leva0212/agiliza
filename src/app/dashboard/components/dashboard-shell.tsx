@@ -54,6 +54,7 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
   const [closeConfirmationOpen, setCloseConfirmationOpen] = useState(false);
   const routeHistoryRef = useRef<string[]>([]);
   const skipNextHistoryEntryRef = useRef(false);
+  const isHomePage = pathname === "/dashboard" || pathname === "/dashboard/";
 
   const handleGuardChange = useCallback((dirty: boolean) => {
     setHasUnsavedChanges(dirty);
@@ -155,15 +156,17 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
 
               <div id="dashboard-appbar-actions" className="ml-auto flex shrink-0 items-center gap-2" />
 
-              <button
-                type="button"
-                onClick={requestCloseCurrentPage}
-                aria-label="Cerrar página actual"
-                title="Cerrar página"
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-500 shadow-sm hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:border-red-900 dark:hover:bg-red-950/50 dark:hover:text-red-300"
-              >
-                <X size={20} />
-              </button>
+              {!isHomePage && (
+                <button
+                  type="button"
+                  onClick={requestCloseCurrentPage}
+                  aria-label="Cerrar página actual"
+                  title="Cerrar página"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-500 shadow-sm hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:border-red-900 dark:hover:bg-red-950/50 dark:hover:text-red-300"
+                >
+                  <X size={20} />
+                </button>
+              )}
             </header>
 
             <main className="min-w-0 flex-1 pt-14 sm:pt-16 md:pt-0">

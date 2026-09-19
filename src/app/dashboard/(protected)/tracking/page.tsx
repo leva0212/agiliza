@@ -34,6 +34,7 @@ import {
   TrackingTable,
 } from "@/modules/tracking/components/tracking-table";
 import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
+import { UiMessage } from "@/shared/components/ui-message";
 import type {
   TrackingRecord,
   TrackingRecordInput,
@@ -64,6 +65,7 @@ export default function TrackingPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<TrackingRecord | null>(null);
   const [historyRecord, setHistoryRecord] = useState<TrackingRecord | null>(null);
+  const [commentRecord, setCommentRecord] = useState<TrackingRecord | null>(null);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -390,6 +392,7 @@ export default function TrackingPage() {
                   setDialogOpen(true);
                 }}
                 onViewHistory={setHistoryRecord}
+                onViewComment={setCommentRecord}
               />
             )}
           </div>
@@ -418,6 +421,18 @@ export default function TrackingPage() {
           onClose={() => setHistoryRecord(null)}
         />
       )}
+      <UiMessage
+        open={Boolean(commentRecord)}
+        type="info"
+        title={commentRecord ? `Comentario de ${commentRecord.full_name}` : "Comentario"}
+        message={
+          <p className="whitespace-pre-wrap break-words text-left">
+            {commentRecord?.comment?.trim() || "Sin comentario"}
+          </p>
+        }
+        closeText="OK"
+        onClose={() => setCommentRecord(null)}
+      />
     </div>
   );
 }

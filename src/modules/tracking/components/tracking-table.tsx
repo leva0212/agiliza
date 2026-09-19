@@ -23,6 +23,7 @@ type Props = {
   showHistoryAction: boolean;
   onEdit: (record: TrackingRecord) => void;
   onViewHistory: (record: TrackingRecord) => void;
+  onViewComment: (record: TrackingRecord) => void;
 };
 
 export function TrackingTable({
@@ -34,6 +35,7 @@ export function TrackingTable({
   showHistoryAction,
   onEdit,
   onViewHistory,
+  onViewComment,
 }: Props) {
   const columns = useMemo<MRT_ColumnDef<TrackingRecord>[]>(() => {
     const baseColumns: MRT_ColumnDef<TrackingRecord>[] = [
@@ -131,7 +133,23 @@ export function TrackingTable({
       {
         accessorKey: "comment",
         header: "Comentario",
-        Cell: ({ cell }) => cell.getValue<string | null>() ?? "—",
+        Cell: ({ row }) => {
+          const comment = row.original.comment?.trim();
+
+          if (!comment) return "—";
+
+          return (
+            <button
+              type="button"
+              title={comment}
+              aria-label={`Ver comentario completo de ${row.original.full_name}`}
+              onClick={() => onViewComment(row.original)}
+              className="block max-w-[240px] truncate rounded-md px-2 py-1 text-left text-sm text-slate-700 hover:bg-sky-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-sky-300"
+            >
+              {comment}
+            </button>
+          );
+        },
         size: 260,
       },
     ];
@@ -167,7 +185,7 @@ export function TrackingTable({
     }
 
     return baseColumns;
-  }, [onEdit, onViewHistory, showCompanyColumn, showHistoryAction]);
+  }, [onEdit, onViewComment, onViewHistory, showCompanyColumn, showHistoryAction]);
 
   return (
     <MaterialReactTable

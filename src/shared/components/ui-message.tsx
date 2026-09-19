@@ -19,6 +19,8 @@ type Props = {
 
   confirmText?: string;
 
+  closeText?: string;
+
   onClose: () => void;
 
   onConfirm?: () => void;
@@ -32,6 +34,7 @@ export function UiMessage({
   message,
   cancelText = "Cancelar",
   confirmText = "Confirmar",
+  closeText = "Cerrar",
 
   type = "info",
 
@@ -165,7 +168,7 @@ export function UiMessage({
               ${current.button}
             `}
             >
-              Cerrar
+              {closeText}
             </button>
           )}
         </div>
