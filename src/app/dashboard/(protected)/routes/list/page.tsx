@@ -118,7 +118,7 @@ export default function RoutesListPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-0 py-3 sm:p-6 animate-fade-in">
-      <div className="card-soft">
+      <div className="card-soft mobile-table-card">
         <AppBarActions>
           <AppBarActionLink href="/dashboard/routes" label="Nueva ruta" tone="success">
             <Plus size={20} />

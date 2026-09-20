@@ -50,16 +50,13 @@ export function CourierRoutesTable({
       }}
       muiTablePaperProps={{
         sx: {
-          width: "100%",
-          maxWidth: "100%",
+          ...standardMrtFeatures.muiTablePaperProps.sx,
           boxShadow: "none",
         },
       }}
       muiTableContainerProps={{
         sx: {
-          width: "100%",
-          maxWidth: "100%",
-          overflowX: "auto",
+          ...standardMrtFeatures.muiTableContainerProps.sx,
         },
       }}
       renderRowActions={({ row }) => (
@@ -126,16 +123,13 @@ export function CourierRoutesTable({
       layoutMode="grid"
       muiTablePaperProps={{
         sx: {
-          width: "100%",
-          maxWidth: "100%",
+          ...standardMrtFeatures.muiTablePaperProps.sx,
           boxShadow: "none",
         },
       }}
       muiTableContainerProps={{
         sx: {
-          width: "100%",
-          maxWidth: "100%",
-          overflowX: "auto",
+          ...standardMrtFeatures.muiTableContainerProps.sx,
         },
       }}
       muiTableHeadCellProps={{

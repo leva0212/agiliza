@@ -46,6 +46,11 @@ export type Shipment = {
   longitude:
   number | null;
 
+  customer_latitude?: number | null;
+  customer_longitude?: number | null;
+  customer_location_accuracy_meters?: number | null;
+  customer_location_received_at?: string | null;
+
   notes:
   string | null;
 

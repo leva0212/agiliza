@@ -58,8 +58,14 @@ begin
     raise exception 'Las observaciones no pueden superar 500 caracteres.';
   end if;
 
-  if p_latitude is null or p_latitude not between -90 and 90
-    or p_longitude is null or p_longitude not between -180 and 180 then
+  if (p_latitude is null) <> (p_longitude is null) then
+    raise exception 'Las coordenadas de la entrega están incompletas.';
+  end if;
+
+  if p_latitude is not null and (
+    p_latitude not between -90 and 90
+    or p_longitude not between -180 and 180
+  ) then
     raise exception 'Las coordenadas de la entrega no son válidas.';
   end if;
 
@@ -125,7 +131,10 @@ begin
          latitude = p_latitude,
          longitude = p_longitude,
          last_update_at = delivery_time,
-         last_update_message = 'Entrega confirmada'
+         last_update_message = case
+           when p_latitude is null then 'Entrega confirmada sin ubicación GPS'
+           else 'Entrega confirmada'
+         end
    where id = p_shipment_id;
 
   insert into public.shipment_status_history (
@@ -135,7 +144,17 @@ begin
     p_shipment_id,
     previous_status,
     'delivered',
-    nullif(trim(coalesce(p_observations, '')), ''),
+    nullif(
+      concat_ws(
+        ' · ',
+        nullif(trim(coalesce(p_observations, '')), ''),
+        case
+          when p_latitude is null then 'Ubicación de entrega no disponible'
+          else null
+        end
+      ),
+      ''
+    ),
     auth.uid()
   );
 end;

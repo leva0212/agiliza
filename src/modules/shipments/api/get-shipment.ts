@@ -40,6 +40,10 @@ export async function getShipment(shipmentId: string): Promise<ShipmentDetail> {
       latitude,
 
       longitude,
+      customer_latitude,
+      customer_longitude,
+      customer_location_accuracy_meters,
+      customer_location_received_at,
 
       notes,
 

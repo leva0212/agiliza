@@ -6,7 +6,7 @@ import type { CreateShipmentContactMethodInput } from "../types/shipment-contact
 
 import { createShipmentContactMethods } from "../api/create-shipment-contact-methods";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getIdentificationTypes } from "../api/get-identification-types";
 
@@ -52,6 +52,7 @@ type Props = {
 
 export function ShipmentForm({ shipmentId }: Props) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
 
   const copyFrom = searchParams.get("copyFrom");
@@ -735,6 +736,14 @@ export function ShipmentForm({ shipmentId }: Props) {
           methods: contactMethods,
         });
 
+        // Refrescar el detalle y sus relaciones antes de volver a la pantalla.
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["shipment", shipmentId] }),
+          queryClient.invalidateQueries({ queryKey: ["shipment-items", shipmentId] }),
+          queryClient.invalidateQueries({ queryKey: ["shipment-contact-methods", shipmentId] }),
+          queryClient.invalidateQueries({ queryKey: ["shipments"] }),
+        ]);
+
         showMessage(
           "Envío actualizado",
 
@@ -832,7 +841,11 @@ export function ShipmentForm({ shipmentId }: Props) {
       }
 
       setTimeout(() => {
-        router.push("/dashboard/shipments/list");
+        router.replace(
+          isEditing && shipmentId
+            ? `/dashboard/shipments/${shipmentId}`
+            : "/dashboard/shipments/list",
+        );
       }, 1500);
     } catch (error) {
       console.error(error);
@@ -874,7 +887,11 @@ export function ShipmentForm({ shipmentId }: Props) {
 
   function discardChanges() {
     setDiscardDialogOpen(false);
-    router.push("/dashboard/shipments/list");
+    router.replace(
+      isEditing && shipmentId
+        ? `/dashboard/shipments/${shipmentId}`
+        : "/dashboard/shipments/list",
+    );
   }
 
   const hasUnsavedChanges = initialFormSnapshot.current !== null
@@ -1126,11 +1143,11 @@ export function ShipmentForm({ shipmentId }: Props) {
         </div>
       </div>
       {coverage.length > 0 && (
-        <div className="border rounded-xl p-4 space-y-3">
+        <div className="space-y-3 rounded-xl border p-4 dark:border-slate-700">
           <div className="font-bold text-lg">Seleccione una ruta</div>
           {routeId && (
-            <div className="rounded-lg bg-green-50 border border-green-300 p-3">
-              <span className="font-semibold text-green-700">
+            <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-slate-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100">
+              <span className="font-semibold text-green-700 dark:text-emerald-300">
                 Ruta seleccionada:
               </span>{" "}
               {coverage.find((route) => route.route_id === routeId)?.route_name}
@@ -1155,6 +1172,10 @@ export function ShipmentForm({ shipmentId }: Props) {
                 border-4
                 border-blue-600
                 bg-blue-50
+                text-slate-900
+                dark:border-blue-500
+                dark:bg-blue-950/50
+                dark:text-blue-100
                 shadow-md
               `
                   : `
@@ -1164,6 +1185,11 @@ export function ShipmentForm({ shipmentId }: Props) {
                 text-left
                 border
                 hover:border-blue-400
+                text-slate-900
+                dark:border-slate-700
+                dark:text-slate-100
+                dark:hover:border-blue-400
+                dark:hover:bg-slate-800/60
               `
               }
             >
@@ -1175,7 +1201,7 @@ export function ShipmentForm({ shipmentId }: Props) {
 
                   {route.min_hours === 0 && route.max_hours === 0 ? (
                     <>
-                      <div className="text-sm font-medium text-gray-700 mt-1">
+                      <div className="mt-1 text-sm font-medium text-gray-700 dark:text-slate-300">
                         Cronograma
                       </div>
 
@@ -1223,7 +1249,7 @@ export function ShipmentForm({ shipmentId }: Props) {
                       </div>
                     </>
                   ) : (
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="mt-1 text-sm text-gray-600 dark:text-slate-300">
                       {route.max_hours === 0
                         ? `${route.min_hours} horas`
                         : `${route.min_hours} - ${route.max_hours} horas`}
@@ -1233,9 +1259,9 @@ export function ShipmentForm({ shipmentId }: Props) {
 
                 {routeId === route.route_id && (
                   <div className="flex flex-col items-end">
-                    <div className="text-blue-700 font-bold text-lg">✓</div>
+                    <div className="text-lg font-bold text-blue-700 dark:text-blue-300">✓</div>
 
-                    <div className="text-xs text-blue-700 font-semibold">
+                    <div className="text-xs font-semibold text-blue-700 dark:text-blue-300">
                       Seleccionada
                     </div>
                   </div>

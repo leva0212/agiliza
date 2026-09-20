@@ -12,17 +12,13 @@ import { updateShipmentStatus } from "@/modules/shipments/api/update-shipment-st
 import { NavigationDialog } from "@/shared/components/navigation-dialog";
 import {
   Copy,
-  CheckCircle2,
-  Truck,
-  PackageCheck,
   XCircle,
   Settings,
   Pencil,
-  Package,
-  Phone,
   MapPin,
   RefreshCw,
   Ban,
+  CircleDollarSign,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -37,6 +33,7 @@ import { ShipmentAttachmentsCard } from "@/modules/shipments/components/shipment
 import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 import { ShipmentDeliveryDialog } from "@/modules/shipments/components/shipment-delivery-dialog";
 import { completeShipmentDelivery } from "@/modules/shipments/api/complete-shipment-delivery";
+import { CustomerLocationRequestCard } from "@/modules/shipments/components/customer-location-request-card";
 export default function ShipmentDetailPage() {
   const router = useRouter();
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -44,6 +41,7 @@ export default function ShipmentDetailPage() {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState("");
+  const [customerNavigationOpen, setCustomerNavigationOpen] = useState(false);
 
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const params = useParams();
@@ -223,11 +221,20 @@ export default function ShipmentDetailPage() {
             </div>
           )}
         </div>
+        {(assignedDepositAmount > 0 || assignedShippingFee > 0) && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm dark:border-amber-700 dark:bg-amber-950/30">
+            <div className="mb-3 flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-200"><CircleDollarSign size={19} />Montos importantes del envío</div>
+            <div className="grid grid-cols-2 gap-3">
+              {assignedDepositAmount > 0 && <div className="rounded-lg bg-white/80 p-3 dark:bg-slate-900/70"><div className="text-xs font-medium text-slate-500 dark:text-slate-400">Depósito esperado</div><div className="mt-1 text-xl font-bold tabular-nums text-amber-900 dark:text-amber-100">{formatCRC(assignedDepositAmount)}</div></div>}
+              {assignedShippingFee > 0 && <div className="rounded-lg bg-white/80 p-3 dark:bg-slate-900/70"><div className="text-xs font-medium text-slate-500 dark:text-slate-400">Envío esperado</div><div className="mt-1 text-xl font-bold tabular-nums text-amber-900 dark:text-amber-100">{formatCRC(assignedShippingFee)}</div></div>}
+            </div>
+          </div>
+        )}
         <div className="border rounded-xl p-3">
           <div className="font-semibold mb-2">Artículos</div>
 
           <div className="space-y-1">
-            {items.map((item: any) => (
+            {items.map((item) => (
               <div
                 key={item.id}
                 className="flex justify-left gap-2 items-center"
@@ -284,6 +291,16 @@ export default function ShipmentDetailPage() {
             {shipment.notes?.trim() ? shipment.notes : "Sin observaciones"}
           </div>
         </div>
+        {profile?.is_owner_company_user && <CustomerLocationRequestCard shipmentId={shipmentId} trackingNumber={shipment.tracking_number} phoneNumber={contactMethods[0]?.value} />}
+        {shipment.customer_latitude != null && shipment.customer_longitude != null && (
+          <div className="rounded-xl border border-sky-300 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/30">
+            <div className="font-semibold text-sky-900 dark:text-sky-200">Ubicación compartida por el cliente</div>
+            <div className="mt-1 break-all font-mono text-sm">{shipment.customer_latitude.toFixed(6)}, {shipment.customer_longitude.toFixed(6)}</div>
+            {shipment.customer_location_accuracy_meters != null && <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Precisión aproximada: ±{Math.round(shipment.customer_location_accuracy_meters)} m</div>}
+            {shipment.customer_location_received_at && <div className="mt-1 text-xs text-slate-500">Recibida {new Date(shipment.customer_location_received_at).toLocaleString("es-CR")}</div>}
+            <button type="button" onClick={() => setCustomerNavigationOpen(true)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-sky-300 px-3 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-200 dark:hover:bg-sky-900"><MapPin size={17}/>Abrir ubicación</button>
+          </div>
+        )}
         <div className="border rounded-xl p-3">
           <div className="font-semibold">
             Dirección: Provincia{" - "}Canton{" - "}Distrito{" - "}Barrio
@@ -742,6 +759,7 @@ export default function ShipmentDetailPage() {
         </div>
       )}
       <ShipmentDeliveryDialog
+        key={deliveryDialogOpen ? shipmentId + "-delivery-open" : shipmentId + "-delivery-closed"}
         open={deliveryDialogOpen}
         shipmentId={shipmentId}
         currentUserId={profile?.id}
@@ -759,6 +777,9 @@ export default function ShipmentDetailPage() {
         waze={`https://waze.com/ul?ll=${shipment.neighborhood?.latitude},${shipment.neighborhood?.longitude}&navigate=yes`}
       />
 
+      {shipment.customer_latitude != null && shipment.customer_longitude != null && (
+        <NavigationDialog open={customerNavigationOpen} onClose={() => setCustomerNavigationOpen(false)} coordinates={shipment.customer_latitude + "," + shipment.customer_longitude} googleMaps={"https://www.google.com/maps?q=" + shipment.customer_latitude + "," + shipment.customer_longitude} waze={"https://waze.com/ul?ll=" + shipment.customer_latitude + "," + shipment.customer_longitude + "&navigate=yes"} />
+      )}
       <ContactActionsDialog
         open={contactDialogOpen}
         onClose={() => setContactDialogOpen(false)}
@@ -775,3 +796,5 @@ export default function ShipmentDetailPage() {
     </div>
   );
 }
+
+function formatCRC(value: number) { return new Intl.NumberFormat("es-CR", { style: "currency", currency: "CRC", maximumFractionDigits: 2 }).format(value); }

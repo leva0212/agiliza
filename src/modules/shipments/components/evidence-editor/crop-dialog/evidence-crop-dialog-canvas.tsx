@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -522,8 +523,8 @@ export function EvidenceCropDialogCanvas({
             setRotation(nextRotation);
           }}
           className="
-      w-12
-      h-12
+      size-14
+      sm:size-12
 
       rounded-full
 
@@ -532,7 +533,7 @@ export function EvidenceCropDialogCanvas({
       text-white
     "
         >
-          ↺
+          <RotateCcw className="size-7 sm:size-6" aria-hidden="true" />
         </button>
 
         <button
@@ -561,8 +562,8 @@ export function EvidenceCropDialogCanvas({
             setRotation(nextRotation);
           }}
           className="
-      w-12
-      h-12
+      size-14
+      sm:size-12
 
       rounded-full
 
@@ -571,7 +572,7 @@ export function EvidenceCropDialogCanvas({
       text-white
     "
         >
-          ↻
+          <RotateCw className="size-7 sm:size-6" aria-hidden="true" />
         </button>
 
         <button
@@ -580,8 +581,8 @@ export function EvidenceCropDialogCanvas({
             setFlipX((prev) => !prev);
           }}
           className="
-      w-12
-      h-12
+      size-14
+      sm:size-12
 
       rounded-full
 
@@ -590,7 +591,7 @@ export function EvidenceCropDialogCanvas({
       text-white
     "
         >
-          ⇋
+          <FlipHorizontal2 className="size-7 sm:size-6" aria-hidden="true" />
         </button>
 
         <button
@@ -599,8 +600,8 @@ export function EvidenceCropDialogCanvas({
             setFlipY((prev) => !prev);
           }}
           className="
-      w-12
-      h-12
+      size-14
+      sm:size-12
 
       rounded-full
 
@@ -609,7 +610,7 @@ export function EvidenceCropDialogCanvas({
       text-white
     "
         >
-          ⇅
+          <FlipVertical2 className="size-7 sm:size-6" aria-hidden="true" />
         </button>
       </div>
       <canvas
@@ -814,8 +815,8 @@ export function EvidenceCropDialogCanvas({
         <button
           onClick={onClose}
           className="
-          w-12
-          h-12
+          size-14
+          sm:size-12
 
           rounded-full
 
@@ -851,8 +852,8 @@ export function EvidenceCropDialogCanvas({
             onClose();
           }}
           className="
-          w-12
-          h-12
+          size-14
+          sm:size-12
 
           rounded-full
 

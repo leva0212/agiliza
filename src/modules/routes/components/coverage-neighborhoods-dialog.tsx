@@ -1,6 +1,6 @@
 "use client";
 
-import { standardMrtFeatures } from "@/shared/config/material-react-table";
+import { standardMrtFeatures, standardMrtHeadCellSx } from "@/shared/config/material-react-table";
 
 import { useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
@@ -250,6 +250,7 @@ export function CoverageNeighborhoodsDialog({
           muiTableHeadCellProps: {
 
             sx: {
+              ...standardMrtHeadCellSx,
 
               background:
                 "#ecfdf5",
@@ -286,6 +287,7 @@ export function CoverageNeighborhoodsDialog({
           muiTableHeadCellProps: {
 
             sx: {
+              ...standardMrtHeadCellSx,
 
               background:
                 "#fef2f2",

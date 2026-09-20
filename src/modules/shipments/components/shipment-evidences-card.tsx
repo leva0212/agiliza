@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { Camera } from "lucide-react";
 
@@ -26,6 +26,9 @@ export function ShipmentEvidencesCard({
   trackingNumber,
 }: Props) {
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const clearSelectedFiles = useCallback(() => setSelectedFiles([]), []);
 
   const { data: evidences = [] } = useShipmentEvidences(shipmentId);
 
@@ -35,6 +38,20 @@ export function ShipmentEvidencesCard({
 
   return (
     <div className="border rounded-xl p-3">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          event.target.value = "";
+          if (files.length === 0) return;
+          setSelectedFiles(files);
+          setGalleryOpen(true);
+        }}
+      />
       <div className="flex items-center justify-between">
         <button
           type="button"
@@ -49,7 +66,7 @@ export function ShipmentEvidencesCard({
 
         <button
           type="button"
-          onClick={() => setGalleryOpen(true)}
+          onClick={() => fileInputRef.current?.click()}
           className="
           flex
           items-center
@@ -131,6 +148,8 @@ export function ShipmentEvidencesCard({
             trackingNumber={trackingNumber}
             onClose={() => setGalleryOpen(false)}
             shipmentId={shipmentId}
+            initialFiles={selectedFiles}
+            onInitialFilesConsumed={clearSelectedFiles}
           />
         )}
       </div>

@@ -7,8 +7,8 @@ export type CompleteShipmentDeliveryInput = {
   depositAmount: number;
   shippingFee: number;
   observations: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export async function completeShipmentDelivery(
@@ -27,6 +27,10 @@ export async function completeShipmentDelivery(
   });
 
   if (error) {
-    throw error;
+    const message = [error.message, error.details, error.hint]
+      .filter((value): value is string => Boolean(value))
+      .join(" ");
+
+    throw new Error(message || "No fue posible confirmar la entrega");
   }
 }

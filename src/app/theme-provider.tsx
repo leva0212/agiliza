@@ -1,7 +1,7 @@
 "use client";
 
 import { createTheme, CssBaseline, ThemeProvider as MuiThemeProvider } from "@mui/material";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster } from "sonner";
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -37,15 +37,24 @@ function applyTheme(mode: ThemeMode, systemTheme: ResolvedTheme) {
 }
 
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>(getSavedThemeMode);
-  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => (
-    typeof window === "undefined" ? "light" : getSystemTheme()
-  ));
+  // Mantiene idéntico el primer render del servidor y el navegador.
+  // El tema guardado se restaura después de hidratar; el script del layout
+  // ya aplica la clase visual para evitar un destello de tema incorrecto.
+  const [mode, setModeState] = useState<ThemeMode>("light");
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>("light");
+  const initializedRef = useRef(false);
   const resolvedTheme = mode === "system" ? systemTheme : mode;
 
   useEffect(() => {
-    applyTheme(mode, systemTheme);
-    localStorage.setItem(STORAGE_KEY, mode);
+    const savedMode = getSavedThemeMode();
+    const currentSystemTheme = getSystemTheme();
+
+    initializedRef.current = true;
+    applyTheme(savedMode, currentSystemTheme);
+    const restoreThemeTimer = window.setTimeout(() => {
+      setModeState(savedMode);
+      setSystemTheme(currentSystemTheme);
+    }, 0);
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleSystemThemeChange = (event: MediaQueryListEvent) => {
@@ -53,7 +62,17 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     mediaQuery.addEventListener("change", handleSystemThemeChange);
-    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    return () => {
+      window.clearTimeout(restoreThemeTimer);
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!initializedRef.current) return;
+
+    applyTheme(mode, systemTheme);
+    localStorage.setItem(STORAGE_KEY, mode);
   }, [mode, systemTheme]);
 
   const muiTheme = useMemo(

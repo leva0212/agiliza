@@ -47,6 +47,8 @@ type Props = {
   shipmentId: string;
 
   trackingNumber: string;
+  initialFiles?: File[];
+  onInitialFilesConsumed?: () => void;
 };
 
 type EvidenceUploadProgress = {
@@ -76,6 +78,8 @@ export function ShipmentEvidencesDialog({
   onClose,
   shipmentId,
   trackingNumber,
+  initialFiles = [],
+  onInitialFilesConsumed,
 }: Props) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,6 +111,21 @@ export function ShipmentEvidencesDialog({
   const [pendingEvidences, setPendingEvidences] = useState<PendingEvidence[]>(
     [],
   );
+  useEffect(() => {
+    if (!open || initialFiles.length === 0) return;
+
+    const timer = window.setTimeout(() => {
+      if (initialFiles.length > 30) {
+        toast.error("Máximo 30 imágenes");
+      } else {
+        setPendingEvidences(initialFiles.map(createPendingEvidence));
+        setEditorOpen(true);
+      }
+      onInitialFilesConsumed?.();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [initialFiles, onInitialFilesConsumed, open]);
   const validateAllMutation = useMutation({
     mutationFn: validateAllShipmentEvidences,
 

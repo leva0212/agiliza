@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CircleDollarSign,
@@ -19,6 +19,7 @@ import type { CompleteShipmentDeliveryInput } from "../api/complete-shipment-del
 type Coordinates = {
   latitude: number;
   longitude: number;
+  accuracy: number | null;
 };
 
 type Props = {
@@ -31,6 +32,8 @@ type Props = {
   onCancel: () => void;
   onConfirm: (input: CompleteShipmentDeliveryInput) => void;
 };
+
+function formatMoney(amount: number) { return new Intl.NumberFormat("es-CR", { style: "currency", currency: "CRC", maximumFractionDigits: 2 }).format(amount); }
 
 function formatCoordinates(coordinates: Coordinates) {
   return `${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`;
@@ -47,18 +50,19 @@ export function ShipmentDeliveryDialog({
   onConfirm,
 }: Props) {
   const [deliveredBy, setDeliveredBy] = useState("");
-  const [receiverType, setReceiverType] = useState<"owner" | "authorized">(
-    "owner",
-  );
+  const [receiverType, setReceiverType] = useState<"" | "owner" | "authorized">("");
   const [depositAmount, setDepositAmount] = useState("");
   const [shippingFee, setShippingFee] = useState("");
   const [observations, setObservations] = useState("");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [latitudeInput, setLatitudeInput] = useState("");
+  const [longitudeInput, setLongitudeInput] = useState("");
   const [locationStatus, setLocationStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [locationError, setLocationError] = useState("");
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const requestedLocationForOpenRef = useRef(false);
 
   const couriersQuery = useQuery({
     queryKey: ["delivery-couriers"],
@@ -68,9 +72,14 @@ export function ShipmentDeliveryDialog({
   });
 
   const requestLocation = useCallback(() => {
+    if (!window.isSecureContext) {
+      setLocationStatus("error");
+      setLocationError("El navegador bloquea la ubicación en HTTP. Abra la app por HTTPS o use localhost en esta computadora.");
+      return;
+    }
     if (!navigator.geolocation) {
       setLocationStatus("error");
-      setLocationError("Este dispositivo no permite obtener la ubicación GPS.");
+      setLocationError("Este dispositivo no permite obtener la ubicación GPS. Puede continuar sin ella.");
       return;
     }
 
@@ -82,14 +91,17 @@ export function ShipmentDeliveryDialog({
         setCoordinates({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
         });
+        setLatitudeInput(String(position.coords.latitude));
+        setLongitudeInput(String(position.coords.longitude));
         setLocationStatus("success");
       },
       (error) => {
         const message =
           error.code === error.PERMISSION_DENIED
-            ? "Permita el acceso a la ubicación para confirmar la entrega."
-            : "No fue posible obtener la ubicación. Intente nuevamente.";
+            ? "No se pudo obtener la ubicación porque el permiso fue rechazado. Puede continuar sin ella."
+            : "No fue posible obtener la ubicación. Puede continuar sin ella o intentar nuevamente.";
 
         setCoordinates(null);
         setLocationStatus("error");
@@ -105,37 +117,19 @@ export function ShipmentDeliveryDialog({
 
   useEffect(() => {
     if (!open) {
-      setDeliveredBy("");
-      setCoordinates(null);
-      setLocationStatus("idle");
-      setLocationError("");
-      setNavigationOpen(false);
+      requestedLocationForOpenRef.current = false;
       return;
     }
-
-    setObservations("");
-    setReceiverType("owner");
-    setDepositAmount(String(assignedDepositAmount));
-    setShippingFee(String(assignedShippingFee));
+    if (requestedLocationForOpenRef.current) return;
+    requestedLocationForOpenRef.current = true;
+    // La apertura del diálogo es una acción explícita del usuario; el navegador resuelve el permiso y el GPS de forma asíncrona.
     requestLocation();
-  }, [assignedDepositAmount, assignedShippingFee, open, requestLocation]);
+  }, [open, requestLocation]);
 
-  useEffect(() => {
-    if (!open || deliveredBy || !couriersQuery.data) {
-      return;
-    }
-
-    const currentUserCanDeliver = couriersQuery.data.some(
-      (courier) => courier.profile_id === currentUserId,
-    );
-
-    if (currentUserCanDeliver && currentUserId) {
-      const currentCourier = couriersQuery.data.find(
-        (courier) => courier.profile_id === currentUserId,
-      );
-      setDeliveredBy(currentCourier?.id ?? "");
-    }
-  }, [couriersQuery.data, currentUserId, deliveredBy, open]);
+  const defaultDeliveredBy = (couriersQuery.data ?? []).find(
+    (courier) => courier.profile_id === currentUserId,
+  )?.id ?? "";
+  const selectedDeliveredBy = deliveredBy || defaultDeliveredBy;
 
   const navigationLinks = useMemo(() => {
     if (!coordinates) {
@@ -155,18 +149,36 @@ export function ShipmentDeliveryDialog({
   }
 
   const submit = () => {
-    if (!deliveredBy) {
+    if (!selectedDeliveredBy) {
       toast.error("Seleccione quién realizó la entrega.");
       return;
     }
 
-    if (!coordinates) {
-      toast.error("Debe obtener la ubicación GPS antes de marcar como entregado.");
+    if (!receiverType) {
+      toast.error("Seleccione quién recibió la entrega.");
       return;
     }
 
-    const parsedDeposit = Number(depositAmount || 0);
-    const parsedShippingFee = Number(shippingFee || 0);
+    if (assignedDepositAmount > 0 && !depositAmount.trim()) {
+      toast.error("Ingrese el depósito recibido.");
+      return;
+    }
+
+    if (assignedShippingFee > 0 && !shippingFee.trim()) {
+      toast.error("Ingrese el costo de envío recibido.");
+      return;
+    }
+
+    const manualCoordinatesEntered = Boolean(latitudeInput.trim() || longitudeInput.trim());
+    let coordinatesToSave = coordinates;
+    if (manualCoordinatesEntered) {
+      if (!latitudeInput.trim() || !longitudeInput.trim()) { toast.error("Ingrese latitud y longitud para guardar la ubicación manual."); return; }
+      const latitude = Number(latitudeInput); const longitude = Number(longitudeInput);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) { toast.error("Las coordenadas deben ser válidas: latitud entre -90 y 90, longitud entre -180 y 180."); return; }
+      coordinatesToSave = { latitude, longitude, accuracy: null };
+    }
+    const parsedDeposit = assignedDepositAmount > 0 ? Number(depositAmount) : 0;
+    const parsedShippingFee = assignedShippingFee > 0 ? Number(shippingFee) : 0;
 
     if (
       !Number.isFinite(parsedDeposit) ||
@@ -180,13 +192,13 @@ export function ShipmentDeliveryDialog({
 
     onConfirm({
       shipmentId,
-      deliveredBy,
+      deliveredBy: selectedDeliveredBy,
       receiverType,
-      depositAmount: assignedDepositAmount > 0 ? parsedDeposit : 0,
-      shippingFee: assignedShippingFee > 0 ? parsedShippingFee : 0,
+      depositAmount: parsedDeposit,
+      shippingFee: parsedShippingFee,
       observations: observations.trim(),
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
+      latitude: coordinatesToSave?.latitude ?? null,
+      longitude: coordinatesToSave?.longitude ?? null,
     });
   };
 
@@ -232,7 +244,7 @@ export function ShipmentDeliveryDialog({
               </label>
               <select
                 id="delivery-courier"
-                value={deliveredBy}
+                value={selectedDeliveredBy}
                 onChange={(event) => setDeliveredBy(event.target.value)}
                 disabled={couriersQuery.isLoading || isSubmitting}
               >
@@ -248,7 +260,7 @@ export function ShipmentDeliveryDialog({
                 ))}
               </select>
               {couriersQuery.isError && (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                   {couriersQuery.error.message}
                 </p>
               )}
@@ -261,8 +273,8 @@ export function ShipmentDeliveryDialog({
                 )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
-              <div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="min-w-0">
                 <label htmlFor="delivery-receiver" className="mb-1 block text-sm font-semibold">
                   Recibido por
                 </label>
@@ -270,10 +282,12 @@ export function ShipmentDeliveryDialog({
                   id="delivery-receiver"
                   value={receiverType}
                   onChange={(event) =>
-                    setReceiverType(event.target.value as "owner" | "authorized")
+                    setReceiverType(event.target.value as "" | "owner" | "authorized")
                   }
                   disabled={isSubmitting}
+                  className="min-w-0"
                 >
+                  <option value="">Seleccione una opción</option>
                   <option value="owner">Titular</option>
                   <option value="authorized">Autorizado</option>
                 </select>
@@ -288,10 +302,10 @@ export function ShipmentDeliveryDialog({
                   value={observations}
                   onChange={(event) => setObservations(event.target.value)}
                   maxLength={500}
-                  rows={3}
+                  rows={2}
                   disabled={isSubmitting}
                   placeholder="Detalle opcional de la entrega"
-                  className="min-h-24 resize-y"
+                  className="min-h-16 max-h-28 resize-y"
                 />
                 <div className="mt-1 text-right text-xs text-slate-500 dark:text-slate-400">
                   {observations.length}/500
@@ -303,14 +317,13 @@ export function ShipmentDeliveryDialog({
               <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-800/70 dark:bg-amber-950/30">
                 <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
                   <CircleDollarSign size={18} />
-                  Montos de la entrega
+{assignedDepositAmount > 0 && assignedShippingFee > 0 ? "Costos de depósito y envío" : assignedDepositAmount > 0 ? "Costo de depósito" : "Costo de envío"}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {assignedDepositAmount > 0 && (
-                    <div>
-                      <label htmlFor="delivery-deposit" className="mb-1 block text-sm font-medium">
-                        Depósito (₡)
-                      </label>
+                    <div className="min-w-0 rounded-xl border border-amber-200 bg-white/70 p-3 dark:border-amber-800 dark:bg-slate-900/60">
+                      <label htmlFor="delivery-deposit" className="block text-sm font-semibold">Depósito</label>
+                      <p className="mb-2 mt-0.5 text-xs text-slate-600 dark:text-slate-400">Esperado: {formatMoney(assignedDepositAmount)}</p>
                       <input
                         id="delivery-deposit"
                         type="number"
@@ -320,14 +333,15 @@ export function ShipmentDeliveryDialog({
                         value={depositAmount}
                         onChange={(event) => setDepositAmount(event.target.value)}
                         disabled={isSubmitting}
+                        placeholder="Monto recibido"
+                        className="min-w-0"
                       />
                     </div>
                   )}
                   {assignedShippingFee > 0 && (
-                    <div>
-                      <label htmlFor="delivery-shipping-fee" className="mb-1 block text-sm font-medium">
-                        Costo de envío (₡)
-                      </label>
+                    <div className="min-w-0 rounded-xl border border-amber-200 bg-white/70 p-3 dark:border-amber-800 dark:bg-slate-900/60">
+                      <label htmlFor="delivery-shipping-fee" className="block text-sm font-semibold">Envío</label>
+                      <p className="mb-2 mt-0.5 text-xs text-slate-600 dark:text-slate-400">Esperado: {formatMoney(assignedShippingFee)}</p>
                       <input
                         id="delivery-shipping-fee"
                         type="number"
@@ -337,6 +351,8 @@ export function ShipmentDeliveryDialog({
                         value={shippingFee}
                         onChange={(event) => setShippingFee(event.target.value)}
                         disabled={isSubmitting}
+                        placeholder="Monto recibido"
+                        className="min-w-0"
                       />
                     </div>
                   )}
@@ -355,15 +371,16 @@ export function ShipmentDeliveryDialog({
                     )}
                     {locationStatus === "loading"
                       ? "Obteniendo ubicación GPS..."
-                      : "Ubicación de la entrega"}
+                      : "Ubicación de la entrega (opcional)"}
                   </div>
                   {coordinates && (
                     <p className="mt-1 break-all font-mono text-xs text-slate-700 dark:text-slate-300">
                       {formatCoordinates(coordinates)}
+                      {coordinates.accuracy !== null && <span className="ml-1 font-sans text-slate-500 dark:text-slate-400">(±{Math.round(coordinates.accuracy)} m)</span>}
                     </p>
                   )}
                   {locationError && (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                       {locationError}
                     </p>
                   )}
@@ -380,17 +397,21 @@ export function ShipmentDeliveryDialog({
                       <MapPin size={19} />
                     </button>
                   )}
-                  <button
+                  {locationStatus === "error" && <button
                     type="button"
                     onClick={requestLocation}
-                    disabled={locationStatus === "loading" || isSubmitting}
-                    title="Obtener ubicación nuevamente"
-                    aria-label="Obtener ubicación nuevamente"
-                    className="flex size-9 items-center justify-center rounded-full text-sky-700 hover:bg-sky-100 disabled:opacity-50 dark:text-sky-300 dark:hover:bg-sky-900"
+                    disabled={isSubmitting}
+                    title={coordinates ? "Actualizar ubicación" : "Solicitar permiso de ubicación"}
+                    className="flex items-center gap-2 rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50 dark:border-sky-700 dark:text-sky-200 dark:hover:bg-sky-900"
                   >
-                    <LocateFixed size={19} />
-                  </button>
+                    <LocateFixed size={18} />
+                    <span>Solicitar ubicación</span>
+                  </button>}
                 </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Latitud<input type="number" inputMode="decimal" step="any" value={latitudeInput} onChange={(event) => setLatitudeInput(event.target.value)} disabled={isSubmitting} placeholder="9.932..." className="mt-1 min-w-0" /></label>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Longitud<input type="number" inputMode="decimal" step="any" value={longitudeInput} onChange={(event) => setLongitudeInput(event.target.value)} disabled={isSubmitting} placeholder="-84.08..." className="mt-1 min-w-0" /></label>
               </div>
             </div>
           </div>
@@ -410,9 +431,7 @@ export function ShipmentDeliveryDialog({
               disabled={
                 isSubmitting ||
                 couriersQuery.isLoading ||
-                !deliveredBy ||
-                !coordinates
-              }
+                !deliveredBy}
               className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting && <LoaderCircle className="animate-spin" size={18} />}

@@ -2,7 +2,7 @@
 
 import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { PageCloseGuardProvider } from "@/shared/components/page-close-guard";
 import { UiMessage } from "@/shared/components/ui-message";
@@ -40,6 +40,23 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (pathname === "/dashboard/change-password") return "Cambiar contraseña";
   return "Agiliza";
 }
+function getPageCloseDestination(pathname: string) {
+  const shipmentEdit = pathname.match(/^\/dashboard\/shipments\/([^/]+)\/edit$/);
+  if (shipmentEdit) return "/dashboard/shipments/" + shipmentEdit[1];
+  if (/^\/dashboard\/shipments\/[^/]+$/.test(pathname)) return "/dashboard/shipments/list";
+  if (pathname === "/dashboard/shipments") return "/dashboard/shipments/list";
+
+  if (pathname === "/dashboard/companies") return "/dashboard/companies/list";
+  if (pathname === "/dashboard/routes") return "/dashboard/routes/list";
+  if (pathname === "/dashboard/products/new" || /^\/dashboard\/products\/edit\/[^/]+$/.test(pathname)) {
+    return "/dashboard/products/list";
+  }
+  if (pathname === "/dashboard/users/new" || /^\/dashboard\/users\/edit\/[^/]+$/.test(pathname)) {
+    return "/dashboard/users/list";
+  }
+
+  return "/dashboard";
+}
 function DashboardPageTitle({ pathname }: { pathname: string }) {
   const searchParams = useSearchParams();
   return getPageTitle(pathname, searchParams);
@@ -52,8 +69,6 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [closeConfirmationOpen, setCloseConfirmationOpen] = useState(false);
-  const routeHistoryRef = useRef<string[]>([]);
-  const skipNextHistoryEntryRef = useRef(false);
   const isHomePage = pathname === "/dashboard" || pathname === "/dashboard/";
 
   const handleGuardChange = useCallback((dirty: boolean) => {
@@ -65,28 +80,11 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
       setHasUnsavedChanges(false);
     }, 0);
 
-    if (skipNextHistoryEntryRef.current) {
-      skipNextHistoryEntryRef.current = false;
-      return () => window.clearTimeout(resetDirtyState);
-    }
-
-    const history = routeHistoryRef.current;
-    if (history.at(-1) !== pathname) history.push(pathname);
-
     return () => window.clearTimeout(resetDirtyState);
   }, [pathname]);
 
   function closeCurrentPage() {
-    const history = routeHistoryRef.current;
-    if (history.at(-1) === pathname) history.pop();
-
-    const previousPath = history.at(-1);
-    const fallbackPath = pathname === "/dashboard/tracking"
-      ? "/dashboard/coverage"
-      : "/dashboard/tracking";
-
-    skipNextHistoryEntryRef.current = true;
-    router.push(previousPath && previousPath !== pathname ? previousPath : fallbackPath);
+    router.replace(getPageCloseDestination(pathname));
   }
 
   function requestCloseCurrentPage() {
@@ -156,7 +154,7 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
 
               <div id="dashboard-appbar-actions" className="ml-auto flex shrink-0 items-center gap-2" />
 
-              {!isHomePage && (
+              {!isHomePage && (pathname !== "/dashboard/coverage" || profile) && (
                 <button
                   type="button"
                   onClick={requestCloseCurrentPage}

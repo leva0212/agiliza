@@ -31,4 +31,25 @@ export default function CompaniesListPage() {
   if (error) {
     return <div className="p-6">Error al cargar empresas</div>;
   }
+
+  return (
+    <div className="mx-auto w-full max-w-7xl space-y-4 px-0 py-3 sm:p-6">
+      <AppBarActions>
+        <AppBarActionLink href="/dashboard/companies" label="Nueva empresa">
+          <Plus size={20} />
+        </AppBarActionLink>
+      </AppBarActions>
+
+      {isLoading ? (
+        <div className="px-3 py-6 sm:px-0">Cargando empresas...</div>
+      ) : (
+        <CompaniesTable
+          data={data?.data ?? []}
+          pagination={pagination}
+          setPagination={setPagination}
+          totalRows={data?.total ?? 0}
+        />
+      )}
+    </div>
+  );
 }
