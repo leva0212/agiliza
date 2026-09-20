@@ -35,6 +35,7 @@ import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 import { ShipmentDeliveryDialog } from "@/modules/shipments/components/shipment-delivery-dialog";
 import { completeShipmentDelivery } from "@/modules/shipments/api/complete-shipment-delivery";
 import { CustomerLocationRequestCard } from "@/modules/shipments/components/customer-location-request-card";
+import { CustomerLocationEditor } from "@/modules/shipments/components/customer-location-editor";
 export default function ShipmentDetailPage() {
   const router = useRouter();
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -148,6 +149,8 @@ export default function ShipmentDetailPage() {
   }
 
   const currentStatus = getShipmentStatusOption(shipment.status);
+  const canEditLocation = Boolean(profile?.active && ["super_admin", "company_admin", "seller"].includes(profile.role));
+  const hasCustomerLocation = shipment.customer_latitude != null && shipment.customer_longitude != null;
 
   return (
     <div className="max-w-4xl max-w-[500px] p-1 space-y-6">
@@ -293,10 +296,11 @@ export default function ShipmentDetailPage() {
           </div>
         </div>
         {profile?.is_owner_company_user && <CustomerLocationRequestCard shipmentId={shipmentId} trackingNumber={shipment.tracking_number} phoneNumber={contactMethods[0]?.value} />}
-        {shipment.customer_latitude != null && shipment.customer_longitude != null && (
+        {(hasCustomerLocation || canEditLocation) && (
           <div className="rounded-xl border border-sky-300 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/30">
-            <div className="font-semibold text-sky-900 dark:text-sky-200">Ubicación compartida por el cliente</div>
-            <div className="mt-1 break-all font-mono text-sm">{shipment.customer_latitude.toFixed(6)}, {shipment.customer_longitude.toFixed(6)}</div>
+            <div className="font-semibold text-sky-900 dark:text-sky-200">Ubicación del cliente</div>
+            {hasCustomerLocation ? <>
+            <div className="mt-1 break-all font-mono text-sm">{shipment.customer_latitude!.toFixed(6)}, {shipment.customer_longitude!.toFixed(6)}</div>
             {shipment.customer_location_accuracy_meters != null && <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Precisión aproximada: ±{Math.round(shipment.customer_location_accuracy_meters)} m</div>}
             {shipment.customer_location_received_at && (
               <>
@@ -308,7 +312,11 @@ export default function ShipmentDetailPage() {
                 </div>
               </>
             )}
-            <button type="button" onClick={() => setCustomerNavigationOpen(true)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-green-800 bg-green-800 px-3 py-2 text-sm font-semibold text-white hover:bg-green-900"><MapPin size={17} className="text-red-400"/>Abrir ubicación</button>
+            </> : <p className="mt-1 text-sm text-slate-500">Todavía no se ha registrado una ubicación.</p>}
+            <div className="mt-3 flex flex-wrap items-start gap-3">
+              {hasCustomerLocation && (<button type="button" onClick={() => setCustomerNavigationOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-green-800 bg-green-800 px-3 py-2 text-sm font-semibold text-white hover:bg-green-900"><MapPin size={17} className="text-red-400"/>Abrir ubicación</button>)}
+            {canEditLocation && <CustomerLocationEditor key={shipmentId} shipmentId={shipmentId} latitude={shipment.customer_latitude} longitude={shipment.customer_longitude} />}
+            </div>
           </div>
         )}
         <div className="border rounded-xl p-3">
