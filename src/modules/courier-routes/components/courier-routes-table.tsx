@@ -42,12 +42,6 @@ export function CourierRoutesTable({
       localization={MRT_Localization_ES}
       enableRowActions
       layoutMode="grid"
-      displayColumnDefOptions={{
-        "mrt-row-actions": {
-          size: 150,
-          header: "Acciones",
-        },
-      }}
       muiTablePaperProps={{
         sx: {
           ...standardMrtFeatures.muiTablePaperProps.sx,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LocalidadesService } from "@/services/localidades_service";
+import { LOCALIDADES_PROVINCES, loadLocalidadesProvince } from "@/services/localidades/provinces";
 import { getProvinceCoverageCounts } from "@/modules/routes/api/get-province-coverage-counts";
 import { getDistrictNeighborhoods } from "@/modules/routes/api/get-district-neighborhoods";
 import { ClientCoverageTable } from "@/modules/routes/components/client-coverage-table";
@@ -20,7 +20,7 @@ type CoverageRow = {
 };
 
 export default function CoveragePage() {
-  const provinces = LocalidadesService.provinciasLista;
+  const provinces = LOCALIDADES_PROVINCES;
 
   const STORAGE_KEY = "coverage_selected_province";
 
@@ -71,7 +71,7 @@ export default function CoveragePage() {
 
   async function loadCoverage(provinceName: string) {
     try {
-      const provinceMap = LocalidadesService.localidadesMap[provinceName];
+      const provinceMap = await loadLocalidadesProvince(provinceName);
       if (!provinceMap) { setCoverageData([]); return; }
 
       const localDistricts: Omit<CoverageRow, "district_id">[] = [];

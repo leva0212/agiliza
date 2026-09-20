@@ -27,6 +27,12 @@ export const standardMrtHeadCellSx = {
   },
 } as const;
 
+// Keep text actions and multi-button groups visible, including after resizing.
+export const standardMrtActionColumnSizing = {
+  size: 200,
+  minSize: 200,
+} as const;
+
 export const standardMrtFeatures = {
   localization: MRT_Localization_ES,
   enableColumnActions: true,
@@ -40,6 +46,9 @@ export const standardMrtFeatures = {
   enableHiding: true,
   enableSorting: true,
   columnResizeMode: "onChange" as const,
+  displayColumnDefOptions: {
+    "mrt-row-actions": standardMrtActionColumnSizing,
+  },
   defaultColumn: {
     minSize: 110,
   },

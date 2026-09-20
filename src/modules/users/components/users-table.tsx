@@ -1,6 +1,6 @@
 "use client";
 
-import { standardMrtFeatures } from "@/shared/config/material-react-table";
+import { standardMrtActionColumnSizing, standardMrtFeatures } from "@/shared/config/material-react-table";
 
 import { User } from "@/modules/users/types/user";
 import { MaterialReactTable, MRT_ColumnDef } from "material-react-table";
@@ -199,6 +199,7 @@ const [
         accessorKey: "actions",
 
         header: "Acciones",
+        ...standardMrtActionColumnSizing,
 
         Cell: ({ row }) => (
           <div className="flex gap-2">

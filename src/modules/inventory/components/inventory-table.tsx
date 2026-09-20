@@ -1,6 +1,6 @@
 "use client";
 
-import { standardMrtFeatures } from "@/shared/config/material-react-table";
+import { standardMrtActionColumnSizing, standardMrtFeatures } from "@/shared/config/material-react-table";
 
 import { useMemo } from "react";
 
@@ -192,7 +192,7 @@ export function InventoryTable({
 
   header: "Acciones",
 
-  size: 140,
+  ...standardMrtActionColumnSizing,
 
   Cell: ({
     row,
