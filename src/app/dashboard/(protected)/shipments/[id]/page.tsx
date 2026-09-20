@@ -10,6 +10,7 @@ import { getShipmentContactMethods } from "@/modules/shipments/api/get-shipment-
 import { useState } from "react";
 import { updateShipmentStatus } from "@/modules/shipments/api/update-shipment-status";
 import { NavigationDialog } from "@/shared/components/navigation-dialog";
+import { formatElapsedTime } from "@/shared/utils/format-elapsed-time";
 import {
   Copy,
   XCircle,
@@ -297,8 +298,17 @@ export default function ShipmentDetailPage() {
             <div className="font-semibold text-sky-900 dark:text-sky-200">Ubicación compartida por el cliente</div>
             <div className="mt-1 break-all font-mono text-sm">{shipment.customer_latitude.toFixed(6)}, {shipment.customer_longitude.toFixed(6)}</div>
             {shipment.customer_location_accuracy_meters != null && <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Precisión aproximada: ±{Math.round(shipment.customer_location_accuracy_meters)} m</div>}
-            {shipment.customer_location_received_at && <div className="mt-1 text-xs text-slate-500">Recibida {new Date(shipment.customer_location_received_at).toLocaleString("es-CR")}</div>}
-            <button type="button" onClick={() => setCustomerNavigationOpen(true)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-sky-300 px-3 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-200 dark:hover:bg-sky-900"><MapPin size={17}/>Abrir ubicación</button>
+            {shipment.customer_location_received_at && (
+              <>
+                <div className="mt-1 text-xs text-slate-500">
+                  Recibida {new Date(shipment.customer_location_received_at).toLocaleString("es-CR")}
+                </div>
+                <div className="text-xs text-slate-500 first-letter:uppercase">
+                  {formatElapsedTime(shipment.customer_location_received_at)}
+                </div>
+              </>
+            )}
+            <button type="button" onClick={() => setCustomerNavigationOpen(true)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-green-800 bg-green-800 px-3 py-2 text-sm font-semibold text-white hover:bg-green-900"><MapPin size={17} className="text-red-400"/>Abrir ubicación</button>
           </div>
         )}
         <div className="border rounded-xl p-3">
