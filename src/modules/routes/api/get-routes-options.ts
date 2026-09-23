@@ -16,7 +16,8 @@ export async function getRoutesOptions() {
 
     .select(`
       id,
-      name
+      name,
+      active
     `)
 
     .order(

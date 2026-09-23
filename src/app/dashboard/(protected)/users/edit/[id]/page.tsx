@@ -42,7 +42,6 @@ export default function EditUserPage() {
   const [selectedRoutes, setSelectedRoutes] = useState<RouteOption[]>([]);
   const [routeDialogOpen, setRouteDialogOpen] = useState(false);
 
-  const [courierId, setCourierId] = useState<string | null>(null);
   const router = useRouter();
   const [propagateOpen, setPropagateOpen] = useState(false);
 
@@ -177,7 +176,6 @@ export default function EditUserPage() {
 
         const courierIdValue = await getCourierIdByProfileId(id);
 
-        setCourierId(courierIdValue);
 
         let routeIds: string[] = [];
 
@@ -259,13 +257,15 @@ export default function EditUserPage() {
 
         selectedPermissions,
       );
-      if (courierId) {
-        await saveCourierRoutes(
-          courierId,
-
-          selectedRoutes.map((route) => route.id),
-        );
+      // El usuario puede haberse habilitado como mensajero en este mismo guardado.
+      const savedCourierId = await getCourierIdByProfileId(id);
+      const expectedRouteIds: string[] = JSON.parse(initialFormState).selectedRoutes;
+      const nextRouteIds = selectedRoutes.map((route) => route.id);
+      if (savedCourierId && [...expectedRouteIds].sort().join() !== [...nextRouteIds].sort().join()) {
+        await saveCourierRoutes(savedCourierId, nextRouteIds, expectedRouteIds);
       }
+      await queryClient.invalidateQueries({ queryKey: ["route-couriers"] });
+      await queryClient.invalidateQueries({ queryKey: ["routes"] });
 
       await queryClient.invalidateQueries({
         queryKey: ["users"],
@@ -579,6 +579,7 @@ export default function EditUserPage() {
 
                     <button
                       type="button"
+                      disabled={!active || saving}
                       onClick={() => setRouteDialogOpen(true)}
                       className="
           bg-blue-600
@@ -592,6 +593,7 @@ export default function EditUserPage() {
                     </button>
                   </div>
 
+                  <p className="text-sm text-slate-500">Al desactivar el mensajero se conservan sus rutas, pero dejan de contar como asignaciones vigentes. Los cambios no reasignan envíos existentes.</p>
                   <div className="w-full overflow-x-auto">
                     <CourierRoutesTable
                       data={selectedRoutes}

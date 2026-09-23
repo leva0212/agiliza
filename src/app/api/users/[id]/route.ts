@@ -33,6 +33,12 @@ export async function PUT(
       );
     }
 
+    const { data: actor, error: actorError } = await supabaseAdmin
+      .from("profiles").select("role, active").eq("id", user.id).single();
+    if (actorError || actor?.active !== true || actor.role !== "super_admin") {
+      return Response.json({ message: "Solo un administrador activo puede modificar usuarios." }, { status: 403 });
+    }
+
     const { id } = await params;
 
     const body = await request.json();
@@ -139,50 +145,16 @@ export async function PUT(
         },
       );
     }
-    const { data: courier } = await supabaseAdmin
-
-      .from("couriers")
-
-      .select("id")
-
-      .eq("profile_id", id)
-
-      .maybeSingle();
-
-    if (can_deliver) {
-      if (courier) {
-        await supabaseAdmin
-
-          .from("couriers")
-
-          .update({
-            active: true,
-          })
-
-          .eq("id", courier.id);
-      } else {
-        await supabaseAdmin
-
-          .from("couriers")
-
-          .insert({
-            profile_id: id,
-
-            active: true,
-          });
-      }
-    } else {
-      if (courier) {
-        await supabaseAdmin
-
-          .from("couriers")
-
-          .update({
-            active: false,
-          })
-
-          .eq("id", courier.id);
-      }
+    // Un perfil tiene un único registro courier; desactivar conserva sus vínculos.
+    const { data: courier, error: courierLookupError } = await supabaseAdmin
+      .from("couriers").select("id").eq("profile_id", id).maybeSingle();
+    if (courierLookupError) throw courierLookupError;
+    if (can_deliver || courier) {
+      const { error: courierError } = await supabaseAdmin.from("couriers").upsert({
+        profile_id: id,
+        active: active === true && can_deliver === true,
+      }, { onConflict: "profile_id" });
+      if (courierError) throw courierError;
     }
 
     return Response.json({

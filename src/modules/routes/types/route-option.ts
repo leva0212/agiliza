@@ -4,4 +4,6 @@ export type RouteOption = {
 
   name: string;
 
+  active?: boolean | null;
+
 };

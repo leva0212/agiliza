@@ -73,7 +73,7 @@ export function RouteSearchDialog({
           await getRoutesOptions();
 
         setRoutes(
-          result,
+          result.filter((route) => route.active === true),
         );
 
       } finally {

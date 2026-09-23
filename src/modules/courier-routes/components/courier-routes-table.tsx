@@ -29,6 +29,7 @@ export function CourierRoutesTable({
         header: "Ruta",
 
         size: 400,
+        Cell: ({ row }) => `${row.original.name}${row.original.active !== true ? " (inactiva)" : ""}`,
       },
     ],
     [],

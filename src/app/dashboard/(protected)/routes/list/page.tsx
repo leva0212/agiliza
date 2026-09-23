@@ -2,7 +2,11 @@
 
 import { standardMrtFeatures } from "@/shared/config/material-react-table";
 
-import { Plus } from "lucide-react";
+import { RouteCouriersDialog } from "@/modules/courier-routes/components/route-couriers-dialog";
+import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
+
+import { Motorbike, Plus } from "lucide-react";
+import { IconButton, Tooltip } from "@mui/material";
 import { useMemo, useState } from "react";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
 import { useRouter } from "next/navigation";
@@ -22,11 +26,15 @@ type RouteItem = {
 
   estimated_hours: number;
 
+  courier_names: string;
+
   active: boolean;
 };
 
 export default function RoutesListPage() {
   const router = useRouter();
+  const { data: profile } = useCurrentProfile();
+  const [assignmentRoute, setAssignmentRoute] = useState<RouteItem | null>(null);
 
   const [routeToDelete, setRouteToDelete] = useState<string | null>(null);
 
@@ -106,6 +114,12 @@ export default function RoutesListPage() {
 
 
       {
+        accessorKey: "courier_names",
+        header: "Mensajeros asociados",
+        size: 300,
+        Cell: ({ cell }) => cell.getValue<string>() || "Sin mensajeros asignados",
+      },
+      {
         accessorKey: "active",
 
         header: "Estado",
@@ -138,6 +152,14 @@ export default function RoutesListPage() {
           rowCount={routesResponse?.total || 0}
           enableRowActions
           positionActionsColumn="last"
+          displayColumnDefOptions={{
+            ...standardMrtFeatures.displayColumnDefOptions,
+            "mrt-row-actions": {
+              ...standardMrtFeatures.displayColumnDefOptions["mrt-row-actions"],
+              size: 260,
+              minSize: 260,
+            },
+          }}
           pageCount={Math.ceil(
   (routesResponse?.total || 0) /
   pagination.pageSize
@@ -150,7 +172,27 @@ export default function RoutesListPage() {
             isLoading,
           }}
           renderRowActions={({ row }) => (
-            <div className="flex gap-2">
+            <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+              {profile?.active && profile.role === "super_admin" && (
+                <Tooltip title="Asignar mensajeros" arrow>
+                  <IconButton
+                    aria-label={`Asignar mensajeros a ${row.original.name}`}
+                    onClick={() => setAssignmentRoute(row.original)}
+                    color="success"
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      border: "1px solid",
+                      borderColor: "success.main",
+                      bgcolor: "action.hover",
+                      "&:hover": { bgcolor: "action.selected" },
+                    }}
+                  >
+                    <Motorbike size={22} />
+                  </IconButton>
+                </Tooltip>
+              )}
               {/* EDITAR */}
 
               <button
@@ -188,6 +230,8 @@ export default function RoutesListPage() {
           )}
         />
       </div>
+
+      {assignmentRoute && <RouteCouriersDialog key={assignmentRoute.id} route={assignmentRoute} onClose={() => setAssignmentRoute(null)} />}
 
       {/* MODAL */}
 
