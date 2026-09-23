@@ -10,6 +10,7 @@ export async function getRouteById(
         id,
         name,
         estimated_hours,
+        coverage_active,
 
         route_visit_days (
           day

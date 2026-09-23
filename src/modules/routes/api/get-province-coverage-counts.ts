@@ -1,36 +1,18 @@
-import { createClient } from "@/lib/supabase/client";
-
 export async function getProvinceCoverageCounts(
 
   provinceName: string
 
 ) {
-  const supabase = createClient();
-  const {
-    data,
-
-    error,
-  } = await supabase.rpc(
-
-    "get_province_coverage_counts",
-
-    {
-
-      p_province:
-        provinceName,
-
-    }
-
+  const response = await fetch(
+    `/api/coverage/province?province=${encodeURIComponent(provinceName)}`,
+    { cache: "no-store" },
   );
 
-  if (
-    error
-  ) {
-    throw error;
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "No fue posible consultar la cobertura.");
   }
 
-  return (
-    data || []
-  );
-
+  return data;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Copy, MapPinned } from "lucide-react";
+import { Copy, MapPinned, Power, Save, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { UiMessage } from "@/shared/components/ui-message";
@@ -19,6 +19,8 @@ import { CoverageGroupedTable } from "@/modules/routes/components/coverage-group
 import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 import { LocalidadesService } from "@/services/localidades_service";
 import { createClient } from "@/lib/supabase/client";
+import { RouteCoverageProgressDialog } from "@/modules/routes/components/route-coverage-progress-dialog";
+import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
 
 export default function RoutesPage() {
   const supabase = createClient();
@@ -189,6 +191,12 @@ export default function RoutesPage() {
     routeName,
     setRouteName
   ] = useState("");
+
+  const [coverageActive, setCoverageActive] = useState(true);
+  const [coverageChangeOpen, setCoverageChangeOpen] = useState(false);
+  const [coverageProgressOpen, setCoverageProgressOpen] = useState(false);
+  const [coverageProgressStage, setCoverageProgressStage] = useState<"checking" | "updating" | "verifying">("checking");
+  const [configuredNeighborhoods, setConfiguredNeighborhoods] = useState(0);
 
 
   // ======================================
@@ -546,6 +554,8 @@ export default function RoutesPage() {
         setRouteName(
           route.name || ""
         );
+        setCoverageActive(route.coverage_active !== false);
+        setConfiguredNeighborhoods(neighborhoodIds.length);
 
 
         // =====================
@@ -1618,6 +1628,57 @@ export default function RoutesPage() {
 
 
 
+  async function changeCoverageActive() {
+    if (!routeId) return;
+
+    setCoverageChangeOpen(false);
+    setCoverageProgressOpen(true);
+    setCoverageProgressStage("checking");
+
+    try {
+      const stateResponse = await fetch(`/api/routes/${routeId}/coverage`, { cache: "no-store" });
+      const state = await stateResponse.json();
+      if (!stateResponse.ok) throw new Error(state.message || "No fue posible comprobar la cobertura.");
+
+      setConfiguredNeighborhoods(state.configuredNeighborhoods);
+      setCoverageProgressStage("updating");
+
+      const response = await fetch(`/api/routes/${routeId}/coverage`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coverageActive: !coverageActive }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "No fue posible actualizar la cobertura.");
+
+      setCoverageProgressStage("verifying");
+      const verification = await fetch(`/api/routes/${routeId}/coverage`, { cache: "no-store" });
+      const verified = await verification.json();
+      if (!verification.ok || verified.coverageActive !== data.coverageActive) {
+        throw new Error(verified.message || "No fue posible verificar la cobertura.");
+      }
+
+      setCoverageActive(data.coverageActive);
+      setConfiguredNeighborhoods(data.configuredNeighborhoods);
+      setUiMessage({
+        open: true,
+        type: "success",
+        title: data.coverageActive ? "Cobertura activada" : "Cobertura desactivada",
+        message: data.coverageActive
+          ? "La cobertura de la ruta vuelve a mostrarse."
+          : `Los ${data.configuredNeighborhoods} barrios configurados ya no se mostrarán con cobertura.`,
+      });
+    } catch (error) {
+      setUiMessage({
+        open: true,
+        type: "error",
+        title: "No fue posible actualizar la cobertura",
+        message: error instanceof Error ? error.message : "Intente nuevamente.",
+      });
+    } finally {
+      setCoverageProgressOpen(false);
+    }
+  }
   async function handleViewDistrict(row: any) {
     if (!routeId) return;
 
@@ -1973,7 +2034,7 @@ export default function RoutesPage() {
           <button
             type="button"
             onClick={handleSaveRoute}
-            className="bg-black text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity"
+            className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 transition-colors"
           >
             Guardar Ruta
           </button>
@@ -1985,6 +2046,21 @@ export default function RoutesPage() {
           >
             Limpiar
           </button>
+
+          {routeId && (
+            <button
+              type="button"
+              onClick={() => setCoverageChangeOpen(true)}
+              className={`inline-flex items-center gap-2 rounded-xl border px-6 py-3 font-medium transition-colors ${
+                coverageActive
+                  ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-950/70"
+                  : "border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70"
+              }`}
+            >
+              <Power size={18} />
+              {coverageActive ? "Desactivar esta ruta" : "Activar esta ruta"}
+            </button>
+          )}
         </div>
 
         {/* TABLA DE COBERTURA */}
@@ -2049,6 +2125,41 @@ export default function RoutesPage() {
         message={uiMessage.message}
         type={uiMessage.type}
         onClose={() => setUiMessage((prev) => ({ ...prev, open: false }))}
+      />
+
+      <UiMessage
+        open={coverageChangeOpen}
+        type={coverageActive ? "danger" : "question"}
+        title={coverageActive ? "Desactivar cobertura de la ruta" : "Activar cobertura de la ruta"}
+        message={coverageActive
+          ? "Los barrios y distritos configurados dejarán de aparecer con cobertura. La configuración se conservará para poder reactivarla después."
+          : "Los barrios y distritos configurados volverán a aparecer con cobertura."}
+        confirmText={coverageActive ? "Desactivar cobertura" : "Activar cobertura"}
+        cancelText="Cancelar"
+        onClose={() => setCoverageChangeOpen(false)}
+        onConfirm={() => void changeCoverageActive()}
+      />
+
+      <AppBarActions>
+        <AppBarActionButton
+          label="Guardar ruta"
+          tone="success"
+          onClick={handleSaveRoute}
+        >
+          <Save size={19} />
+        </AppBarActionButton>
+        <AppBarActionButton
+          label="Cancelar y volver"
+          tone="neutral"
+          onClick={() => router.back()}
+        >
+          <X size={19} />
+        </AppBarActionButton>
+      </AppBarActions>
+      <RouteCoverageProgressDialog
+        open={coverageProgressOpen}
+        stage={coverageProgressStage}
+        configuredNeighborhoods={configuredNeighborhoods}
       />
     </div>
   );
