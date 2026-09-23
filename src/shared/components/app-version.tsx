@@ -1,5 +1,7 @@
 "use client";
 
+import { formatElapsedTime } from "@/shared/utils/format-elapsed-time";
+
 type AppVersionProps = {
   showUpdateTooltip?: boolean;
 };
@@ -37,6 +39,10 @@ export function AppVersion({ showUpdateTooltip = false }: AppVersionProps) {
       )
       : "No disponible";
 
+  const relativeBuildDate = buildDate && !Number.isNaN(new Date(buildDate).getTime())
+    ? formatElapsedTime(buildDate)
+    : "no disponible";
+
   const versionLabel = (
     <span className="text-xs text-gray-500 opacity-80">
       Versión: {shortVersion}
@@ -49,6 +55,9 @@ export function AppVersion({ showUpdateTooltip = false }: AppVersionProps) {
         {versionLabel}
         <span className="text-[10px] text-gray-500 opacity-80">
           Fecha versión: {formattedBuildDate}
+        </span>
+        <span className="text-[10px] text-gray-500 opacity-80">
+          Última actualización de software: {relativeBuildDate}
         </span>
       </span>
     );
