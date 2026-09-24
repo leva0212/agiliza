@@ -3,9 +3,10 @@
 import { standardMrtFeatures } from "@/shared/config/material-react-table";
 
 import { RouteCouriersDialog } from "@/modules/courier-routes/components/route-couriers-dialog";
+import { RouteDeleteDialog } from "@/modules/routes/components/route-delete-dialog";
 import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 
-import { Motorbike, Plus } from "lucide-react";
+import { Motorbike, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import { IconButton, Tooltip } from "@mui/material";
 import { useMemo, useState } from "react";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
@@ -17,6 +18,8 @@ import { AppBarActionLink, AppBarActions } from "@/shared/components/app-bar-act
 import { UiMessage } from "@/shared/components/ui-message";
 
 import { deleteRoute } from "@/modules/routes/api/delete-route";
+import { getRouteDeletionSummary } from "@/modules/routes/api/get-route-deletion-summary";
+import { setRouteActive } from "@/modules/routes/api/set-route-active";
 import { useRoutes } from "@/modules/routes/hooks/use-routes";
 
 type RouteItem = {
@@ -37,6 +40,8 @@ export default function RoutesListPage() {
   const [assignmentRoute, setAssignmentRoute] = useState<RouteItem | null>(null);
 
   const [routeToDelete, setRouteToDelete] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string; rateCount: number } | null>(null);
+  const [routeToToggle, setRouteToToggle] = useState<RouteItem | null>(null);
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -68,42 +73,71 @@ export default function RoutesListPage() {
     pagination.pageSize,
   );
 
-  async function handleDelete() {
-    if (!routeToDelete) {
-      return;
+  async function requestDelete(route: RouteItem) {
+    try {
+      const summary = await getRouteDeletionSummary(route.id);
+      setDeleteDialog({ id: route.id, name: route.name, rateCount: summary.courierDeliveryRates });
+    } catch (error) {
+      setUiMessage({
+        open: true,
+        type: "error",
+        title: "No fue posible revisar la ruta",
+        message: error instanceof Error ? error.message : "Intente nuevamente.",
+      });
     }
+  }
+  async function handleDelete(routeId: string | null, successorRouteId: string | null = null) {
+    if (!routeId) return;
 
     try {
-      await deleteRoute(routeToDelete);
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Routes] Solicitud de eliminación iniciada", { routeId, successorRouteId });
+      }
 
+      await deleteRoute(routeId, successorRouteId);
       await refetch();
 
       setUiMessage({
         open: true,
-
         type: "success",
-
         title: "Ruta eliminada",
-
         message: "La ruta fue eliminada correctamente.",
       });
     } catch (error) {
-      console.error(error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("[Routes] Error al eliminar ruta", { routeId, successorRouteId, error });
+      }
 
       setUiMessage({
         open: true,
-
         type: "error",
-
         title: "Error",
-
-        message: "No fue posible eliminar la ruta.",
+        message: error instanceof Error ? error.message : "No fue posible eliminar la ruta.",
       });
     } finally {
       setRouteToDelete(null);
     }
   }
+  async function handleToggleActive() {
+    if (!routeToToggle) return;
 
+    try {
+      const route = await setRouteActive(routeToToggle.id, !routeToToggle.active);
+      await refetch();
+      setUiMessage({
+        open: true,
+        type: "success",
+        title: route.active ? "Ruta activada" : "Ruta desactivada",
+        message: route.active
+          ? "La ruta vuelve a participar en la cobertura y en los envíos nuevos."
+          : "La configuración se conserva, pero la ruta deja de participar en la cobertura y en los envíos nuevos.",
+      });
+    } catch (error) {
+      setUiMessage({ open: true, type: "error", title: "No fue posible actualizar la ruta", message: error instanceof Error ? error.message : "Intente nuevamente." });
+    } finally {
+      setRouteToToggle(null);
+    }
+  }
   const columns = useMemo<MRT_ColumnDef<RouteItem>[]>(
     () => [
       {
@@ -193,45 +227,57 @@ export default function RoutesListPage() {
                   </IconButton>
                 </Tooltip>
               )}
+              {profile?.active && profile.role === "super_admin" && (
+                <Tooltip title={row.original.active ? "Desactivar ruta" : "Activar ruta"} arrow>
+                  <IconButton
+                    aria-label={row.original.active ? `Desactivar ${row.original.name}` : `Activar ${row.original.name}`}
+                    onClick={() => {
+                      setRouteToToggle(row.original);
+                      setUiMessage({
+                        open: true,
+                        type: "question",
+                        title: row.original.active ? "Desactivar ruta" : "Activar ruta",
+                        message: row.original.active
+                          ? "La ruta dejará de contar como cobertura y no se ofrecerá para envíos nuevos. Sus barrios y configuración se conservarán."
+                          : "La ruta volverá a contar como cobertura y estará disponible para envíos nuevos.",
+                      });
+                    }}
+                    sx={{ width: 40, height: 40, borderRadius: 2, border: "1px solid", borderColor: row.original.active ? "warning.main" : "success.main", color: row.original.active ? "warning.main" : "success.main", bgcolor: "action.hover", "&:hover": { bgcolor: "action.selected" } }}
+                  >
+                    <Power size={20} />
+                  </IconButton>
+                </Tooltip>
+              )}
               {/* EDITAR */}
 
-              <button
-                type="button"
-                onClick={() =>
-                  router.push(`/dashboard/routes?id=${row.original.id}`)
-                }
-                className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
-              >
-                Editar
-              </button>
+              <Tooltip title="Editar ruta" arrow>
+                <IconButton
+                  aria-label={`Editar ${row.original.name}`}
+                  onClick={() => router.push(`/dashboard/routes?id=${row.original.id}`)}
+                  sx={{ width: 40, height: 40, borderRadius: 2, border: "1px solid", borderColor: "primary.main", color: "primary.main", bgcolor: "action.hover", "&:hover": { bgcolor: "action.selected" } }}
+                >
+                  <Pencil size={20} />
+                </IconButton>
+              </Tooltip>
 
               {/* ELIMINAR */}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setRouteToDelete(row.original.id);
-
-                  setUiMessage({
-                    open: true,
-
-                    type: "question",
-
-                    title: "Eliminar ruta",
-
-                    message: "¿Desea eliminar esta ruta?",
-                  });
-                }}
-                className="bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
-              >
-                Eliminar
-              </button>
+              <Tooltip title="Eliminar ruta" arrow>
+                <IconButton
+                  aria-label={`Eliminar ${row.original.name}`}
+                  onClick={() => void requestDelete(row.original)}
+                  sx={{ width: 40, height: 40, borderRadius: 2, border: "1px solid", borderColor: "error.main", color: "error.main", bgcolor: "action.hover", "&:hover": { bgcolor: "action.selected" } }}
+                >
+                  <Trash2 size={20} />
+                </IconButton>
+              </Tooltip>
             </div>
           )}
         />
       </div>
 
       {assignmentRoute && <RouteCouriersDialog key={assignmentRoute.id} route={assignmentRoute} onClose={() => setAssignmentRoute(null)} />}
+      {deleteDialog && <RouteDeleteDialog routeId={deleteDialog.id} routeName={deleteDialog.name} rateCount={deleteDialog.rateCount} onClose={() => setDeleteDialog(null)} onConfirm={async (successorRouteId) => { await handleDelete(deleteDialog.id, successorRouteId); setDeleteDialog(null); }} />}
 
       {/* MODAL */}
 
@@ -248,7 +294,11 @@ export default function RoutesListPage() {
           }))
         }
         onConfirm={async () => {
-          await handleDelete();
+          if (routeToToggle) {
+            await handleToggleActive();
+          } else {
+            await handleDelete(routeToDelete);
+          }
 
           setUiMessage((prev) => ({
             ...prev,

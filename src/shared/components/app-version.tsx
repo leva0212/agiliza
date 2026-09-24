@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { formatElapsedTime } from "@/shared/utils/format-elapsed-time";
 
 type AppVersionProps = {
@@ -7,6 +8,11 @@ type AppVersionProps = {
 };
 
 export function AppVersion({ showUpdateTooltip = false }: AppVersionProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const version =
     process.env
@@ -54,10 +60,10 @@ export function AppVersion({ showUpdateTooltip = false }: AppVersionProps) {
       <span className="flex max-w-full flex-col items-center gap-0.5 px-2 text-center leading-tight">
         {versionLabel}
         <span className="text-[10px] text-gray-500 opacity-80">
-          Fecha versión: {formattedBuildDate}
+          Fecha versión: {isMounted ? formattedBuildDate : "Cargando..."}
         </span>
         <span className="text-[10px] text-gray-500 opacity-80">
-          Última actualización de software: {relativeBuildDate}
+          Última actualización de software: {isMounted ? relativeBuildDate : "Cargando..."}
         </span>
       </span>
     );

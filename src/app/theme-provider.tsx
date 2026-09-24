@@ -21,12 +21,12 @@ function getSystemTheme(): ResolvedTheme {
 }
 
 function getSavedThemeMode(): ThemeMode {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
 
   const savedMode = localStorage.getItem(STORAGE_KEY);
   return savedMode === "light" || savedMode === "dark" || savedMode === "system"
     ? savedMode
-    : "light";
+    : "dark";
 }
 
 function applyTheme(mode: ThemeMode, systemTheme: ResolvedTheme) {
@@ -40,7 +40,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   // Mantiene idéntico el primer render del servidor y el navegador.
   // El tema guardado se restaura después de hidratar; el script del layout
   // ya aplica la clase visual para evitar un destello de tema incorrecto.
-  const [mode, setModeState] = useState<ThemeMode>("light");
+  const [mode, setModeState] = useState<ThemeMode>("dark");
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>("light");
   const initializedRef = useRef(false);
   const resolvedTheme = mode === "system" ? systemTheme : mode;

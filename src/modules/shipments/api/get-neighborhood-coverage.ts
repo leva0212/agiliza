@@ -16,6 +16,8 @@ type RouteData = {
   id: string;
 
   name: string;
+
+  active: boolean;
 };
 
 export async function getNeighborhoodCoverage(
@@ -38,6 +40,8 @@ export async function getNeighborhoodCoverage(
           estimated_hours,
           company_delivery_charge,
           company_failed_charge
+        ,
+          active
         )
       `,
     )
@@ -106,7 +110,7 @@ if (
       Array.isArray(row.routes) ? row.routes[0] : row.routes
     ) as RouteData | null;
 
-    if (!route) {
+    if (!route || route.active !== true) {
       return [];
     }
 

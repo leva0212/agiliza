@@ -64,7 +64,7 @@ type RootLayoutProps = Readonly<{
 
 const themeInitializationScript = `(() => {
   try {
-    const mode = localStorage.getItem("agiliza-theme") || "light";
+    const mode = localStorage.getItem("agiliza-theme") || "dark";
     const isDark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.classList.toggle("dark", isDark);
     document.documentElement.dataset.theme = mode;
