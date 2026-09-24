@@ -74,7 +74,7 @@ export function NavigationDialog({
             className="
       fixed
       inset-0
-      z-[60]
+      z-[600]
       bg-black/40
       backdrop-blur-sm
       flex

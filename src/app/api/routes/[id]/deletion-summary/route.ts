@@ -16,12 +16,13 @@ export async function GET(_request: NextRequest, context: Context) {
   }
 
   const { id } = await context.params;
-  const [{ data: route, error: routeError }, { count, error: ratesError }] = await Promise.all([
+  const [{ data: route, error: routeError }, { count: rateCount, error: ratesError }, { count: shipmentCount, error: shipmentsError }] = await Promise.all([
     supabaseAdmin.from("routes").select("id, name").eq("id", id).maybeSingle(),
     supabaseAdmin.from("courier_delivery_rates").select("id", { count: "exact", head: true }).eq("route_id", id),
+    supabaseAdmin.from("shipments").select("id", { count: "exact", head: true }).eq("route_id", id),
   ]);
-  if (routeError || ratesError) return Response.json({ message: routeError?.message ?? ratesError?.message ?? "No fue posible revisar la ruta." }, { status: 400 });
+  if (routeError || ratesError || shipmentsError) return Response.json({ message: routeError?.message ?? ratesError?.message ?? shipmentsError?.message ?? "No fue posible revisar la ruta." }, { status: 400 });
   if (!route) return Response.json({ message: "Ruta no encontrada." }, { status: 404 });
 
-  return Response.json({ courierDeliveryRates: count ?? 0 });
+  return Response.json({ courierDeliveryRates: rateCount ?? 0, shipments: shipmentCount ?? 0 });
 }

@@ -40,7 +40,7 @@ export default function RoutesListPage() {
   const [assignmentRoute, setAssignmentRoute] = useState<RouteItem | null>(null);
 
   const [routeToDelete, setRouteToDelete] = useState<string | null>(null);
-  const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string; rateCount: number } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ id: string; name: string; rateCount: number; shipmentCount: number } | null>(null);
   const [routeToToggle, setRouteToToggle] = useState<RouteItem | null>(null);
 
   const [pagination, setPagination] = useState({
@@ -76,7 +76,7 @@ export default function RoutesListPage() {
   async function requestDelete(route: RouteItem) {
     try {
       const summary = await getRouteDeletionSummary(route.id);
-      setDeleteDialog({ id: route.id, name: route.name, rateCount: summary.courierDeliveryRates });
+      setDeleteDialog({ id: route.id, name: route.name, rateCount: summary.courierDeliveryRates, shipmentCount: summary.shipments });
     } catch (error) {
       setUiMessage({
         open: true,
@@ -277,7 +277,7 @@ export default function RoutesListPage() {
       </div>
 
       {assignmentRoute && <RouteCouriersDialog key={assignmentRoute.id} route={assignmentRoute} onClose={() => setAssignmentRoute(null)} />}
-      {deleteDialog && <RouteDeleteDialog routeId={deleteDialog.id} routeName={deleteDialog.name} rateCount={deleteDialog.rateCount} onClose={() => setDeleteDialog(null)} onConfirm={async (successorRouteId) => { await handleDelete(deleteDialog.id, successorRouteId); setDeleteDialog(null); }} />}
+      {deleteDialog && <RouteDeleteDialog routeId={deleteDialog.id} routeName={deleteDialog.name} rateCount={deleteDialog.rateCount} shipmentCount={deleteDialog.shipmentCount} onClose={() => setDeleteDialog(null)} onConfirm={async (successorRouteId) => { await handleDelete(deleteDialog.id, successorRouteId); setDeleteDialog(null); }} />}
 
       {/* MODAL */}
 

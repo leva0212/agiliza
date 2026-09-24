@@ -18,10 +18,6 @@ type Params = {
     days: string[];
   }[];
 
-  company_delivery_charge: number;
-  courier_delivery_pay: number;
-  company_failed_charge: number;
-  courier_failed_pay: number;
 
   // mantener porque protege la cobertura
   loadedDistrictIds:number[];
@@ -33,10 +29,6 @@ export async function saveRoute({
   routeName,
   selectedNeighborhoods,
 
-  company_delivery_charge,
-  courier_delivery_pay,
-  company_failed_charge,
-  courier_failed_pay,
 
   districtDeliveryTimes=[],
   districtVisitDays=[],
@@ -58,12 +50,7 @@ export async function saveRoute({
     .from("routes")
     .update({
 
-      name:routeName,
-
-      company_delivery_charge,
-      courier_delivery_pay,
-      company_failed_charge,
-      courier_failed_pay,
+      name:routeName
 
     })
     .eq(
@@ -255,12 +242,7 @@ export async function saveRoute({
     )
     .insert({
 
-      name:routeName,
-
-      company_delivery_charge,
-      courier_delivery_pay,
-      company_failed_charge,
-      courier_failed_pay,
+      name:routeName
 
     })
     .select()

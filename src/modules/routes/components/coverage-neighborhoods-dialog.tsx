@@ -144,7 +144,8 @@ export function CoverageNeighborhoodsDialog({
               <div
                 className="
                 text-xs
-                text-gray-500
+                text-slate-500
+                dark:text-slate-400
               "
               >
                 {category}
@@ -162,7 +163,7 @@ export function CoverageNeighborhoodsDialog({
           className="
           p-2
           rounded-lg
-          hover:bg-sky-100
+          hover:bg-sky-950/70
           transition-colors
           "
           onClick={() => {
@@ -212,7 +213,7 @@ export function CoverageNeighborhoodsDialog({
           <MapPin
             size={30}
             className="
-            text-blue-700
+            text-sky-300
           "
           />
 
@@ -253,7 +254,7 @@ export function CoverageNeighborhoodsDialog({
               ...standardMrtHeadCellSx,
 
               background:
-                "#ecfdf5",
+                "#052e16 !important",
 
               color:
                 "#15803d",
@@ -290,7 +291,7 @@ export function CoverageNeighborhoodsDialog({
               ...standardMrtHeadCellSx,
 
               background:
-                "#fef2f2",
+                "#450a0a !important",
 
               color:
                 "#dc2626",
@@ -323,7 +324,7 @@ export function CoverageNeighborhoodsDialog({
         className="
         fixed
         inset-0
-        bg-blue-950/30
+        bg-slate-950/70
         backdrop-blur-sm
         z-50
         flex
@@ -347,18 +348,18 @@ export function CoverageNeighborhoodsDialog({
 
         <div
           className="
-          bg-gradient-to-b
-          from-white
-          to-sky-50
+          bg-slate-900
           w-full
           max-w-[520px]
-          rounded-3xl
+          rounded-[26px]
+          overflow-hidden
           max-h-[90dvh]
           flex
           flex-col
           shadow-2xl
           border
-          border-sky-200
+          border-slate-700
+          dark:border-slate-700
         "
         >
 
@@ -367,8 +368,8 @@ export function CoverageNeighborhoodsDialog({
             px-5
             py-4
             border-b
-            border-sky-100
-            bg-white/60
+            border-slate-700
+            bg-slate-900
             backdrop-blur-sm
             flex
             items-center
@@ -386,8 +387,8 @@ export function CoverageNeighborhoodsDialog({
                 px-3
                 py-1
                 rounded-full
-                bg-sky-100
-                text-sky-700
+                bg-sky-950/70
+                text-sky-300
                 text-xs
                 font-semibold
                 mb-2
@@ -400,7 +401,7 @@ export function CoverageNeighborhoodsDialog({
                 className="
                 font-bold
                 text-lg
-                text-blue-900
+                text-sky-100
               "
               >
                 {title}
@@ -414,9 +415,9 @@ export function CoverageNeighborhoodsDialog({
               w-8
               h-8
               rounded-full
-              hover:bg-sky-100
+              hover:bg-sky-950/70
               text-slate-500
-              hover:text-blue-900
+              hover:text-sky-100
             "
             >
               ✕
@@ -428,6 +429,7 @@ export function CoverageNeighborhoodsDialog({
             className="
             overflow-auto
             flex-1
+            bg-slate-950/40
             p-2
           "
           >
@@ -449,6 +451,8 @@ export function CoverageNeighborhoodsDialog({
             px-4
             py-4
             border-t
+            border-slate-700
+            bg-slate-900
             flex
             justify-end
           "
@@ -465,7 +469,7 @@ export function CoverageNeighborhoodsDialog({
               text-white
               px-6
               py-2.5
-              rounded-2xl
+              rounded-xl
               font-medium
             "
             >

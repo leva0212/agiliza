@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Copy, MapPinned } from "lucide-react";
+import { CheckCircle2, MapPinned, Power, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { UiMessage } from "@/shared/components/ui-message";
+import { NavigationDialog } from "@/shared/components/navigation-dialog";
 import { getRouteById } from "@/modules/routes/api/get-route-by-id";
 import { saveRoute } from "@/modules/routes/api/save-route";
 import { getRouteDistrictCoverage } from "@/modules/routes/api/get-route-district-coverage";
@@ -19,9 +20,18 @@ import { CoverageGroupedTable } from "@/modules/routes/components/coverage-group
 import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 import { LocalidadesService } from "@/services/localidades_service";
 import { createClient } from "@/lib/supabase/client";
+import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
+import { usePageCloseGuard } from "@/shared/components/page-close-guard";
+import { useCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
+import { setRouteActive } from "@/modules/routes/api/set-route-active";
+import { applyRouteBulkSchedule } from "@/modules/routes/api/apply-route-bulk-schedule";
+import { BulkRouteScheduleEditor } from "@/modules/routes/components/bulk-route-schedule-editor";
+import { BulkRouteCoverageEditor } from "@/modules/routes/components/bulk-route-coverage-editor";
+import { addRouteBulkCoverage } from "@/modules/routes/api/add-route-bulk-coverage";
 
 export default function RoutesPage() {
   const supabase = createClient();
+  const { data: profile } = useCurrentProfile();
   const DISTRICT_DAYS = [
 
     {
@@ -233,30 +243,13 @@ export default function RoutesPage() {
   >([]);
 
 
-  // ======================================
-  // Cobros
-  // ======================================
-
-  const [
-    companyDeliveryCharge,
-    setCompanyDeliveryCharge
-  ] = useState(0);
-
-  const [
-    courierDeliveryPay,
-    setCourierDeliveryPay
-  ] = useState(0);
-
-  const [
-    companyFailedCharge,
-    setCompanyFailedCharge
-  ] = useState(0);
-
-  const [
-    courierFailedPay,
-    setCourierFailedPay
-  ] = useState(0);
-
+  const [routeActive, setRouteActiveState] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [neighborhoodSearch, setNeighborhoodSearch] = useState("");
+  const [navigationData, setNavigationData] = useState<{ googleMaps: string; waze: string; coordinates?: string } | null>(null);
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  usePageCloseGuard(hasUnsavedChanges);
 
   // ======================================
   // Tabla
@@ -546,6 +539,7 @@ export default function RoutesPage() {
         setRouteName(
           route.name || ""
         );
+        setRouteActiveState(route.active !== false);
 
 
         // =====================
@@ -787,52 +781,6 @@ export default function RoutesPage() {
 
 
   // ======================================
-  // LIMPIAR
-  // ======================================
-
-  function handleClear() {
-
-    setSelectedProvince("");
-    setSelectedCanton("");
-
-    setSelectedDistrict(
-      null
-    );
-
-    setCantons([]);
-    setDistricts([]);
-    setNeighborhoods([]);
-
-    if (routeId)
-      return;
-
-    setRouteName("");
-
-    setSelectedNeighborhoods([]);
-
-    setCompanyDeliveryCharge(
-      0
-    );
-
-    setCourierDeliveryPay(
-      0
-    );
-
-    setCompanyFailedCharge(
-      0
-    );
-
-    setCourierFailedPay(
-      0
-    );
-
-    districtStateRef.current =
-      {};
-
-  }
-
-
-  // ======================================
   // PROVINCIA
   // ======================================
 
@@ -890,6 +838,7 @@ export default function RoutesPage() {
     max: number
 
   ) {
+    setHasUnsavedChanges(true);
 
     if (
       !selectedDistrict
@@ -941,6 +890,7 @@ export default function RoutesPage() {
   function toggleDistrictVisitDay(
     day: string
   ) {
+    setHasUnsavedChanges(true);
 
     if (
       !selectedDistrict
@@ -1277,6 +1227,7 @@ export default function RoutesPage() {
   // ======================================
 
   function handleToggleDistrict() {
+    setHasUnsavedChanges(true);
 
     if (
       !selectedDistrict
@@ -1389,6 +1340,7 @@ export default function RoutesPage() {
   function toggleNeighborhood(
     neighborhoodId: number
   ) {
+    setHasUnsavedChanges(true);
 
     if (
       !selectedDistrict
@@ -1479,145 +1431,82 @@ export default function RoutesPage() {
   // ======================================
 
   async function handleSaveRoute() {
+    if (!routeName.trim()) {
+      setUiMessage({ open: true, type: "warning", title: "Validación", message: "Ingresa un nombre para la ruta." });
+      return;
+    }
+    if (selectedNeighborhoods.length === 0) {
+      setUiMessage({ open: true, type: "warning", title: "Validación", message: "Selecciona al menos un barrio con cobertura." });
+      return;
+    }
 
+    setIsSaving(true);
     try {
-
-      if (
-        !routeName.trim()
-      ) {
-
-        setUiMessage({
-
-          open: true,
-
-          type: "warning",
-
-          title: "Validación",
-
-          message:
-            "Debe ingresar un nombre"
-
-        });
-
-        return;
-
-      }
-
-
-      if (
-        selectedNeighborhoods.length === 0
-      ) {
-
-        setUiMessage({
-
-          open: true,
-
-          type: "warning",
-
-          title: "Validación",
-
-          message:
-            "Debe seleccionar barrios"
-
-        });
-
-        return;
-
-      }
-
-
-      const savedRouteId =
-
-        await saveRoute({
-
-          routeId,
-
-          routeName,
-
-          selectedNeighborhoods,
-
-          company_delivery_charge:
-            companyDeliveryCharge,
-
-          courier_delivery_pay:
-            courierDeliveryPay,
-
-          company_failed_charge:
-            companyFailedCharge,
-
-          courier_failed_pay:
-            courierFailedPay,
-
-          districtDeliveryTimes,
-
-          districtVisitDays,
-
-          loadedDistrictIds:
-            visitedDistricts
-
-        });
-
-      setUiMessage({
-
-        open: true,
-
-        type: "success",
-
-        title:
-
-          routeId
-            ? "Ruta actualizada"
-            : "Ruta creada",
-
-        message:
-          "Guardado correctamente"
-
+      const savedRouteId = await saveRoute({
+        routeId,
+        routeName,
+        selectedNeighborhoods,
+        districtDeliveryTimes,
+        districtVisitDays,
+        loadedDistrictIds: visitedDistricts,
       });
-
-
-      if (
-        !routeId
-      ) {
-
-        setTimeout(() => {
-
-          router.replace(
-
-            `/dashboard/routes?id=${savedRouteId}`
-
-          );
-
-        }, 1000);
-
-      }
-
+      setHasUnsavedChanges(false);
+      setUiMessage({ open: true, type: "success", title: routeId ? "Ruta actualizada" : "Ruta creada", message: "Los cambios se guardaron correctamente." });
+      if (!routeId) router.replace(`/dashboard/routes?id=${savedRouteId}`);
+    } catch (error) {
+      console.error("save route", error);
+      setUiMessage({ open: true, type: "error", title: "No fue posible guardar", message: error instanceof Error ? error.message : "Intenta nuevamente." });
+    } finally {
+      setIsSaving(false);
     }
-    catch (error) {
-
-      console.error(
-        error
-      );
-
-      setUiMessage({
-
-        open: true,
-
-        type: "error",
-
-        title: "Error",
-
-        message:
-          "No fue posible guardar"
-
-      });
-
-    }
-
   }
 
-
-
-
+  async function handleRouteActiveChange() {
+    if (!routeId || !profile?.active || profile.role !== "super_admin") return;
+    try {
+      const updated = await setRouteActive(routeId, !routeActive);
+      setRouteActiveState(updated.active);
+      setUiMessage({ open: true, type: "success", title: updated.active ? "Ruta activada" : "Ruta desactivada", message: updated.active ? "La ruta vuelve a participar en la cobertura." : "La configuración se conserva, pero deja de participar en cobertura." });
+    } catch (error) {
+      setUiMessage({ open: true, type: "error", title: "No fue posible actualizar el estado", message: error instanceof Error ? error.message : "Intenta nuevamente." });
+    }
+  }
+  async function handleBulkCoverage(districtIds: number[], neighborhoodIds: number[] = [], action: "add" | "remove" = "add") {
+    if (!routeId) return;
+    try {
+      const result = await addRouteBulkCoverage(routeId, districtIds, neighborhoodIds, action);
+      const [coverage, { data: allCoverage }] = await Promise.all([
+        getRouteDistrictCoverage(routeId),
+        supabase.from("route_coverage").select("neighborhood_id").eq("route_id", routeId).limit(15000),
+      ]);
+      setCoverageView(coverage || []); setCoverageTotal(coverage?.length || 0);
+      setSelectedNeighborhoods(Array.from(new Set(allCoverage?.map((item: any) => Number(item.neighborhood_id)) ?? [])));
+      setUiMessage({ open: true, type: "success", title: action === "add" ? "Cobertura agregada" : "Cobertura eliminada", message: action === "add" ? `Se agregaron ${result.added_neighborhoods ?? 0} barrios en ${result.affected_districts} distritos.` : `Se quitaron ${result.removed_neighborhoods ?? 0} barrios en ${result.affected_districts} distritos.` });
+    } catch (error) { setUiMessage({ open: true, type: "error", title: "No fue posible agregar cobertura", message: error instanceof Error ? error.message : "Intenta nuevamente." }); }
+  }
+  async function handleBulkSchedule(input: { districtIds: number[]; minHours: number; maxHours: number; days: string[] }) {
+    if (!routeId) return;
+    try {
+      const result = await applyRouteBulkSchedule({ routeId, ...input });
+      const selected = new Set(input.districtIds);
+      setCoverageView((previous) => previous.map((item: any) => selected.has(item.district_id) ? { ...item, min_hours: input.minHours, max_hours: input.minHours === 0 ? 0 : input.maxHours } : item));
+      setDistrictDeliveryTimes((previous) => {
+        const untouched = previous.filter((item) => !selected.has(item.district_id));
+        return [...untouched, ...input.districtIds.map((district_id) => ({ district_id, min_hours: input.minHours, max_hours: input.minHours === 0 ? 0 : input.maxHours }))];
+      });
+      setDistrictVisitDays((previous) => {
+        const untouched = previous.filter((item) => !selected.has(item.district_id));
+        return [...untouched, ...input.districtIds.map((district_id) => ({ district_id, days: input.days }))];
+      });
+      input.districtIds.forEach((districtId) => {
+        districtStateRef.current[districtId] = { ...districtStateRef.current[districtId], min_hours: input.minHours, max_hours: input.minHours === 0 ? 0 : input.maxHours, days: input.days };
+      });
+      setHasUnsavedChanges(false);
+      setUiMessage({ open: true, type: "success", title: "Configuración aplicada", message: `Se actualizaron ${result.updatedDistricts} distritos sin modificar sus barrios.` });
+    } catch (error) {
+      setUiMessage({ open: true, type: "error", title: "No fue posible aplicar la configuración", message: error instanceof Error ? error.message : "Intenta nuevamente." });
+    }
+  }
   async function handleViewDistrict(row: any) {
     if (!routeId) return;
 
@@ -1641,8 +1530,37 @@ export default function RoutesPage() {
 
   return (
     <div className="mx-auto w-full max-w-none px-0 py-3 sm:px-4 lg:max-w-6xl lg:p-6">
-      <div className="rounded-xl border bg-white px-3 py-4 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
+      <AppBarActions>
+        <AppBarActionButton label={isSaving ? "Guardando ruta" : "Guardar ruta"} tone="success" onClick={() => void handleSaveRoute()} disabled={isSaving || !hasUnsavedChanges}>
+          <Save size={19} />
+        </AppBarActionButton>
+      </AppBarActions>
+      <div className="rounded-2xl border bg-white px-3 py-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
+        <header className="mb-7 border-b border-slate-200 pb-5 dark:border-slate-700">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-sky-700 dark:text-sky-300">{routeId ? "Configuración de ruta" : "Nueva ruta"}</p>
+              <h1 className="mt-1 text-xl font-bold">{routeName.trim() || "Ruta sin nombre"}</h1>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Define barrios, tiempos de entrega y días de visita por distrito.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {routeId && <span className={`rounded-full px-3 py-1 text-xs font-semibold ${routeActive ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300" : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>{routeActive ? "Activa" : "Inactiva"}</span>}
+              {routeId && profile?.active && profile.role === "super_admin" && <button type="button" onClick={() => void handleRouteActiveChange()} className="inline-flex items-center gap-2 rounded-xl border border-amber-500 px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/30"><Power size={16} />{routeActive ? "Desactivar" : "Activar"}</button>}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border p-3 dark:border-slate-700"><p className="text-xs text-slate-500">Barrios cubiertos</p><p className="mt-1 text-lg font-bold">{selectedNeighborhoods.length}</p></div>
+            <div className="rounded-xl border p-3 dark:border-slate-700"><p className="text-xs text-slate-500">Distritos configurados</p><p className="mt-1 text-lg font-bold">{coverageView.length}</p></div>
+            <div className="col-span-2 rounded-xl border p-3 dark:border-slate-700 sm:col-span-1"><p className="text-xs text-slate-500">Estado</p><p className="mt-1 text-sm font-semibold">{isSaving ? "Guardando…" : hasUnsavedChanges ? "Cambios sin guardar" : "Guardado"}</p></div>
+          </div>
+        </header>
 
+        {routeId && provinces && <BulkRouteCoverageEditor provinces={provinces} coveredDistricts={coverageView} routeId={routeId} onApply={handleBulkCoverage} />}
+        {routeId && coverageView.length > 0 && (
+          <div className="mb-7">
+            <BulkRouteScheduleEditor data-testid="bulk-route-schedule" districts={coverageView} onApply={handleBulkSchedule} />
+          </div>
+        )}
         {/* NOMBRE */}
         <div className=" gap-4 mb-6 max-w-[300px]">
           <label>
@@ -1651,78 +1569,12 @@ export default function RoutesPage() {
           <input
             placeholder="Nombre de ruta"
             value={routeName}
-            onChange={(e) => setRouteName(e.target.value)}
+            onChange={(e) => { setRouteName(e.target.value); setHasUnsavedChanges(true); }}
           />
-        </div>
-
-        {/* <div className="grid md:grid-cols-2 gap-4 mb-6">
-          <input
-            placeholder="Nombre de ruta"
-            value={routeName}
-            onChange={(e) => setRouteName(e.target.value)}
-          />
-
-          <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium">Tiempo base:</label>
-            <select
-              value={defaultMinHours}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setDefaultMinHours(value);
-                if (value === 0) setDefaultMaxHours(0);
-              }}
-              className="max-w-[150px] border rounded px-2 py-1"
-            >
-              <option value={24}>24 horas</option>
-              <option value={48}>48 horas</option>
-              <option value={72}>72 horas</option>
-              <option value={0}>Cronograma</option>
-            </select>
-
-            {defaultMinHours !== 0 && (
-              <>
-                <span>a</span>
-                <select
-                  value={defaultMaxHours === 0 ? "" : defaultMaxHours}
-                  onChange={(e) => {
-                    const value =
-                      e.target.value === "" ? 0 : Number(e.target.value);
-                    setDefaultMaxHours(value);
-                  }}
-                  className="max-w-[150px] border rounded px-2 py-1"
-                >
-                  <option value="">Igual</option>
-                  <option value={24}>24 horas</option>
-                  <option value={48}>48 horas</option>
-                  <option value={72}>72 horas</option>
-                  <option value={96}>96 horas</option>
-                </select>
-              </>
-            )}
-          </div>
-        </div>*/}
-
-
-        {/* DÍAS BASE */}
-        {/*<div className="flex gap-2 flex-wrap mb-6">
-          {WEEK_DAYS.map((day) => (
-            <button
-              key={day.value}
-              type="button"
-              onClick={() => toggleDay(day.value)}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${selectedDays.includes(day.value)
-                ? "bg-violet-600 text-white border-violet-600"
-                : "bg-white hover:bg-violet-50"
-                }`}
-            >
-              {day.label}
-            </button>
-          ))}
-        </div>*/}
-
-        {/* SELECTS PROVINCIA / CANTÓN / DISTRITO */}
+        </div>{/* SELECTS PROVINCIA / CANTÓN / DISTRITO */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 max-w-[600px] md:grid-cols-2 gap-4">
+            <label className="grid gap-1 text-sm font-medium">Provincia
             <select
               value={selectedProvince}
               className="border max-w-[300px] rounded-lg p-2"
@@ -1745,7 +1597,9 @@ export default function RoutesPage() {
                 </option>
               ))}
             </select>
+            </label>
 
+            <label className="grid gap-1 text-sm font-medium">Cantón
             <select
               value={selectedCanton}
               className="border max-w-[300px] rounded-lg p-3"
@@ -1766,11 +1620,13 @@ export default function RoutesPage() {
                 </option>
               ))}
             </select>
+            </label>
           </div>
 
           {/* DISTRITO + HORAS + DÍAS */}
           <div className="border p-2 rounded-lg">
             <div className="flex flex-col md:flex-row md:items-end gap-2 rounded-lg p-4 flex-wrap">
+              <label className="grid gap-1 text-sm font-medium">Distrito
               <select
                 value={selectedDistrict || ""}
                 className="border max-w-[300px] rounded-lg p-3"
@@ -1792,7 +1648,9 @@ export default function RoutesPage() {
                   </option>
                 ))}
               </select>
+              </label>
 
+              <label className="grid gap-1 text-sm font-medium">Tiempo mínimo
               <select
                 value={districtMinHours}
                 className="border rounded-lg p-1 max-w-[150px]"
@@ -1820,15 +1678,17 @@ export default function RoutesPage() {
                 <option value={72}>72 horas</option>
                 <option value={0}>Cronograma</option>
               </select>
+              </label>
 
               {districtMinHours !== 0 && (
+                <label className="grid gap-1 text-sm font-medium">Tiempo máximo
                 <select
                   value={districtMaxHours === 0 ? "" : districtMaxHours}
                   className="max-w-[150px] border rounded-lg p-3"
                   onChange={(e) => {
                     const value =
                       e.target.value === "" ? 0 : Number(e.target.value);
-                    setDistrictMaxHours(value);
+                    updateDistrictHours(districtMinHours, value);
                   }}
                 >
                   <option value="">Igual</option>
@@ -1837,21 +1697,22 @@ export default function RoutesPage() {
                   <option value={72}>72 horas</option>
                   <option value={96}>96 horas</option>
                 </select>
+                </label>
               )}
 
               {selectedDistrict && (
                 <button
                   type="button"
                   onClick={handleToggleDistrict}
-                  className="max-w-[150px] border px-3 py-3 rounded-lg text-sm whitespace-nowrap"
+                  className="max-w-[220px] border border-emerald-600 px-3 py-3 rounded-lg text-sm font-semibold text-emerald-700 dark:text-emerald-300 whitespace-nowrap"
                 >
-                  + / − Distrito
+                  {neighborhoods.length > 0 && neighborhoods.every((neighborhood) => selectedNeighborhoods.includes(neighborhood.id)) ? "Quitar todos los barrios" : "Incluir todos los barrios"}
                 </button>
               )}
             </div>
 
             {/* DÍAS POR DISTRITO */}
-            <div className="flex gap-2 flex-wrap mt-2">
+            <div className="mt-2"><p className="mb-2 text-sm font-medium">Días que se visita la zona</p><div className="flex gap-2 flex-wrap">
               {DISTRICT_DAYS.map((day) => {
                 const districtConfig = districtVisitDays.find(
                   (item) => item.district_id === selectedDistrict,
@@ -1873,16 +1734,19 @@ export default function RoutesPage() {
                   </button>
                 );
               })}
-            </div>
+            </div></div>
           </div>
         </div>
 
         {/* BARRIOS */}
-        <div className="mt-6 border rounded-xl p-4 max-h-96 overflow-y-auto">
-          <h2 className="font-semibold mb-4">Barrios</h2>
+        <div className="mt-6 rounded-xl border p-4">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div><h2 className="font-semibold">Barrios del distrito</h2><p className="text-sm text-slate-500">{neighborhoods.filter((neighborhood) => selectedNeighborhoods.includes(neighborhood.id)).length} de {neighborhoods.length} incluidos</p></div>
+            <label className="relative w-full sm:w-72"><Search size={16} className="absolute left-3 top-3 text-slate-400" /><input value={neighborhoodSearch} onChange={(event) => setNeighborhoodSearch(event.target.value)} placeholder="Buscar barrio..." className="w-full rounded-lg border py-2 pl-9 pr-3 dark:bg-slate-800" /></label>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {neighborhoods.map((neighborhood) => {
+          <div className="grid max-h-96 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+            {neighborhoods.filter((neighborhood) => neighborhood.name.toLocaleLowerCase("es").includes(neighborhoodSearch.trim().toLocaleLowerCase("es"))).map((neighborhood) => {
               const localidad = LocalidadesService.getLocalidades(
                 selectedProvinceName,
                 selectedCantonName,
@@ -1923,43 +1787,17 @@ export default function RoutesPage() {
                       type="button"
                       title="Ver ubicación"
                       onClick={() => {
-                        const url = LocalidadesService.getGoogleMapsUrl(
-                          selectedProvinceName,
-                          selectedCantonName,
-                          selectedDistrictName,
-                          neighborhood.name,
-                        );
-                        if (!url) {
+                        const urls = LocalidadesService.getNavUrls(selectedProvinceName, selectedCantonName, selectedDistrictName, neighborhood.name);
+                        const coords = LocalidadesService.getCoordsLocalidad(selectedProvinceName, selectedCantonName, selectedDistrictName, neighborhood.name);
+                        if (!urls) {
                           toast.error("Ubicación no encontrada");
                           return;
                         }
-                        window.open(url, "_blank");
+                        setNavigationData({ ...urls, coordinates: coords ? `${coords.lat}, ${coords.lng}` : undefined });
+                        setNavigationOpen(true);
                       }}
                     >
                       <MapPinned size={25} />
-                    </button>
-
-                    <button
-                      type="button"
-                      title="Copiar coordenadas"
-                      onClick={async () => {
-                        const coords = LocalidadesService.getCoordsLocalidad(
-                          selectedProvinceName,
-                          selectedCantonName,
-                          selectedDistrictName,
-                          neighborhood.name,
-                        );
-                        if (!coords) {
-                          toast.error("Ubicación no encontrada");
-                          return;
-                        }
-                        await navigator.clipboard.writeText(
-                          `${coords.lat}, ${coords.lng}`,
-                        );
-                        toast.success("Ubicación copiada");
-                      }}
-                    >
-                      <Copy size={16} />
                     </button>
                   </div>
                 </div>
@@ -1967,26 +1805,6 @@ export default function RoutesPage() {
             })}
           </div>
         </div>
-
-        {/* BOTONES */}
-        <div className="flex gap-3 mt-6">
-          <button
-            type="button"
-            onClick={handleSaveRoute}
-            className="bg-black text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity"
-          >
-            Guardar Ruta
-          </button>
-
-          <button
-            type="button"
-            onClick={handleClear}
-            className="border border-gray-300 bg-white px-6 py-3 rounded-xl hover:bg-gray-50"
-          >
-            Limpiar
-          </button>
-        </div>
-
         {/* TABLA DE COBERTURA */}
         {routeId && coverageView?.length > 0 && (
           <div className="mt-10 -mx-3 sm:mx-0">
@@ -1996,38 +1814,7 @@ export default function RoutesPage() {
               pagination={coveragePagination}
               setPagination={setCoveragePagination}
               totalRows={coverageTotal}
-              onViewDistrict={handleViewDistrict}
-              onUpdateHours={(districtId, minHours, maxHours) => {
-                setDistrictDeliveryTimes((previous) => {
-                  const exists = previous.some(
-                    (item) => item.district_id === districtId,
-                  );
-                  if (exists) {
-                    return previous.map((item) =>
-                      item.district_id === districtId
-                        ? { ...item, min_hours: minHours, max_hours: maxHours }
-                        : item,
-                    );
-                  }
-                  return [
-                    ...previous,
-                    {
-                      district_id: districtId,
-                      min_hours: minHours,
-                      max_hours: maxHours,
-                    },
-                  ];
-                });
-
-                setCoverageView((previous) =>
-                  previous.map((row: any) =>
-                    row.district_id === districtId
-                      ? { ...row, min_hours: minHours, max_hours: maxHours }
-                      : row,
-                  ),
-                );
-              }}
-            />
+              onViewDistrict={handleViewDistrict}/>
           </div>
         )}
       </div>
@@ -2043,6 +1830,13 @@ export default function RoutesPage() {
         onClose={() => setNeighborhoodsDialogOpen(false)}
       />
 
+      <NavigationDialog
+        open={navigationOpen}
+        googleMaps={navigationData?.googleMaps || ""}
+        waze={navigationData?.waze || ""}
+        coordinates={navigationData?.coordinates}
+        onClose={() => setNavigationOpen(false)}
+      />
       <UiMessage
         open={uiMessage.open}
         title={uiMessage.title}

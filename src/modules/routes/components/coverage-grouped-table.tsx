@@ -1,10 +1,10 @@
 "use client";
 
-import { standardMrtFeatures } from "@/shared/config/material-react-table";
-
+import { Eye } from "lucide-react";
 import { useMemo } from "react";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
+import { standardMrtFeatures } from "@/shared/config/material-react-table";
 
 type CoverageItem = {
   district_id: number;
@@ -19,122 +19,40 @@ type CoverageItem = {
 type Props = {
   data: CoverageItem[];
   pagination: { pageIndex: number; pageSize: number };
-  setPagination: any;
+  setPagination: (updater: { pageIndex: number; pageSize: number } | ((previous: { pageIndex: number; pageSize: number }) => { pageIndex: number; pageSize: number })) => void;
   totalRows: number;
   onViewDistrict: (row: CoverageItem) => void;
-  onUpdateHours: (districtId: number, minHours: number, maxHours: number) => void;
 };
 
-export function CoverageGroupedTable({
-  data,
-  pagination,
-  setPagination,
-  totalRows,
-  onViewDistrict,
-  onUpdateHours,
-}: Props) {
-  const columns = useMemo<MRT_ColumnDef<CoverageItem>[]>(
-    () => [
-      {
-        accessorKey: "province",
-        header: "Provincia",
+export function CoverageGroupedTable({ data, pagination, setPagination, totalRows, onViewDistrict }: Props) {
+  const columns = useMemo<MRT_ColumnDef<CoverageItem>[]>(() => [
+    { accessorKey: "province", header: "Provincia" },
+    { accessorKey: "canton", header: "Cantón" },
+    { accessorKey: "district", header: "Distrito" },
+    {
+      accessorKey: "min_hours",
+      header: "Entrega",
+      Cell: ({ row }) => {
+        const { min_hours: min = 0, max_hours: max = 0 } = row.original;
+        return min === 0 ? "Cronograma" : max > 0 && max !== min ? `${min}–${max} h` : `${min} h`;
       },
-      {
-        accessorKey: "canton",
-        header: "Cantón",
-      },
-      {
-        accessorKey: "district",
-        header: "Distrito",
-      },
-      {
-        // BUG FIX: accessorKey era "delivery" pero ese campo no existe en CoverageItem.
-        // MRT lo usa internamente para acceder al dato; al no existir mostraba undefined
-        // y podía romper filtros/sorts aunque estuvieran desactivados.
-        // Usamos min_hours como clave real del dato que renderiza esta columna.
-        accessorKey: "min_hours",
-        header: "Entrega",
-        Cell: ({ row }) => {
-          const item = row.original;
-          const min = item.min_hours ?? 0;
-          const max = item.max_hours ?? 0;
+    },
+    { accessorKey: "covered_count", header: "Barrios" },
+  ], []);
 
-          return (
-            <div className="flex gap-2">
-              <select
-                onMouseDown={(e) => e.stopPropagation()}
-                value={min}
-                className="border rounded px-2 py-1"
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  onUpdateHours(item.district_id, value, value === 0 ? 0 : max);
-                }}
-              >
-                <option value={24}>24h</option>
-                <option value={48}>48h</option>
-                <option value={72}>72h</option>
-                <option value={0}>Cronograma</option>
-              </select>
-
-              {min !== 0 && (
-                <select
-                  onMouseDown={(e) => e.stopPropagation()}
-                  value={max === 0 ? "" : max}
-                  className="border rounded px-2 py-1"
-                  onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : Number(e.target.value);
-                    onUpdateHours(item.district_id, min, value);
-                  }}
-                >
-                  <option value="">Igual</option>
-                  <option value={24}>24h</option>
-                  <option value={48}>48h</option>
-                  <option value={72}>72h</option>
-                  <option value={96}>96h</option>
-                </select>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        accessorKey: "covered_count",
-        header: "Barrios",
-      },
-    ],
-    [],
-  );
-
-  return (
-    <MaterialReactTable
-      {...standardMrtFeatures}
-      columns={columns}
-      data={data}
-      localization={MRT_Localization_ES}
-      muiSearchTextFieldProps={{
-        placeholder: "Buscar...",
-        variant: "outlined",
-        size: "small",
-      }}
-      muiTableBodyCellProps={{
-        onClick: (e) => e.stopPropagation(),
-        sx: { pointerEvents: "auto" },
-      }}
-      enablePagination
-      manualPagination
-      rowCount={totalRows}
-      onPaginationChange={setPagination}
-      state={{ pagination }}
-      enableRowActions
-      renderRowActions={({ row }) => (
-        <button
-          type="button"
-          onClick={() => onViewDistrict(row.original)}
-          className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
-        >
-          Ver barrios
-        </button>
-      )}
-    />
-  );
+  return <MaterialReactTable
+    {...standardMrtFeatures}
+    columns={columns}
+    data={data}
+    localization={MRT_Localization_ES}
+    muiSearchTextFieldProps={{ placeholder: "Buscar distrito...", variant: "outlined", size: "small" }}
+    enablePagination
+    manualPagination
+    rowCount={totalRows}
+    onPaginationChange={setPagination}
+    state={{ pagination }}
+    enableRowActions
+    displayColumnDefOptions={{ "mrt-row-actions": { header: "Acciones", size: 90 } }}
+    renderRowActions={({ row }) => <button type="button" onClick={() => onViewDistrict(row.original)} className="inline-flex items-center gap-2 rounded-lg border border-sky-600 px-3 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30"><Eye size={16} />Ver barrios</button>}
+  />;
 }
