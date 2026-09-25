@@ -148,14 +148,20 @@ export function ShipmentsTable({
       },
 
       {
-        accessorFn: (row) => row.route?.estimated_hours ?? "",
+        accessorFn: (row) => row.delivery_min_hours ?? "",
 
         id: "estimated_hours",
 
-        header: "Horas",
+        header: "Entrega",
          size: 80,      // ancho inicial/establecido
     minSize: 80,    // ancho mínimo (no puede reducirse más)
     maxSize: 300,
+        Cell: ({ row }) => {
+          const { delivery_min_hours: minHours, delivery_max_hours: maxHours } = row.original;
+          if (minHours === null || minHours === undefined) return "Sin configurar";
+          if (minHours === 0) return "Cronograma";
+          return maxHours && maxHours !== minHours ? `${minHours}–${maxHours} h` : `${minHours} h`;
+        },
       },
 
      /* {

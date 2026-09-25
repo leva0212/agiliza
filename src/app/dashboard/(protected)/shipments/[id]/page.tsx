@@ -365,7 +365,9 @@ export default function ShipmentDetailPage() {
 
           {profile?.is_owner_company_user && (
             <div className="mt-1">
-              Mensajero: {shipment.courier?.full_name ?? "Sin asignar"}
+              Mensajero asignado al envío: {shipment.courier?.full_name ?? "Sin asignar"}
+              <br />
+              Mensajero(s) asociado(s) a la ruta: {shipment.route?.courier_names?.length ? shipment.route.courier_names.join(", ") : "Sin mensajeros asociados"}
             </div>
           )}
         </div>

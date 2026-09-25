@@ -66,7 +66,10 @@ export async function getShipment(shipmentId: string): Promise<ShipmentDetail> {
     route:routes(
         id,
         name,
-        estimated_hours
+        estimated_hours,
+        courier_routes(
+          courier:couriers(id, active, profile:profiles(full_name, active, can_deliver))
+        )
       ),
       district:districts(
   id,
@@ -121,7 +124,23 @@ neighborhood:neighborhoods(
       ? (data.company[0] ?? null)
       : data.company,
 
-    route: Array.isArray(data.route) ? (data.route[0] ?? null) : data.route,
+    route: (() => {
+      const route = Array.isArray(data.route) ? (data.route[0] ?? null) : data.route;
+      if (!route) return null;
+
+      const courierNames = (route.courier_routes ?? [])
+        .map((assignment: any) => {
+          const courier = Array.isArray(assignment.courier) ? assignment.courier[0] : assignment.courier;
+          const profile = Array.isArray(courier?.profile) ? courier.profile[0] : courier?.profile;
+          return courier?.active === true && profile?.active === true && profile?.can_deliver === true
+            ? profile.full_name
+            : null;
+        })
+        .filter((name: string | null): name is string => Boolean(name))
+        .sort((first: string, second: string) => first.localeCompare(second, "es"));
+
+      return { ...route, courier_names: courierNames };
+    })(),
 
     district: (() => {
       const district = Array.isArray(data.district)

@@ -16,6 +16,10 @@ export type Shipment = {
 
   courier_id: string | null;
 
+  delivery_min_hours?: number | null;
+
+  delivery_max_hours?: number | null;
+
   route_id: string | null;
 
   status: ShipmentStatus;
@@ -79,6 +83,7 @@ export type Shipment = {
 
     estimated_hours:
     number | null;
+    courier_names?: string[];
   } | null;
 
 
@@ -115,6 +120,7 @@ export type ShipmentDetail = Shipment & {
     name: string;
     estimated_hours:
     number | null;
+    courier_names?: string[];
   } | null;
 
   district: {
