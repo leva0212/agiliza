@@ -19,7 +19,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { assignInventory } from "@/modules/inventory/api/assign-inventory";
 
 import { createClient } from "@/lib/supabase/client";
-import { READ_ONLY_INPUT_CLASS } from "@/shared/constants/ui";
 export default function InventoryListPage() {
   const queryClient = useQueryClient();
   const [pagination, setPagination] = useState({
@@ -59,6 +58,8 @@ export default function InventoryListPage() {
   const [quantityValue, setQuantityValue] = useState("");
 
   const [quantityValue2, setQuantityValue2] = useState("");
+  const [stockStatus, setStockStatus] = useState<"low" | "medium" | "high" | undefined>();
+
 
   const { data, isLoading, error } = useInventory({
     pageIndex: pagination.pageIndex,
@@ -76,7 +77,13 @@ export default function InventoryListPage() {
     quantityValue: quantityValue ? Number(quantityValue) : undefined,
 
     quantityValue2: quantityValue2 ? Number(quantityValue2) : undefined,
+    stockStatus,
   });
+
+  const toggleStockStatus = (nextStatus: "low" | "medium" | "high") => {
+    setStockStatus(stockStatus === nextStatus ? undefined : nextStatus);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  };
 
   if (error) {
     return <div className="p-6">Error al cargar inventario</div>;
@@ -84,14 +91,14 @@ export default function InventoryListPage() {
 
 
   return (
-    <div className="p-2 space-y-1">
-
-      {/* ===== INICIO FILTROS INVENTARIO ===== */}
-
-      {/* INICIO FILTROS */}
-
-      <div
-        className="
+    <div className="space-y-5 p-2">
+      <section className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Filtros</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Busca inventarios por mensajero, empresa, producto o cantidad. Marca la casilla para aplicar cada filtro.</p>
+        </div>
+        <div
+          className="
     grid
     grid-cols-1
     md:grid-cols-3
@@ -340,9 +347,21 @@ export default function InventoryListPage() {
         )}
       </div>
 
-      {/* ===== FIN FILTROS INVENTARIO ===== */}
+      </section>
 
       {isLoading && <div>Cargando...</div>}
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <button type="button" onClick={() => toggleStockStatus("low")} className={`rounded-xl border p-4 text-left transition ${stockStatus === "low" ? "ring-2 ring-red-500" : ""} border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30`}>
+          <p className="text-sm font-medium text-red-700 dark:text-red-300">Existencias bajas</p><p className="mt-1 text-3xl font-bold text-red-700 dark:text-red-200">{data?.summary.lowRecords ?? 0}</p><p className="mt-1 text-xs text-red-700/80 dark:text-red-300/80">{data?.summary.lowCouriers ?? 0} mensajeros · {data?.summary.lowProducts ?? 0} productos</p>
+        </button>
+        <button type="button" onClick={() => toggleStockStatus("medium")} className={`rounded-xl border p-4 text-left transition ${stockStatus === "medium" ? "ring-2 ring-amber-500" : ""} border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30`}>
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Existencias medias</p><p className="mt-1 text-3xl font-bold text-amber-700 dark:text-amber-200">{data?.summary.mediumRecords ?? 0}</p><p className="mt-1 text-xs text-amber-700/80 dark:text-amber-300/80">Haz clic para filtrar la tabla</p>
+        </button>
+        <button type="button" onClick={() => toggleStockStatus("high")} className={`rounded-xl border p-4 text-left transition ${stockStatus === "high" ? "ring-2 ring-green-500" : ""} border-green-300 bg-green-50 dark:border-green-900 dark:bg-green-950/30`}>
+          <p className="text-sm font-medium text-green-700 dark:text-green-300">Existencias altas</p><p className="mt-1 text-3xl font-bold text-green-700 dark:text-green-200">{data?.summary.highRecords ?? 0}</p><p className="mt-1 text-xs text-green-700/80 dark:text-green-300/80">Haz clic para filtrar la tabla</p>
+        </button>
+        <button type="button" onClick={() => toggleStockStatus("low")} className={`rounded-xl border border-cyan-300 bg-cyan-50 p-4 text-left transition hover:bg-cyan-100 dark:border-cyan-900 dark:bg-cyan-950/30 dark:hover:bg-cyan-950/50 ${stockStatus === "low" ? "ring-2 ring-cyan-500" : ""}`}><p className="text-sm font-medium text-cyan-700 dark:text-cyan-300">Monitor de bajo stock</p><p className="mt-1 text-2xl font-bold text-cyan-800 dark:text-cyan-100">{data?.summary.lowCompanies ?? 0} empresas</p><p className="mt-1 text-xs text-cyan-700/80 dark:text-cyan-300/80">Haz clic para verlas en la tabla</p></button>
+      </section>
       <div
         className="
     flex
@@ -361,7 +380,7 @@ export default function InventoryListPage() {
       rounded-lg
     "
         >
-          ➕ Gestionar inventario
+          ➕ Registrar movimiento
         </button>
       </div>
 
@@ -370,6 +389,7 @@ export default function InventoryListPage() {
         pagination={pagination}
         setPagination={setPagination}
         totalRows={data?.totalRows ?? 0}
+        summary={data?.summary ?? { totalQuantity: 0, totalRecords: 0, lowRecords: 0, mediumRecords: 0, highRecords: 0, lowCouriers: 0, lowCompanies: 0, lowProducts: 0 }}
         onViewMovements={(inventoryId) => {
           setMovementInventoryId(inventoryId);
 
@@ -432,6 +452,9 @@ export default function InventoryListPage() {
       <InventoryAssignDialog
         open={assignOpen}
         onClose={() => setAssignOpen(false)}
+        initialCourier={courierId && courierName ? { id: courierId, name: courierName } : undefined}
+        initialCompany={companyId && companyName ? { id: companyId, name: companyName } : undefined}
+        initialProduct={productId && productName ? { id: productId, name: productName } : undefined}
         onSave={async (data) => {
           const supabase = createClient();
 

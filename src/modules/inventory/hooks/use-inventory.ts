@@ -28,17 +28,6 @@ export function useInventory(
       getInventory(
         filters,
       ),
-
-    enabled:
-
-      !!filters.courierId ||
-
-      !!filters.companyId ||
-
-      !!filters.productId ||
-
-      !!filters.quantityOperator,
-
   });
 
 }

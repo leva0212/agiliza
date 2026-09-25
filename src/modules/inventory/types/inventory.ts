@@ -52,5 +52,16 @@ export type InventoryFilters = {
   quantityValue?: number;
 
   quantityValue2?: number;
+  stockStatus?: "low" | "medium" | "high";
 
+};
+export type InventorySummary = {
+  totalQuantity: number;
+  totalRecords: number;
+  lowRecords: number;
+  mediumRecords: number;
+  highRecords: number;
+  lowCouriers: number;
+  lowCompanies: number;
+  lowProducts: number;
 };

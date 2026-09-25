@@ -235,16 +235,15 @@ export default function ShipmentDetailPage() {
           </div>
         )}
         <div className="border rounded-xl p-3">
-          <div className="font-semibold mb-2">Artículos</div>
+          <div className="mb-3 font-semibold">Artículos</div>
 
-          <div className="space-y-1">
+          <div className="space-y-2">
             {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex justify-left gap-2 items-center"
-              >
-                <span>({item.quantity})</span>
-                <span>{item.product?.name ?? item.product_id}</span>
+              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                <span aria-label={`${item.quantity} unidades`} className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold tabular-nums text-white shadow-sm dark:bg-blue-500">
+                  {item.quantity}
+                </span>
+                <span className="min-w-0 font-medium text-slate-800 dark:text-slate-100">{item.product?.name ?? item.product_id}</span>
               </div>
             ))}
           </div>
@@ -783,6 +782,8 @@ export default function ShipmentDetailPage() {
         open={deliveryDialogOpen}
         shipmentId={shipmentId}
         currentUserId={profile?.id}
+        currentUserRole={profile?.role}
+        items={items.map((item) => ({ id: item.id, productName: item.product?.name ?? item.product_id, quantity: item.quantity }))}
         assignedDepositAmount={assignedDepositAmount}
         assignedShippingFee={assignedShippingFee}
         isSubmitting={completeDeliveryMutation.isPending}

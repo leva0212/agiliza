@@ -1,142 +1,18 @@
 import { createClient } from "@/lib/supabase/client";
+import { Inventory, InventoryFilters, InventorySummary } from "../types/inventory";
 
-import { Inventory, InventoryFilters } from "../types/inventory";
+const emptySummary = (): InventorySummary => ({ totalQuantity: 0, totalRecords: 0, lowRecords: 0, mediumRecords: 0, highRecords: 0, lowCouriers: 0, lowCompanies: 0, lowProducts: 0 });
 
-export async function getInventory(filters: InventoryFilters): Promise<{
-  rows: Inventory[];
-  totalRows: number;
-}> {
+export async function getInventory(filters: InventoryFilters): Promise<{ rows: Inventory[]; totalRows: number; summary: InventorySummary }> {
   const supabase = createClient();
-
-  const hasFilters =
-    !!filters.courierId ||
-    !!filters.companyId ||
-    !!filters.productId ||
-    !!filters.quantityOperator;
-
-  if (!hasFilters) {
-    return {
-      rows: [],
-
-      totalRows: 0,
-    };
-  }
-
-  let query = supabase
-
-    .from("inventory")
-
-    .select(
-      `
-        *,
-        company:companies(
-          name
-        ),
-        product:products(
-          name
-        ),
-        courier:couriers(
-          profile:profiles(
-            full_name
-          )
-        )
-      `,
-      {
-        count: "exact",
-      },
-    );
-
-  if (filters.courierId) {
-    query = query.eq("courier_id", filters.courierId);
-  }
-
-  if (filters.companyId) {
-    query = query.eq("company_id", filters.companyId);
-  }
-
-  if (filters.productId) {
-    query = query.eq("product_id", filters.productId);
-  }
-
-  switch (filters.quantityOperator) {
-    case "=":
-      query = query.eq("quantity", filters.quantityValue);
-
-      break;
-
-    case "<":
-      query = query.lt("quantity", filters.quantityValue!);
-
-      break;
-
-    case "<=":
-      query = query.lte("quantity", filters.quantityValue!);
-
-      break;
-
-    case ">":
-      query = query.gt("quantity", filters.quantityValue!);
-
-      break;
-
-    case ">=":
-      query = query.gte("quantity", filters.quantityValue!);
-
-      break;
-
-    case "between":
-      query = query
-
-        .gte("quantity", filters.quantityValue!)
-
-        .lte("quantity", filters.quantityValue2!);
-
-      break;
-  }
-
-  const from = filters.pageIndex * filters.pageSize;
-
-  const to = from + filters.pageSize - 1;
-
-  const { data, error, count } = await query
-
-    .range(from, to)
-
-    .order("updated_at", {
-      ascending: false,
-    });
-
-  if (error) {
-    throw error;
-  }
-
-  const rows = (data ?? []).map((row: any) => {
-    let stockStatus: "low" | "medium" | "high";
-
-    if (row.quantity < row.low_stock) {
-      stockStatus = "low";
-    } else if (row.quantity < row.medium_stock) {
-      stockStatus = "medium";
-    } else {
-      stockStatus = "high";
-    }
-
-    return {
-      ...row,
-
-      stock_status: stockStatus,
-
-      company_name: row.company?.name,
-
-      product_name: row.product?.name,
-
-      courier_name: row.courier?.profile?.full_name,
-    };
-  });
-
-  return {
-    rows,
-
-    totalRows: count ?? 0,
-  };
+  const params = { p_courier_id: filters.courierId ?? null, p_company_id: filters.companyId ?? null, p_product_id: filters.productId ?? null, p_quantity_operator: filters.quantityOperator ?? null, p_quantity_value: filters.quantityValue ?? null, p_quantity_value2: filters.quantityValue2 ?? null, p_stock_status: filters.stockStatus ?? null };
+  const [pageResult, summaryResult] = await Promise.all([
+    supabase.rpc("get_inventory_page", { ...params, p_limit: filters.pageSize, p_offset: filters.pageIndex * filters.pageSize }),
+    supabase.rpc("get_inventory_summary", params),
+  ]);
+  if (pageResult.error) throw pageResult.error;
+  if (summaryResult.error) throw summaryResult.error;
+  const row = summaryResult.data?.[0];
+  const summary: InventorySummary = { totalQuantity: Number(row?.total_quantity ?? 0), totalRecords: Number(row?.total_records ?? 0), lowRecords: Number(row?.low_records ?? 0), mediumRecords: Number(row?.medium_records ?? 0), highRecords: Number(row?.high_records ?? 0), lowCouriers: Number(row?.low_couriers ?? 0), lowCompanies: Number(row?.low_companies ?? 0), lowProducts: Number(row?.low_products ?? 0) };
+  return { rows: (pageResult.data ?? []) as Inventory[], totalRows: summary.totalRecords, summary };
 }

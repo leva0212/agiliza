@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Plus, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, ChevronUp, CircleHelp, Plus, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -65,6 +65,7 @@ export default function ShipmentsListPage() {
   const [advancedOpen, setAdvancedOpen] = useState(() => Boolean(companyId || routeId || courierId || delivery || visitDay));
   const [filtersRestored, setFiltersRestored] = useState(false);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [filtersHelpOpen, setFiltersHelpOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -147,16 +148,16 @@ export default function ShipmentsListPage() {
   const fieldClass = "space-y-1.5";
 
   return <div className="mx-auto w-full max-w-[1200px] px-0 py-3 sm:p-6">
-    <AppBarActions><AppBarActionButton label="Limpiar todos los filtros" tone="danger" onClick={() => setConfirmResetOpen(true)}><RotateCcw size={19} /></AppBarActionButton><AppBarActionLink href="/dashboard/shipments" label="Nuevo envío"><Plus size={20} /></AppBarActionLink></AppBarActions>
+    <AppBarActions><AppBarActionButton label="Cómo usar los filtros" onClick={() => setFiltersHelpOpen(true)}><CircleHelp size={19} /></AppBarActionButton><AppBarActionButton label="Limpiar todos los filtros" tone="danger" onClick={() => setConfirmResetOpen(true)}><RotateCcw size={19} /></AppBarActionButton><AppBarActionLink href="/dashboard/shipments" label="Nuevo envío"><Plus size={20} /></AppBarActionLink></AppBarActions>
     <section className="mb-4 rounded-2xl border border-sky-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <div className="flex flex-col gap-3 md:flex-row md:items-end">
         <div className={`min-w-0 flex-1 ${fieldClass}`}>
           <FilterTitle label="Buscar envíos" checked={searchEnabled} onChange={(checked) => toggleFilter("q", checked, setSearchEnabled)} />
-          <input type="search" value={search} disabled={!searchEnabled} onChange={(event) => { setSearch(event.target.value); setSearchEnabled(true); resetPage(); }} placeholder="# guía, cliente, teléfono, identificación" className={inputClass} />
+          <input type="search" value={search} onChange={(event) => { setSearch(event.target.value); setSearchEnabled(true); resetPage(); }} placeholder="# guía, cliente, teléfono, identificación" className={inputClass} />
         </div>
         <div className={`w-full md:w-56 ${fieldClass}`}>
           <FilterTitle label="Estado" checked={statusEnabled} onChange={(checked) => toggleFilter("status", checked, setStatusEnabled)} />
-          <select value={status} disabled={!statusEnabled} onChange={(event) => { const value = event.target.value; setStatus(value); setStatusEnabled(Boolean(value)); resetPage(); replaceUrl({ status: value, statusEnabled: value ? "1" : "0" }); }} className={inputClass}>
+          <select value={status} onChange={(event) => { const value = event.target.value; setStatus(value); setStatusEnabled(Boolean(value)); resetPage(); replaceUrl({ status: value, statusEnabled: value ? "1" : "0" }); }} className={inputClass}>
             <option value="">Todos los estados</option><option value="created">Creado</option><option value="assigned">Asignado</option><option value="in_route">En ruta</option><option value="delivered">Entregado</option><option value="failed_attempt">Intento fallido</option><option value="rejected">Rechazado</option><option value="cancelled">Cancelado</option>
           </select>
         </div>
@@ -164,16 +165,24 @@ export default function ShipmentsListPage() {
       </div>
       {advancedOpen && <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {isOwnerCompanyUser && <div className={fieldClass}><FilterTitle label="Empresa" checked={companyEnabled} onChange={(checked) => toggleFilter("company", checked, setCompanyEnabled)} /><select value={companyId} disabled={!companyEnabled} onChange={(event) => { const value = event.target.value; setCompanyId(value); setCompanyEnabled(Boolean(value)); resetPage(); replaceUrl({ company: value, companyEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Todas las empresas</option>{(companiesQuery.data ?? []).map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></div>}
-          <div className={fieldClass}><FilterTitle label="Ruta" checked={routeEnabled} onChange={(checked) => toggleFilter("route", checked, setRouteEnabled)} /><select value={routeId} disabled={!routeEnabled} onChange={(event) => { const value = event.target.value; setRouteId(value); setRouteEnabled(Boolean(value)); resetPage(); replaceUrl({ route: value, routeEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Todas las rutas</option>{(routesQuery.data ?? []).map((route) => <option key={route.id} value={route.id}>{route.name}{route.active ? "" : " (inactiva)"}</option>)}</select></div>
-          {isOwnerCompanyUser && <div className={fieldClass}><FilterTitle label="Mensajero" checked={courierEnabled} onChange={(checked) => toggleFilter("courier", checked, setCourierEnabled)} /><select value={courierId} disabled={!courierEnabled} onChange={(event) => { const value = event.target.value; setCourierId(value); setCourierEnabled(Boolean(value)); resetPage(); replaceUrl({ courier: value, courierEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Todos los mensajeros</option>{(couriersQuery.data ?? []).map((courier) => <option key={courier.id} value={courier.id}>{courier.name}</option>)}</select></div>}
-          <div className={fieldClass}><FilterTitle label="Tiempo de entrega" checked={deliveryEnabled} onChange={(checked) => toggleFilter("delivery", checked, setDeliveryEnabled)} /><select value={delivery} disabled={!deliveryEnabled} onChange={(event) => { const value = event.target.value; setDelivery(value); setDeliveryEnabled(Boolean(value)); resetPage(); replaceUrl({ delivery: value, deliveryEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Cualquier tiempo</option><option value="24">24 horas</option><option value="48">48 horas</option><option value="72">72 horas</option><option value="schedule">Cronograma</option></select></div>
-          <div className={fieldClass}><FilterTitle label="Día de visita" checked={visitDayEnabled} onChange={(checked) => toggleFilter("day", checked, setVisitDayEnabled)} /><select value={visitDay} disabled={!visitDayEnabled} onChange={(event) => { const value = event.target.value; setVisitDay(value); setVisitDayEnabled(Boolean(value)); resetPage(); replaceUrl({ day: value, dayEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Cualquier día</option>{visitDays.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}</select></div>
+          {isOwnerCompanyUser && <div className={fieldClass}><FilterTitle label="Empresa" checked={companyEnabled} onChange={(checked) => toggleFilter("company", checked, setCompanyEnabled)} /><select value={companyId} onChange={(event) => { const value = event.target.value; setCompanyId(value); setCompanyEnabled(Boolean(value)); resetPage(); replaceUrl({ company: value, companyEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Todas las empresas</option>{(companiesQuery.data ?? []).map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></div>}
+          <div className={fieldClass}><FilterTitle label="Ruta" checked={routeEnabled} onChange={(checked) => toggleFilter("route", checked, setRouteEnabled)} /><select value={routeId} onChange={(event) => { const value = event.target.value; setRouteId(value); setRouteEnabled(Boolean(value)); resetPage(); replaceUrl({ route: value, routeEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Todas las rutas</option>{(routesQuery.data ?? []).map((route) => <option key={route.id} value={route.id}>{route.name}{route.active ? "" : " (inactiva)"}</option>)}</select></div>
+          {isOwnerCompanyUser && <div className={fieldClass}><FilterTitle label="Mensajero" checked={courierEnabled} onChange={(checked) => toggleFilter("courier", checked, setCourierEnabled)} /><select value={courierId} onChange={(event) => { const value = event.target.value; setCourierId(value); setCourierEnabled(Boolean(value)); resetPage(); replaceUrl({ courier: value, courierEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Todos los mensajeros</option>{(couriersQuery.data ?? []).map((courier) => <option key={courier.id} value={courier.id}>{courier.name}</option>)}</select></div>}
+          <div className={fieldClass}><FilterTitle label="Tiempo de entrega" checked={deliveryEnabled} onChange={(checked) => toggleFilter("delivery", checked, setDeliveryEnabled)} /><select value={delivery} onChange={(event) => { const value = event.target.value; setDelivery(value); setDeliveryEnabled(Boolean(value)); resetPage(); replaceUrl({ delivery: value, deliveryEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Cualquier tiempo</option><option value="24">24 horas</option><option value="48">48 horas</option><option value="72">72 horas</option><option value="schedule">Cronograma</option></select></div>
+          <div className={fieldClass}><FilterTitle label="Día de visita" checked={visitDayEnabled} onChange={(checked) => toggleFilter("day", checked, setVisitDayEnabled)} /><select value={visitDay} onChange={(event) => { const value = event.target.value; setVisitDay(value); setVisitDayEnabled(Boolean(value)); resetPage(); replaceUrl({ day: value, dayEnabled: value ? "1" : "0" }); }} className={inputClass}><option value="">Cualquier día</option>{visitDays.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}</select></div>
         </div>
         {Boolean(companyId || routeId || courierId || delivery || visitDay) && <div className="mt-3 flex justify-end"><button type="button" onClick={disableAdvancedFilters} className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"><X size={16} />Desactivar filtros avanzados</button></div>}
       </div>}
     </section>
     {isLoading ? <div className="py-8 text-center text-sm text-slate-500">Cargando envíos...</div> : <ShipmentsTable data={data?.data || []} pagination={pagination} setPagination={setPagination} totalRows={data?.total || 0} />}
     <UiMessage open={confirmResetOpen} type="question" title="¿Limpiar todos los filtros?" message="Se borrarán los valores y las selecciones guardadas para la lista de envíos." cancelText="Cancelar" confirmText="Limpiar filtros" onClose={() => setConfirmResetOpen(false)} onConfirm={resetAllFilters} />
+    <UiMessage
+      open={filtersHelpOpen}
+      type="info"
+      title="Cómo usar los filtros"
+      message={<div className="space-y-3 text-left leading-relaxed"><p>Marca el checkbox del filtro para aplicarlo a la lista. Al desmarcarlo, su valor se conserva pero se ignora.</p><p>Al elegir un nuevo valor, el checkbox se marca automáticamente. Estado, ruta, mensajero, tiempo y día se recuerdan hasta el cambio de día.</p><p>Empresa y mensajero solo están disponibles para usuarios de la empresa propietaria del sistema.</p><p>Usa el icono de reinicio para borrar todos los filtros guardados.</p></div>}
+      closeText="Entendido"
+      onClose={() => setFiltersHelpOpen(false)}
+    />
   </div>;
 }

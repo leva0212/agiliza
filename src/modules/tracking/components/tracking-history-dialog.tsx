@@ -34,7 +34,7 @@ export function TrackingHistoryDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
+      className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/50 p-3 sm:p-4"
       onClick={onClose}
     >
       <section

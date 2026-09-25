@@ -47,51 +47,56 @@ export function UiMessage({
   const styles = {
     success: {
       icon: "✓",
-      box: "bg-green-50 border-green-200 text-green-700",
+      box: "bg-green-50 border-green-200 text-green-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
       button: "bg-green-600",
     },
 
     error: {
       icon: "✕",
-      box: "bg-red-50 border-red-200 text-red-700",
+      box: "bg-red-50 border-red-200 text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200",
       button: "bg-red-600",
     },
 
     warning: {
       icon: "⚠",
-      box: "bg-yellow-50 border-yellow-200 text-yellow-700",
+      box: "bg-yellow-50 border-yellow-200 text-yellow-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
       button: "bg-yellow-600",
     },
 
     info: {
       icon: "ℹ",
-      box: "bg-blue-50 border-blue-200 text-blue-700",
+      box: "bg-blue-50 border-blue-200 text-blue-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200",
       button: "bg-blue-600",
     },
 
     question: {
       icon: "?",
-      box: "bg-violet-50 border-violet-200 text-violet-700",
+      box: "bg-violet-50 border-violet-200 text-violet-700 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200",
       button: "bg-violet-600",
     },
     danger: {
       icon: "🗑",
-      box: "bg-red-50 border-red-300 text-red-700",
+      box: "bg-red-50 border-red-300 text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200",
       button: "bg-red-600",
     },
   };
 
   const current = styles[type];
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
       <div
         className="
         w-full
         max-w-2xl
         bg-white
+        dark:bg-slate-900
+        text-slate-900
+        dark:text-slate-100
         rounded-2xl
         shadow-xl
         border
+        border-slate-200
+        dark:border-slate-700
         animate-fade-in
         flex
         flex-col
@@ -123,8 +128,11 @@ export function UiMessage({
         <div
           className="
           border-t
+          border-slate-200
+          dark:border-slate-700
           p-4
           bg-white
+          dark:bg-slate-900
           rounded-b-2xl
         "
         >
@@ -135,6 +143,11 @@ export function UiMessage({
                 className="
                 border
                 border-gray-300
+                bg-white
+                text-slate-700
+                dark:border-slate-600
+                dark:bg-slate-800
+                dark:text-slate-100
                 py-3
                 rounded-xl
                 font-medium

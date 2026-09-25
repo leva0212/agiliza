@@ -98,7 +98,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
       <MuiThemeProvider theme={muiTheme}>
         <CssBaseline />
         {children}
-        <Toaster richColors theme={resolvedTheme} position="top-center" duration={2000} closeButton />
+        <Toaster richColors theme={resolvedTheme} position="top-center" duration={4000} closeButton />
       </MuiThemeProvider>
     </ThemeContext.Provider>
   );

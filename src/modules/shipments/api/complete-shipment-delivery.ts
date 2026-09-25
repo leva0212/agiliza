@@ -1,11 +1,17 @@
 import { createClient } from "@/lib/supabase/client";
 
+export type DeliveredShipmentItem = {
+  shipmentItemId: string;
+  quantity: number;
+};
+
 export type CompleteShipmentDeliveryInput = {
   shipmentId: string;
   deliveredBy: string;
   receiverType: "owner" | "authorized";
   depositAmount: number;
   shippingFee: number;
+  deliveredItems: DeliveredShipmentItem[];
   observations: string;
   latitude: number | null;
   longitude: number | null;
@@ -21,6 +27,7 @@ export async function completeShipmentDelivery(
     p_receiver_type: input.receiverType,
     p_deposit_amount: input.depositAmount,
     p_shipping_fee: input.shippingFee,
+    p_delivered_items: input.deliveredItems.map((item) => ({ item_id: item.shipmentItemId, quantity: item.quantity })),
     p_observations: input.observations,
     p_latitude: input.latitude,
     p_longitude: input.longitude,

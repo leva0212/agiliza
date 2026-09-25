@@ -3,541 +3,200 @@
 import { useEffect, useState } from "react";
 
 import { SearchSelector } from "@/shared/components/search-selector";
-
 import { CourierSearchDialog } from "@/modules/couriers/components/courier-search-dialog";
-
 import { CompanySearchDialog } from "@/modules/companies/components/company-search-dialog";
-
 import { ProductSearchDialog } from "@/modules/company-products/components/product-search-dialog";
 import { UiMessage } from "@/shared/components/ui-message";
 import { AssignInventoryInput } from "../types/assign-inventory";
+
+type Selection = {
+  id: string;
+  name: string;
+};
+
 type Props = {
   open: boolean;
-
   onClose: () => void;
-
   onSave: (data: Omit<AssignInventoryInput, "created_by">) => Promise<void>;
+  initialCourier?: Selection;
+  initialCompany?: Selection;
+  initialProduct?: Selection;
 };
 
 export function InventoryAssignDialog({
   open,
-
   onClose,
-
   onSave,
+  initialCourier,
+  initialCompany,
+  initialProduct,
 }: Props) {
   const [lowStock, setLowStock] = useState("20");
-  const [messageOpen, setMessageOpen] = useState(false);
-
-  const [messageText, setMessageText] = useState("");
   const [mediumStock, setMediumStock] = useState("50");
   const [courierId, setCourierId] = useState("");
-
   const [courierName, setCourierName] = useState("");
-
   const [companyId, setCompanyId] = useState("");
-
   const [companyName, setCompanyName] = useState("");
-
   const [productId, setProductId] = useState("");
-
   const [productName, setProductName] = useState("");
-
   const [quantity, setQuantity] = useState("");
-
-  const [reason, setReason] = useState("Reposición");
-
+  const [reason, setReason] = useState("Reposición de inventario");
   const [notes, setNotes] = useState("");
-
   const [courierOpen, setCourierOpen] = useState(false);
-
   const [companyOpen, setCompanyOpen] = useState(false);
-
   const [productOpen, setProductOpen] = useState(false);
-
   const [saving, setSaving] = useState(false);
-  const [movementType, setMovementType] = useState<"Entrada" | "Salida">(
-    "Entrada",
-  );
-
-  {
-    /* INICIO RESET MOTIVO SEGUN TIPO */
-  }
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [movementType, setMovementType] = useState<"Entrada" | "Salida">("Entrada");
 
   useEffect(() => {
-    if (movementType === "Entrada") {
-      setReason("Inventario inicial");
-    } else {
-      setReason("Entrega a cliente");
-    }
+    if (!open) return;
+
+    setCourierId(initialCourier?.id ?? "");
+    setCourierName(initialCourier?.name ?? "");
+    setCompanyId(initialCompany?.id ?? "");
+    setCompanyName(initialCompany?.name ?? "");
+    setProductId(initialProduct?.id ?? "");
+    setProductName(initialProduct?.name ?? "");
+    setQuantity("");
+    setLowStock("20");
+    setMediumStock("50");
+    setMovementType("Entrada");
+    setReason("Reposición de inventario");
+    setNotes("");
+    setSaving(false);
+    setMessageOpen(false);
+    setMessageText("");
+  }, [open, initialCourier, initialCompany, initialProduct]);
+
+  useEffect(() => {
+    setReason(movementType === "Entrada" ? "Reposición de inventario" : "Retiro de inventario");
   }, [movementType]);
 
-  {
-    /* FIN RESET MOTIVO SEGUN TIPO */
-  }
-  {
-    /* INICIO LIMPIAR AL ABRIR */
-  }
-
-  useEffect(() => {
-    if (open) {
-      resetForm();
-    }
-  }, [open]);
-
-  {
-    /* FIN LIMPIAR AL ABRIR */
-  }
-  {
-    /* INICIO RESET FORM */
-  }
-
-  function resetForm() {
-    setCourierId("");
-
-    setCourierName("");
-
-    setCompanyId("");
-
-    setCompanyName("");
-
-    setProductId("");
-
-    setProductName("");
-
-    setQuantity("");
-
-    setReason("Reposición");
-
-    setNotes("");
-
-    setLowStock("20");
-
-    setMediumStock("50");
-
-    setSaving(false);
-
-    setMessageOpen(false);
-
-    setMessageText("");
-    setMovementType("Entrada");
-  }
-
-  {
-    /* FIN RESET FORM */
-  }
   function handleClose() {
-    setCourierId("");
-    setCourierName("");
-    setCompanyId("");
-    setCompanyName("");
-    setProductId("");
-    setProductName("");
-    setQuantity("");
-    setReason("Reposición");
-    setNotes("");
-    setLowStock("20");
-    setMediumStock("50");
-    setMessageOpen(false);
-    setMessageText("");
-    onClose();
+    if (!saving) onClose();
   }
 
-  if (!open) {
-    return null;
+  async function handleSave() {
+    if (!courierId || !companyId || !productId) {
+      setMessageText("Seleccione mensajero, empresa y producto antes de registrar el movimiento.");
+      setMessageOpen(true);
+      return;
+    }
+
+    const movementQuantity = Number(quantity);
+    if (!Number.isInteger(movementQuantity) || movementQuantity <= 0) {
+      setMessageText("La cantidad debe ser un número entero mayor que cero.");
+      setMessageOpen(true);
+      return;
+    }
+
+    if (!Number.isInteger(Number(lowStock)) || Number(lowStock) < 0) {
+      setMessageText("El nivel de existencias bajas debe ser un número entero igual o mayor que cero.");
+      setMessageOpen(true);
+      return;
+    }
+
+    if (!Number.isInteger(Number(mediumStock)) || Number(mediumStock) <= Number(lowStock)) {
+      setMessageText("El nivel medio debe ser un número entero mayor que el nivel de existencias bajas.");
+      setMessageOpen(true);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave({
+        courier_id: courierId,
+        company_id: companyId,
+        product_id: productId,
+        quantity: movementType === "Salida" ? -movementQuantity : movementQuantity,
+        low_stock: Number(lowStock),
+        medium_stock: Number(mediumStock),
+        reason,
+        notes: notes.trim(),
+      });
+    } finally {
+      setSaving(false);
+    }
   }
+
+  if (!open) return null;
+
+  const fieldClass = "w-full rounded-lg border border-slate-300 bg-white p-3 text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100";
 
   return (
     <>
-      <div
-        className="
-          fixed
-          inset-0
-          bg-black/50
-          flex
-          items-center
-          justify-center
-          z-50
-          p-4
-        "
-      >
-        <div
-          className="
-            bg-white
-            rounded-3xl
-            shadow-xl
-            w-full
-            max-w-xl
-            flex
-            flex-col
-            max-h-[90vh]
-            overflow-hidden
-          "
-          onClick={(event) => event.stopPropagation()}
-        >
-          {/* INICIO HEADER */}
-          <div
-            className="
-              flex
-              justify-between
-              items-center
-              p-5
-              border-b
-              shrink-0
-            "
-          >
-            <h2
-              className="
-                text-lg
-                font-semibold
-              "
-            >
-              Realizar ajuste de inventario
-            </h2>
-
-            <button onClick={handleClose}>✕</button>
+      <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/60 p-4" onClick={handleClose}>
+        <div className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900" onClick={(event) => event.stopPropagation()}>
+          <div className="flex shrink-0 items-start justify-between border-b border-slate-200 p-5 dark:border-slate-700">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Registrar movimiento de inventario</h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Suma o resta existencias y deja el motivo registrado en el historial.</p>
+            </div>
+            <button type="button" onClick={handleClose} disabled={saving} className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="Cerrar">✕</button>
           </div>
 
-          {/* INICIO FORMULARIO SCROLLABLE */}
+          <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+            <section className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-900/70 dark:bg-blue-950/20">
+              <h3 className="font-medium text-slate-900 dark:text-slate-100">Destino del movimiento</h3>
+              <p className="mb-3 mt-1 text-xs text-slate-600 dark:text-slate-400">Los valores seleccionados en los filtros se cargan aquí para continuar más rápido.</p>
+              <div className="flex flex-col gap-3">
+                <SearchSelector label="Mensajero" valueName={courierName} placeholder="Seleccione un mensajero" onSearch={() => setCourierOpen(true)} />
+                <SearchSelector label="Empresa propietaria del producto" valueName={companyName} placeholder="Seleccione una empresa" onSearch={() => setCompanyOpen(true)} />
+                <SearchSelector label="Producto" valueName={productName} placeholder={companyId ? "Seleccione un producto" : "Seleccione una empresa primero"} disabled={!companyId} onSearch={() => setProductOpen(true)} />
+              </div>
+            </section>
 
-          <div
-            className="
-              flex
-              flex-col
-              gap-4
-              p-5
-              overflow-y-auto
-              flex-1
-            "
-          >
-            <SearchSelector
-              label="Mensajero"
-              valueName={courierName}
-              placeholder="
-                Seleccione un mensajero
-              "
-              onSearch={() => setCourierOpen(true)}
-            />
+            <section className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+              <h3 className="font-medium text-slate-900 dark:text-slate-100">Ajuste</h3>
+              <p className="mb-3 mt-1 text-xs text-slate-600 dark:text-slate-400">Una entrada suma existencias; una salida las resta. Una salida puede dejar saldo negativo para regularizarlo después.</p>
+              <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Tipo de movimiento
+                  <select value={movementType} onChange={(event) => setMovementType(event.target.value as "Entrada" | "Salida")} className={`${fieldClass} ${movementType === "Entrada" ? "border-green-400 text-green-700 dark:text-green-300" : "border-red-400 text-red-700 dark:text-red-300"}`}>
+                    <option value="Entrada">Entrada: sumar existencias</option>
+                    <option value="Salida">Salida: restar existencias</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Cantidad a {movementType === "Entrada" ? "sumar" : "restar"}
+                  <input type="number" inputMode="numeric" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="Ejemplo: 10" className={fieldClass} />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Motivo del movimiento
+                  <select value={reason} onChange={(event) => setReason(event.target.value)} className={fieldClass}>
+                    {movementType === "Entrada" ? <><option>Inventario inicial</option><option>Reposición de inventario</option><option>Transferencia de inventario recibida</option><option>Devolución de inventario</option><option>Inventario encontrado</option><option>Otro</option></> : <><option>Entrega a cliente</option><option>Inventario dañado</option><option>Inventario extraviado</option><option>Transferencia de inventario enviada</option><option>Retiro de inventario</option><option>Otro</option></>}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Observaciones <span className="font-normal text-slate-500">(opcional)</span>
+                  <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Ejemplo: ajuste por conteo físico" rows={3} className={`${fieldClass} resize-none`} />
+                </label>
+              </div>
+            </section>
 
-            <SearchSelector
-              label="Empresa"
-              valueName={companyName}
-              placeholder="
-                Seleccione una empresa
-              "
-              onSearch={() => setCompanyOpen(true)}
-            />
-
-            <SearchSelector
-              label="Producto"
-              valueName={productName}
-              placeholder="Seleccione un producto"
-              disabled={!companyId}
-              onSearch={() => setProductOpen(true)}
-            />
-
-            {/* INICIO TIPO MOVIMIENTO */}
-
-            <div
-              className="
-    flex
-    flex-col
-  "
-            >
-              <label
-                className="
-      text-sm
-      font-medium
-      mb-1
-    "
-              >
-                Tipo
-              </label>
-
-              <select
-                value={movementType}
-                onChange={(event) =>
-                  setMovementType(event.target.value as "Entrada" | "Salida")
-                }
-                className={`
-      border
-      rounded-lg
-      p-3
-      font-medium
-
-      ${
-        movementType === "Entrada"
-          ? `
-              bg-green-50
-              text-green-700
-              border-green-300
-            `
-          : `
-              bg-red-50
-              text-red-700
-              border-red-300
-            `
-      }
-    `}
-              >
-                <option value="Entrada">🟢 Entrada</option>
-
-                <option value="Salida">🔴 Salida</option>
-              </select>
-            </div>
-
-            {/* FIN TIPO MOVIMIENTO */}
-
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(event) => setQuantity(event.target.value)}
-              placeholder="
-                Cantidad
-              "
-              className="
-                border
-                rounded-lg
-                p-3
-              "
-            />
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1">
-                <span className="text-sm text-gray-600">Bajo stock</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={lowStock}
-                  onChange={(event) => setLowStock(event.target.value)}
-                  placeholder="0"
-                  className="border rounded-lg p-3"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1 flex-1">
-                <span className="text-sm text-gray-600">Stock medio</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={mediumStock}
-                  onChange={(event) => setMediumStock(event.target.value)}
-                  placeholder="0"
-                  className="border rounded-lg p-3"
-                />
-              </label>
-            </div>
-
-            {/* INICIO MOTIVO MOVIMIENTO */}
-
-            <select
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              className="
-    border
-    rounded-lg
-    p-3
-  "
-            >
-              {movementType === "Entrada" ? (
-                <>
-                  <option>Inventario inicial</option>
-
-                  <option>Reposición de inventario</option>
-
-                  <option>Transferencia de inventario recibida</option>
-
-                  <option>Devolución de inventario</option>
-
-                  <option>Inventario encontrado</option>
-
-                  <option>Otro</option>
-                </>
-              ) : (
-                <>
-                  <option>Entrega a cliente</option>
-
-                  <option>Inventario dañado</option>
-
-                  <option>Inventario extraviado</option>
-
-                  <option>Transferencia de inventario enviada</option>
-
-                  <option>Retiro de inventario</option>
-
-                  <option>Otro</option>
-                </>
-              )}
-            </select>
-
-            {/* FIN MOTIVO MOVIMIENTO */}
-
-            <textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Observaciones"
-              rows={3}
-              className="border rounded-lg p-3 resize-none"
-            />
+            <section className="rounded-xl border border-amber-300/70 bg-amber-50/60 p-4 dark:border-amber-700/50 dark:bg-amber-950/20">
+              <h3 className="font-medium text-slate-900 dark:text-slate-100">Niveles de alerta</h3>
+              <p className="mb-3 mt-1 text-xs text-slate-600 dark:text-slate-400">Sirven para clasificar el saldo como bajo, medio o alto. Se guardan para esta combinación de mensajero, empresa y producto.</p>
+              <div className="flex gap-3">
+                <label className="flex flex-1 flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">Existencias bajas<input type="number" min="0" step="1" value={lowStock} onChange={(event) => setLowStock(event.target.value)} className={fieldClass} /></label>
+                <label className="flex flex-1 flex-col gap-1 text-sm font-medium text-slate-700 dark:text-slate-300">Existencias medias<input type="number" min="0" step="1" value={mediumStock} onChange={(event) => setMediumStock(event.target.value)} className={fieldClass} /></label>
+              </div>
+            </section>
           </div>
 
-          {/* INICIO FOOTER FIJO */}
-          <div className="border-t p-4 shrink-0">
-            <div className="flex gap-3">
-              <button
-                onClick={handleClose}
-                className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-3"
-              >
-                Cancelar
-              </button>
-
-              <button
-                disabled={saving}
-                onClick={async () => {
-                  if (Number(lowStock) < 0) {
-                    setMessageText(
-                      "Debe ingresar un número válido para el bajo stock",
-                    );
-
-                    setMessageOpen(true);
-
-                    return;
-                  }
-
-                  if (Number(mediumStock) <= Number(lowStock)) {
-                    setMessageText(
-                      "El stock medio debe ser mayor que el bajo stock",
-                    );
-
-                    setMessageOpen(true);
-
-                    return;
-                  }
-
-                  if (!courierId) {
-                    setMessageText("Debe seleccionar un mensajero");
-
-                    setMessageOpen(true);
-
-                    return;
-                  }
-
-                  if (!companyId) {
-                    setMessageText("Debe seleccionar una empresa");
-
-                    setMessageOpen(true);
-
-                    return;
-                  }
-
-                  if (!productId) {
-                    setMessageText("Debe seleccionar un producto");
-
-                    setMessageOpen(true);
-
-                    return;
-                  }
-
-                  const movementQuantity = Number(quantity);
-
-                  if (movementQuantity <= 0) {
-                    setMessageText("La cantidad debe ser mayor que cero");
-
-                    setMessageOpen(true);
-
-                    return;
-                  }
-
-                  setSaving(true);
-
-                  try {
-                    const signedQuantity =
-                      movementType === "Salida"
-                        ? -movementQuantity
-                        : movementQuantity;
-                    await onSave({
-                      courier_id: courierId,
-
-                      company_id: companyId,
-
-                      product_id: productId,
-
-                      quantity: signedQuantity,
-
-                      low_stock: Number(lowStock),
-
-                      medium_stock: Number(mediumStock),
-
-                      reason,
-
-                      notes,
-                    });
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-                className="
-    flex-1
-    bg-blue-600
-    text-white
-    rounded-lg
-    py-3
-  "
-              >
-                Guardar
-              </button>
-            </div>
+          <div className="flex shrink-0 gap-3 border-t border-slate-200 p-4 dark:border-slate-700">
+            <button type="button" onClick={handleClose} disabled={saving} className="flex-1 rounded-lg border border-slate-300 py-3 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+            <button type="button" disabled={saving} onClick={handleSave} className="flex-1 rounded-lg bg-blue-600 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50">{saving ? "Registrando…" : `Registrar ${movementType.toLowerCase()}`}</button>
           </div>
-          {/* FIN FOOTER FIJO */}
         </div>
       </div>
 
-      <CourierSearchDialog
-        open={courierOpen}
-        onClose={() => setCourierOpen(false)}
-        onSelect={(courier) => {
-          setCourierId(courier.id);
-
-          setCourierName(courier.name);
-        }}
-      />
-
-      <CompanySearchDialog
-        open={companyOpen}
-        onClose={() => setCompanyOpen(false)}
-        onSelect={(company) => {
-          setCompanyId(company.id);
-
-          setCompanyName(company.name);
-
-          setProductId("");
-
-          setProductName("");
-        }}
-      />
-
-      <ProductSearchDialog
-        companyId={companyId}
-        open={productOpen}
-        onClose={() => setProductOpen(false)}
-        onSelect={(product) => {
-          setProductId(product.id);
-
-          setProductName(product.name);
-        }}
-      />
-      {/* INICIO UI MESSAGE */}
-      <UiMessage
-        open={messageOpen}
-        title="Validación"
-        message={messageText}
-        type="warning"
-        onClose={() => {
-          setMessageOpen(false);
-          setMessageText("");
-        }}
-      />
-      {/* FIN UI MESSAGE */}
+      <CourierSearchDialog open={courierOpen} onClose={() => setCourierOpen(false)} onSelect={(courier) => { setCourierId(courier.id); setCourierName(courier.name); }} />
+      <CompanySearchDialog open={companyOpen} onClose={() => setCompanyOpen(false)} onSelect={(company) => { setCompanyId(company.id); setCompanyName(company.name); setProductId(""); setProductName(""); }} />
+      <ProductSearchDialog companyId={companyId} open={productOpen} onClose={() => setProductOpen(false)} onSelect={(product) => { setProductId(product.id); setProductName(product.name); }} />
+      <UiMessage open={messageOpen} title="Revisa el ajuste" message={messageText} type="warning" onClose={() => { setMessageOpen(false); setMessageText(""); }} />
     </>
   );
 }

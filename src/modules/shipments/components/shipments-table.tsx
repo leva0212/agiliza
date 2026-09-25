@@ -9,6 +9,7 @@ import { MRT_Localization_ES } from "material-react-table/locales/es";
 import { useMemo } from "react";
 
 import { useRouter } from "next/navigation";
+import { Copy } from "lucide-react";
 import { getShipmentStatusOption } from "@/modules/shipments/utils/get-shipment-status-option";
 import type { PaginationState } from "@tanstack/react-table";
 import { Shipment } from "../types/shipment";
@@ -41,8 +42,8 @@ export function ShipmentsTable({
         accessorKey: "tracking_number",
 
         header: "Guía",
-        size: 120,      // ancho inicial/establecido
-    minSize: 80,    // ancho mínimo (no puede reducirse más)
+        size: 145,      // ancho inicial/establecido
+    minSize: 130,    // ancho mínimo (no puede reducirse más)
     maxSize: 300,
 
         Cell: ({ row }) => {
@@ -91,11 +92,13 @@ export function ShipmentsTable({
 
                     toast.success("Número de guía copiado");
                   }}
+                  aria-label="Copiar número de guía"
+                  title="Copiar número de guía"
                   className="
-              hover:opacity-70
+              inline-flex size-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white
             "
                 >
-                  📋
+                  <Copy size={16} aria-hidden="true" />
                 </button>
               </div>
 

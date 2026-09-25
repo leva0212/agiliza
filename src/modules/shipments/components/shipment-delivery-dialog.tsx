@@ -16,6 +16,8 @@ import { NavigationDialog } from "@/shared/components/navigation-dialog";
 import { getDeliveryCouriers } from "../api/get-delivery-couriers";
 import type { CompleteShipmentDeliveryInput } from "../api/complete-shipment-delivery";
 
+type DeliveryItem = { id: string; productName: string; quantity: number };
+
 type Coordinates = {
   latitude: number;
   longitude: number;
@@ -26,6 +28,8 @@ type Props = {
   open: boolean;
   shipmentId: string;
   currentUserId?: string;
+  currentUserRole?: string;
+  items: DeliveryItem[];
   assignedDepositAmount: number;
   assignedShippingFee: number;
   isSubmitting: boolean;
@@ -43,6 +47,8 @@ export function ShipmentDeliveryDialog({
   open,
   shipmentId,
   currentUserId,
+  currentUserRole,
+  items,
   assignedDepositAmount,
   assignedShippingFee,
   isSubmitting,
@@ -54,6 +60,7 @@ export function ShipmentDeliveryDialog({
   const [depositAmount, setDepositAmount] = useState("");
   const [shippingFee, setShippingFee] = useState("");
   const [observations, setObservations] = useState("");
+  const [deliveredQuantities, setDeliveredQuantities] = useState<Record<string, string>>({});
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [latitudeInput, setLatitudeInput] = useState("");
   const [longitudeInput, setLongitudeInput] = useState("");
@@ -63,7 +70,14 @@ export function ShipmentDeliveryDialog({
   const [locationError, setLocationError] = useState("");
   const [navigationOpen, setNavigationOpen] = useState(false);
   const requestedLocationForOpenRef = useRef(false);
+  const initializedItemsForOpenRef = useRef(false);
 
+  useEffect(() => {
+    if (!open) { initializedItemsForOpenRef.current = false; return; }
+    if (initializedItemsForOpenRef.current) return;
+    initializedItemsForOpenRef.current = true;
+    setDeliveredQuantities(Object.fromEntries(items.map((item) => [item.id, String(item.quantity)])));
+  }, [open, items]);
   const couriersQuery = useQuery({
     queryKey: ["delivery-couriers"],
     queryFn: getDeliveryCouriers,
@@ -130,6 +144,7 @@ export function ShipmentDeliveryDialog({
     (courier) => courier.profile_id === currentUserId,
   )?.id ?? "";
   const selectedDeliveredBy = deliveredBy || defaultDeliveredBy;
+  const canChooseDeliveredBy = currentUserRole !== "courier";
 
   const navigationLinks = useMemo(() => {
     if (!coordinates) {
@@ -150,25 +165,33 @@ export function ShipmentDeliveryDialog({
 
   const submit = () => {
     if (!selectedDeliveredBy) {
-      toast.error("Seleccione quién realizó la entrega.");
+      toast.error("Falta indicar quién entregó el envío.");
       return;
     }
 
     if (!receiverType) {
-      toast.error("Seleccione quién recibió la entrega.");
+      toast.error("Falta indicar quién recibió el envío.");
       return;
     }
 
+    const pendingCollections: string[] = [];
     if (assignedDepositAmount > 0 && !depositAmount.trim()) {
-      toast.error("Ingrese el depósito recibido.");
-      return;
+      pendingCollections.push(`depósito: se espera ${formatMoney(assignedDepositAmount)}`);
     }
-
     if (assignedShippingFee > 0 && !shippingFee.trim()) {
-      toast.error("Ingrese el costo de envío recibido.");
+      pendingCollections.push(`envío: se esperan ${formatMoney(assignedShippingFee)}`);
+    }
+    if (pendingCollections.length > 0) {
+      toast.warning(`Falta registrar ${pendingCollections.join(" · ")}. Ingrese el monto recibido o 0 si no se recolectó.`);
       return;
     }
 
+    const deliveredItems = items.map((item) => ({ shipmentItemId: item.id, quantity: Number(deliveredQuantities[item.id] ?? "") }));
+    const invalidQuantity = deliveredItems.find((item) => !Number.isInteger(item.quantity) || item.quantity < 0);
+    if (invalidQuantity) {
+      toast.error("Indique una cantidad entregada válida (entero igual o mayor que 0) para cada artículo.");
+      return;
+    }
     const manualCoordinatesEntered = Boolean(latitudeInput.trim() || longitudeInput.trim());
     let coordinatesToSave = coordinates;
     if (manualCoordinatesEntered) {
@@ -196,6 +219,7 @@ export function ShipmentDeliveryDialog({
       receiverType,
       depositAmount: parsedDeposit,
       shippingFee: parsedShippingFee,
+      deliveredItems,
       observations: observations.trim(),
       latitude: coordinatesToSave?.latitude ?? null,
       longitude: coordinatesToSave?.longitude ?? null,
@@ -246,7 +270,7 @@ export function ShipmentDeliveryDialog({
                 id="delivery-courier"
                 value={selectedDeliveredBy}
                 onChange={(event) => setDeliveredBy(event.target.value)}
-                disabled={couriersQuery.isLoading || isSubmitting}
+                disabled={!canChooseDeliveredBy || couriersQuery.isLoading || isSubmitting}
               >
                 <option value="">
                   {couriersQuery.isLoading
@@ -259,6 +283,7 @@ export function ShipmentDeliveryDialog({
                   </option>
                 ))}
               </select>
+              {!canChooseDeliveredBy && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Se registra automáticamente a su usuario como quien entregó.</p>}
               {couriersQuery.isError && (
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
                   {couriersQuery.error.message}
@@ -273,6 +298,16 @@ export function ShipmentDeliveryDialog({
                 )}
             </div>
 
+            <section className="rounded-2xl border border-violet-200 bg-violet-50/60 p-3 dark:border-violet-800/70 dark:bg-violet-950/20">
+              <div className="text-sm font-semibold text-violet-900 dark:text-violet-200">Artículos entregados</div>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Ajuste la cantidad real entregada. Este valor rebajará el inventario del mensajero.</p>
+              <div className="mt-3 space-y-2">
+                {items.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-violet-200 bg-white/80 p-2.5 dark:border-violet-900/70 dark:bg-slate-900/70">
+                  <span className="min-w-0 flex-1 text-sm font-medium">{item.productName}<span className="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400">· solicitado: {item.quantity}</span></span>
+                  <label className="w-24 shrink-0 text-xs font-medium text-slate-600 dark:text-slate-300">Entregado<input type="number" inputMode="numeric" min={0} step={1} value={deliveredQuantities[item.id] ?? ""} onChange={(event) => setDeliveredQuantities((current) => ({ ...current, [item.id]: event.target.value }))} disabled={isSubmitting} className="mt-1 w-full" /></label>
+                </div>)}
+              </div>
+            </section>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="min-w-0">
                 <label htmlFor="delivery-receiver" className="mb-1 block text-sm font-semibold">
@@ -397,16 +432,16 @@ export function ShipmentDeliveryDialog({
                       <MapPin size={19} />
                     </button>
                   )}
-                  {locationStatus === "error" && <button
+                  <button
                     type="button"
                     onClick={requestLocation}
-                    disabled={isSubmitting}
-                    title={coordinates ? "Actualizar ubicación" : "Solicitar permiso de ubicación"}
+                    disabled={isSubmitting || locationStatus === "loading"}
+                    title="Reintentar ubicación para mejorar la precisión"
                     className="flex items-center gap-2 rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50 dark:border-sky-700 dark:text-sky-200 dark:hover:bg-sky-900"
                   >
-                    <LocateFixed size={18} />
-                    <span>Solicitar ubicación</span>
-                  </button>}
+                    <LocateFixed size={18} className={locationStatus === "loading" ? "animate-pulse" : undefined} />
+                    <span>{locationStatus === "loading" ? "Buscando GPS..." : coordinates ? "Mejorar precisión" : "Reintentar ubicación"}</span>
+                  </button>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -428,10 +463,7 @@ export function ShipmentDeliveryDialog({
             <button
               type="button"
               onClick={submit}
-              disabled={
-                isSubmitting ||
-                couriersQuery.isLoading ||
-                !deliveredBy}
+              disabled={isSubmitting}
               className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting && <LoaderCircle className="animate-spin" size={18} />}
