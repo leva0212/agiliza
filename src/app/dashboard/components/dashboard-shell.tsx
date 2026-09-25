@@ -33,6 +33,7 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (pathname === "/dashboard/products/new") return "Nuevo producto";
   if (/^\/dashboard\/products\/edit\/[^/]+$/.test(pathname)) return "Modificar producto";
   if (pathname === "/dashboard/inventory/list") return "Inventario";
+  if (pathname === "/dashboard/inventory/movements") return "Movimientos de inventario";
   if (pathname === "/dashboard/rates") return "Tarifas";
   if (pathname === "/dashboard/users/list") return "Usuarios";
   if (pathname === "/dashboard/users/new") return "Nuevo usuario";

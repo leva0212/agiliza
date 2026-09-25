@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CircleHelp } from "lucide-react";
 
 import { InventoryTable } from "@/modules/inventory/components/inventory-table";
 
@@ -11,9 +12,12 @@ import { CourierSearchDialog } from "@/modules/couriers/components/courier-searc
 import { ProductSearchDialog } from "@/modules/company-products/components/product-search-dialog";
 import { CompanySearchDialog } from "@/modules/companies/components/company-search-dialog";
 import { UiMessage } from "@/shared/components/ui-message";
+import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
 import { InventoryMovementsDialog } from "@/modules/inventory/components/inventory-movements-dialog";
 import { InventoryAssignDialog } from "@/modules/inventory/components/inventory-assign-dialog";
 import { AssignInventoryInput } from "@/modules/inventory/types/assign-inventory";
+import type { Inventory } from "@/modules/inventory/types/inventory";
+import { updateInventoryAlertLevels } from "@/modules/inventory/api/update-inventory-alert-levels";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { assignInventory } from "@/modules/inventory/api/assign-inventory";
@@ -26,6 +30,11 @@ export default function InventoryListPage() {
 
     pageSize: 10,
   });
+  const [alertInventory, setAlertInventory] = useState<Inventory | null>(null);
+  const [alertLow, setAlertLow] = useState("");
+  const [alertMedium, setAlertMedium] = useState("");
+  const [alertSaving, setAlertSaving] = useState(false);
+  const [alertHelpOpen, setAlertHelpOpen] = useState(false);
   const [movementInventoryId, setMovementInventoryId] = useState<string | null>(
     null,
   );
@@ -38,6 +47,7 @@ export default function InventoryListPage() {
 
   const [movementsOpen, setMovementsOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [movementInventory, setMovementInventory] = useState<Inventory | null>(null);
   const [warningOpen, setWarningOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [productName, setProductName] = useState("");
@@ -80,6 +90,8 @@ export default function InventoryListPage() {
     stockStatus,
   });
 
+  const alertHasChanges = !!alertInventory && (Number(alertLow) !== alertInventory.low_stock || Number(alertMedium) !== alertInventory.medium_stock);
+
   const toggleStockStatus = (nextStatus: "low" | "medium" | "high") => {
     setStockStatus(stockStatus === nextStatus ? undefined : nextStatus);
     setPagination((current) => ({ ...current, pageIndex: 0 }));
@@ -92,6 +104,7 @@ export default function InventoryListPage() {
 
   return (
     <div className="space-y-5 p-2">
+      <AppBarActions><AppBarActionButton label="Cómo funcionan los niveles de alerta" onClick={() => setAlertHelpOpen(true)}><CircleHelp size={20} /></AppBarActionButton></AppBarActions>
       <section className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
         <div className="mb-4">
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Filtros</h2>
@@ -390,6 +403,8 @@ export default function InventoryListPage() {
         setPagination={setPagination}
         totalRows={data?.totalRows ?? 0}
         summary={data?.summary ?? { totalQuantity: 0, totalRecords: 0, lowRecords: 0, mediumRecords: 0, highRecords: 0, lowCouriers: 0, lowCompanies: 0, lowProducts: 0 }}
+        onConfigureAlerts={(inventory) => { setAlertInventory(inventory); setAlertLow(String(inventory.low_stock)); setAlertMedium(String(inventory.medium_stock)); }}
+        onRegisterMovement={(inventory) => { setMovementInventory(inventory); setAssignOpen(true); }}
         onViewMovements={(inventoryId) => {
           setMovementInventoryId(inventoryId);
 
@@ -444,17 +459,19 @@ export default function InventoryListPage() {
         type="warning"
         onClose={() => setWarningOpen(false)}
       />
-      <InventoryMovementsDialog
+      <UiMessage open={alertHelpOpen} title="Niveles de alerta" type="info" message={<div className="space-y-3"><p>Cada inventario se configura por <strong>mensajero, empresa y producto</strong>.</p><p><span className="font-semibold text-red-600 dark:text-red-400">Rojo · Bajo:</span> cantidad menor que <span className="font-semibold text-red-600 dark:text-red-400">existencias bajas</span>.</p><p><span className="font-semibold text-amber-600 dark:text-amber-400">Ámbar · Medio:</span> desde el nivel bajo y menor que <span className="font-semibold text-amber-600 dark:text-amber-400">existencias medias</span>.</p><p><span className="font-semibold text-emerald-600 dark:text-emerald-400">Verde · Alto:</span> igual o mayor que <span className="font-semibold text-emerald-600 dark:text-emerald-400">existencias medias</span>.</p><p>Los valores negativos también se consideran <span className="font-semibold text-red-600 dark:text-red-400">bajos</span>.</p></div>} onClose={() => setAlertHelpOpen(false)} />
+      {alertInventory && <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/60 p-4"><div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-white p-5 shadow-2xl dark:bg-slate-900"><h2 className="text-lg font-semibold">Niveles de alerta</h2><div className="mt-2 space-y-0.5 text-sm text-slate-600 dark:text-slate-400"><p><span className="font-medium text-slate-800 dark:text-slate-200">Producto:</span> {alertInventory.product_name}</p><p><span className="font-medium text-slate-800 dark:text-slate-200">Empresa:</span> {alertInventory.company_name}</p><p><span className="font-medium text-slate-800 dark:text-slate-200">Mensajero:</span> {alertInventory.courier_name}</p></div><div className="mt-4 flex flex-col gap-3"><label className="text-sm font-medium">Existencias bajas<input type="number" min="0" value={alertLow} onChange={(e) => setAlertLow(e.target.value)} className="mt-1 w-full rounded-lg border p-3 dark:bg-slate-950" /></label><label className="text-sm font-medium">Existencias medias<input type="number" min="0" value={alertMedium} onChange={(e) => setAlertMedium(e.target.value)} className="mt-1 w-full rounded-lg border p-3 dark:bg-slate-950" /></label></div><div className="mt-5 flex gap-3"><button type="button" onClick={() => setAlertInventory(null)} className="flex-1 rounded-lg border py-2">Cancelar</button><button type="button" disabled={alertSaving || !alertHasChanges} onClick={async () => { const low=Number(alertLow), medium=Number(alertMedium); if (!alertHasChanges) return; if (!Number.isInteger(low) || low < 0 || !Number.isInteger(medium) || medium <= low) { setWarningOpen(true); return; } setAlertSaving(true); try { await updateInventoryAlertLevels({ id: alertInventory.id, lowStock: low, mediumStock: medium }); setAlertInventory(null); await queryClient.invalidateQueries({ queryKey: ["inventory"] }); } catch { setWarningOpen(true); } finally { setAlertSaving(false); } }} className="flex-1 rounded-lg bg-blue-600 py-2 text-white">{alertSaving ? "Guardando…" : alertHasChanges ? "Guardar" : "Sin cambios"}</button></div></div></div>}      <InventoryMovementsDialog
         open={movementsOpen}
         inventoryId={movementInventoryId}
         onClose={() => setMovementsOpen(false)}
       />
       <InventoryAssignDialog
         open={assignOpen}
-        onClose={() => setAssignOpen(false)}
-        initialCourier={courierId && courierName ? { id: courierId, name: courierName } : undefined}
-        initialCompany={companyId && companyName ? { id: companyId, name: companyName } : undefined}
-        initialProduct={productId && productName ? { id: productId, name: productName } : undefined}
+        onClose={() => { setAssignOpen(false); setMovementInventory(null); }}
+        initialCourier={movementInventory ? { id: movementInventory.courier_id, name: movementInventory.courier_name ?? "" } : courierId && courierName ? { id: courierId, name: courierName } : undefined}
+        initialCompany={movementInventory ? { id: movementInventory.company_id, name: movementInventory.company_name ?? "" } : companyId && companyName ? { id: companyId, name: companyName } : undefined}
+        initialProduct={movementInventory ? { id: movementInventory.product_id, name: movementInventory.product_name ?? "" } : productId && productName ? { id: productId, name: productName } : undefined}
+        lockSelection={!!movementInventory}
         onSave={async (data) => {
           const supabase = createClient();
 

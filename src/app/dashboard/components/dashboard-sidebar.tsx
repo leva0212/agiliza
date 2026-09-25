@@ -244,8 +244,11 @@ export function DashboardSidebar({
               >
                 {expanded ? "📦 Inventario" : "📦"}
               </Link>
+              <Link prefetch={false} href="/dashboard/inventory/movements" className="block p-3 rounded-lg hover:bg-gray-800">
+                {expanded ? "📜 Movimientos de inventario" : "📜"}
+              </Link>
 
-              <Link prefetch={false}
+<Link prefetch={false}
                 href="/dashboard/rates"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >

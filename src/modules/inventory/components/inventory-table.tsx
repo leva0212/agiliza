@@ -2,6 +2,10 @@
 
 import { useMemo, type Dispatch, type SetStateAction } from "react";
 import Chip from "@mui/material/Chip";
+import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
+import Inventory2Outlined from "@mui/icons-material/Inventory2Outlined";
+import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import { MRT_Localization_ES } from "material-react-table/locales/es";
 
@@ -15,9 +19,11 @@ type Props = {
   setPagination: Dispatch<SetStateAction<{ pageIndex: number; pageSize: number }>>;
   totalRows: number;
   summary: InventorySummary;
+  onConfigureAlerts: (inventory: Inventory) => void;
+  onRegisterMovement: (inventory: Inventory) => void;
 };
 
-export function InventoryTable({ data, pagination, setPagination, totalRows, summary, onViewMovements }: Props) {
+export function InventoryTable({ data, pagination, setPagination, totalRows, summary, onViewMovements, onConfigureAlerts, onRegisterMovement }: Props) {
   const columns = useMemo<MRT_ColumnDef<Inventory>[]>(
     () => [
       { accessorKey: "courier_name", header: "Mensajero" },
@@ -39,10 +45,10 @@ export function InventoryTable({ data, pagination, setPagination, totalRows, sum
         id: "actions",
         header: "Acciones",
         ...standardMrtActionColumnSizing,
-        Cell: ({ row }) => <button type="button" onClick={() => onViewMovements(row.original.id)} className="rounded-lg border px-3 py-1 hover:bg-blue-50 dark:hover:bg-slate-800">📋 Movimientos</button>,
+        Cell: ({ row }) => <div className="flex gap-1"><Tooltip title="Registrar movimiento"><IconButton aria-label="Registrar movimiento" size="small" color="success" onClick={() => onRegisterMovement(row.original)} sx={{ border: "1px solid", borderColor: "success.main", borderRadius: 1 }}><Inventory2Outlined fontSize="small" /></IconButton></Tooltip><Tooltip title="Configurar niveles de alerta"><IconButton aria-label="Configurar niveles de alerta" size="small" color="secondary" onClick={() => onConfigureAlerts(row.original)} sx={{ border: "1px solid", borderColor: "secondary.main", borderRadius: 1 }}><SettingsOutlined fontSize="small" /></IconButton></Tooltip><Tooltip title="Ver movimientos"><IconButton aria-label="Ver movimientos" size="small" color="primary" onClick={() => onViewMovements(row.original.id)} sx={{ border: "1px solid", borderColor: "primary.main", borderRadius: 1 }}>📋</IconButton></Tooltip></div>,
       },
     ],
-    [onViewMovements],
+    [onConfigureAlerts, onRegisterMovement, onViewMovements],
   );
 
   return (

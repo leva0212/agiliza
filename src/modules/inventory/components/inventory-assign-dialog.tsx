@@ -21,6 +21,7 @@ type Props = {
   initialCourier?: Selection;
   initialCompany?: Selection;
   initialProduct?: Selection;
+  lockSelection?: boolean;
 };
 
 export function InventoryAssignDialog({
@@ -30,6 +31,7 @@ export function InventoryAssignDialog({
   initialCourier,
   initialCompany,
   initialProduct,
+  lockSelection = false,
 }: Props) {
   const [lowStock, setLowStock] = useState("20");
   const [mediumStock, setMediumStock] = useState("50");
@@ -142,9 +144,9 @@ export function InventoryAssignDialog({
               <h3 className="font-medium text-slate-900 dark:text-slate-100">Destino del movimiento</h3>
               <p className="mb-3 mt-1 text-xs text-slate-600 dark:text-slate-400">Los valores seleccionados en los filtros se cargan aquí para continuar más rápido.</p>
               <div className="flex flex-col gap-3">
-                <SearchSelector label="Mensajero" valueName={courierName} placeholder="Seleccione un mensajero" onSearch={() => setCourierOpen(true)} />
-                <SearchSelector label="Empresa propietaria del producto" valueName={companyName} placeholder="Seleccione una empresa" onSearch={() => setCompanyOpen(true)} />
-                <SearchSelector label="Producto" valueName={productName} placeholder={companyId ? "Seleccione un producto" : "Seleccione una empresa primero"} disabled={!companyId} onSearch={() => setProductOpen(true)} />
+                <SearchSelector label="Mensajero" valueName={courierName} placeholder="Seleccione un mensajero" disabled={lockSelection} onSearch={() => setCourierOpen(true)} />
+                <SearchSelector label="Empresa propietaria del producto" valueName={companyName} placeholder="Seleccione una empresa" disabled={lockSelection} onSearch={() => setCompanyOpen(true)} />
+                <SearchSelector label="Producto" valueName={productName} placeholder={companyId ? "Seleccione un producto" : "Seleccione una empresa primero"} disabled={lockSelection || !companyId} onSearch={() => setProductOpen(true)} />
               </div>
             </section>
 
