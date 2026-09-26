@@ -176,6 +176,24 @@ export function DashboardSidebar({
             {expanded ? "🏠 Inicio" : "🏠"}
           </Link>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <Link prefetch={false} href="/dashboard/chat" className="block rounded-lg border border-sky-700/60 bg-sky-900/40 p-3 text-sky-100 hover:bg-sky-800/60">
+            {expanded ? "💬 Chat" : "💬"}
+          </Link>
+
           <Link prefetch={false}
             href="/dashboard/tracking"
             className="block p-3 rounded-lg hover:bg-gray-800"
@@ -255,7 +273,8 @@ export function DashboardSidebar({
                 {expanded ? "💰 Tarifas" : "💰"}
               </Link>
 
-              <Link prefetch={false}
+
+<Link prefetch={false}
                 href="/dashboard/users/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
               >

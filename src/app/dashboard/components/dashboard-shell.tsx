@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { PageCloseGuardProvider } from "@/shared/components/page-close-guard";
 import { UiMessage } from "@/shared/components/ui-message";
+import { ChatNotifications } from "@/modules/chat/components/chat-notifications";
 import {
   DashboardSidebar,
   type DashboardProfile,
@@ -35,6 +36,7 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (pathname === "/dashboard/inventory/list") return "Inventario";
   if (pathname === "/dashboard/inventory/movements") return "Movimientos de inventario";
   if (pathname === "/dashboard/rates") return "Tarifas";
+  if (pathname === "/dashboard/chat") return "Chat";
   if (pathname === "/dashboard/users/list") return "Usuarios";
   if (pathname === "/dashboard/users/new") return "Nuevo usuario";
   if (/^\/dashboard\/users\/edit\/[^/]+$/.test(pathname)) return "Modificar usuario";
@@ -153,7 +155,7 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
                 </p>
               </div>
 
-              <div id="dashboard-appbar-actions" className="ml-auto flex shrink-0 items-center gap-2" />
+              <div className="ml-auto flex shrink-0 items-center gap-2">{profile && <ChatNotifications />}<div id="dashboard-appbar-actions" className="flex shrink-0 items-center gap-2" /></div>
 
               {!isHomePage && (pathname !== "/dashboard/coverage" || profile) && (
                 <button
