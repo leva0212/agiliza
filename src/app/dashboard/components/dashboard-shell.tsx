@@ -44,6 +44,8 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   return "Agiliza";
 }
 function getPageCloseDestination(pathname: string) {
+  // La lista debe resolverse antes del patrón de detalle: "list" también coincide con [id].
+  if (pathname === "/dashboard/shipments/list") return "/dashboard";
   const shipmentEdit = pathname.match(/^\/dashboard\/shipments\/([^/]+)\/edit$/);
   if (shipmentEdit) return "/dashboard/shipments/" + shipmentEdit[1];
   if (/^\/dashboard\/shipments\/[^/]+$/.test(pathname)) return "/dashboard/shipments/list";

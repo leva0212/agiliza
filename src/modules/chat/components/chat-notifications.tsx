@@ -28,6 +28,7 @@ export function ChatNotifications() {
     };
 
     void load();
+    window.addEventListener("chat-messages-read", load);
     const channel = supabase
       .channel("chat-notifications")
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_messages" }, () => void load())
@@ -36,6 +37,7 @@ export function ChatNotifications() {
 
     return () => {
       window.clearInterval(interval);
+      window.removeEventListener("chat-messages-read", load);
       void supabase.removeChannel(channel);
     };
   }, []);
@@ -63,3 +65,5 @@ export function ChatNotifications() {
     </div>
   );
 }
+
+

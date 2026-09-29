@@ -185,7 +185,7 @@ export default function ShipmentDetailPage() {
                 >
                   <Copy size={16} />
                 </button>
-                <button type="button" onClick={() => router.push(`/dashboard/chat?shipmentId=${shipment.id}&returnTo=${encodeURIComponent(`/dashboard/shipments/${shipment.id}`)}`)} className="inline-flex items-center gap-1 rounded-lg border border-sky-500 px-2 py-1 text-xs sm:text-sm text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30" title="Chat con empresa"><MessageCircle size={16} /> Chat</button>
+                <button type="button" onClick={() => router.push(`/dashboard/chat?shipmentId=${shipment.id}&returnTo=${encodeURIComponent(`/dashboard/shipments/${shipment.id}`)}`)} className="inline-flex items-center gap-1 rounded-lg border border-sky-500 px-2 py-1 text-xs sm:text-sm text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30" title="Abrir soporte de este envío"><MessageCircle size={16} /> Abrir soporte</button>
               </div>
             </div>
 
@@ -238,9 +238,6 @@ export default function ShipmentDetailPage() {
           </div>
         )}
         <div className="rounded-xl border p-2.5 sm:p-3">
-          <div className="mt-1.5 text-xl font-bold text-blue-700 sm:text-2xl">
-            {shipment.company?.name}
-          </div>
           <div className="mb-2 font-semibold">Artículos</div>
 
           <div className="space-y-2">
@@ -294,9 +291,6 @@ export default function ShipmentDetailPage() {
         </div>
 
         <div className="rounded-xl border p-2.5 sm:p-3">
-          <div className="mt-1.5 text-xl font-bold text-blue-700 sm:text-2xl">
-            {shipment.company?.name}
-          </div>
           <div className="font-semibold">Observaciones</div>
 
           <div className="mt-2 whitespace-pre-wrap">
@@ -328,9 +322,6 @@ export default function ShipmentDetailPage() {
           </div>
         )}
         <div className="rounded-xl border p-2.5 sm:p-3">
-          <div className="mt-1.5 text-xl font-bold text-blue-700 sm:text-2xl">
-            {shipment.company?.name}
-          </div>
           <div className="font-semibold">
             Dirección: Provincia{" - "}Canton{" - "}Distrito{" - "}Barrio
           </div>
@@ -368,9 +359,6 @@ export default function ShipmentDetailPage() {
           </button>
         </div>
         <div className="rounded-xl border p-2.5 sm:p-3">
-          <div className="mt-1.5 text-xl font-bold text-blue-700 sm:text-2xl">
-            {shipment.company?.name}
-          </div>
           <div className="font-semibold">Ruta</div>
 
           <div className="mt-2">
@@ -834,3 +822,5 @@ export default function ShipmentDetailPage() {
 }
 
 function formatCRC(value: number) { return new Intl.NumberFormat("es-CR", { style: "currency", currency: "CRC", maximumFractionDigits: 2 }).format(value); }
+
+
