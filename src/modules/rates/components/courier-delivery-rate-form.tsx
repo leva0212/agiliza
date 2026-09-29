@@ -24,11 +24,15 @@ type Props = {
 
   courierId: string;
 
+  routeName: string;
+
+  courierName: string;
+
   rate?: any | null;
 
   onClose: () => void;
 
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
 };
 
 export function CourierDeliveryRateForm({
@@ -37,6 +41,10 @@ export function CourierDeliveryRateForm({
   routeId,
 
   courierId,
+
+  routeName,
+
+  courierName,
 
   rate,
 
@@ -193,7 +201,7 @@ export function CourierDeliveryRateForm({
         await createCourierDeliveryRate(payload);
       }
 
-      onSaved();
+      await onSaved();
     } catch (error: any) {
       console.error(error);
 
@@ -258,14 +266,19 @@ Puede modificar la tarifa existente en lugar de crear una nueva.
           p-4
         "
         >
-          <h2
-            className="
-            text-xl
-            font-bold
-          "
-          >
-            {rate ? "Modificar tarifa de pago a Mensajero" : "Nueva tarifa de pago a Mensajero"}
-          </h2>
+          <div>
+            <h2
+              className="
+              text-xl
+              font-bold
+            "
+            >
+              {rate ? "Modificar tarifa de pago" : "Nueva tarifa de pago"}
+            </h2>
+            <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+              Mensajero: {courierName || "No seleccionado"} · Ruta: {routeName || "No seleccionada"}
+            </p>
+          </div>
 
           <button
             onClick={onClose}

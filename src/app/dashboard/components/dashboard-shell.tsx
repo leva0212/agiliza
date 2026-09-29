@@ -35,6 +35,9 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (/^\/dashboard\/products\/edit\/[^/]+$/.test(pathname)) return "Modificar producto";
   if (pathname === "/dashboard/inventory/list") return "Inventario";
   if (pathname === "/dashboard/inventory/movements") return "Movimientos de inventario";
+  if (pathname === "/dashboard/reports/dts-charges") return "Cobros a DTS";
+  if (pathname === "/dashboard/reports/courier-payments") return "Pagos a mensajeros";
+  if (pathname === "/dashboard/settlements/schedules") return "Cronogramas de liquidación";
   if (pathname === "/dashboard/rates") return "Tarifas";
   if (pathname === "/dashboard/chat") return "Chat";
   if (pathname === "/dashboard/users/list") return "Usuarios";

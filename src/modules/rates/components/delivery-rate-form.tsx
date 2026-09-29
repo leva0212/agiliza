@@ -27,7 +27,7 @@ type Props = {
 
   onClose: () => void;
 
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
 };
 
 export function DeliveryRateForm({
@@ -210,7 +210,7 @@ export function DeliveryRateForm({
         await createDeliveryRate(payload);
       }
 
-      onSaved();
+      await onSaved();
     } catch (error: any) {
       console.error(error);
 

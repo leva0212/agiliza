@@ -57,6 +57,14 @@ if (!auth.user) {
 
 }
 
+  if (input.status === "failed_attempt") {
+    const { error } = await supabase.rpc("register_shipment_failed_attempt", {
+      p_shipment_id: input.shipmentId,
+    });
+    if (error) throw error;
+    return;
+  }
+
 
 
   const payload: Record<

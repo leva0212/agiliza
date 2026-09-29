@@ -74,7 +74,7 @@ export default function RatesPage() {
     queryFn: getCouriersOptions,
   });
 
-  const { data: deliveryRates = [] } = useQuery({
+  const { data: deliveryRates = [], refetch: refetchDeliveryRates } = useQuery({
     queryKey: [
       "delivery-rates",
 
@@ -97,7 +97,7 @@ export default function RatesPage() {
     enabled: true,
   });
 
-  const { data: courierRates = [] } = useQuery({
+  const { data: courierRates = [], refetch: refetchCourierRates } = useQuery({
     queryKey: [
       "courier-rates",
 
@@ -567,14 +567,13 @@ export default function RatesPage() {
 
             setEditingRate(null);
           }}
-          onSaved={() => {
+          onSaved={async () => {
             setFormOpen(false);
 
             setEditingRate(null);
 
-            queryClient.invalidateQueries({
-              queryKey: ["delivery-rates", routeId],
-            });
+            await queryClient.invalidateQueries({ queryKey: ["delivery-rates"] });
+            await refetchDeliveryRates();
           }}
         />
       )}
@@ -584,20 +583,21 @@ export default function RatesPage() {
           open={formOpen}
           routeId={routeId}
           courierId={courierId}
+          routeName={routes.find((route) => route.id === routeId)?.name ?? ""}
+          courierName={couriers.find((courier) => courier.id === courierId)?.full_name ?? ""}
           rate={editingCourierRate}
           onClose={() => {
             setFormOpen(false);
 
             setEditingCourierRate(null);
           }}
-          onSaved={() => {
+          onSaved={async () => {
             setFormOpen(false);
 
             setEditingCourierRate(null);
 
-            queryClient.invalidateQueries({
-              queryKey: ["courier-rates"],
-            });
+            await queryClient.invalidateQueries({ queryKey: ["courier-rates"] });
+            await refetchCourierRates();
           }}
         />
       )}

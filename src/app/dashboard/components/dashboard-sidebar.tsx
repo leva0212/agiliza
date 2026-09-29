@@ -283,6 +283,20 @@ export function DashboardSidebar({
             </>
           )}
 
+          {canAccessInternalFeatures && (isSuperAdmin || isCompanyAdmin) && (
+            <>
+              <Link prefetch={false} href="/dashboard/reports/dts-charges" className="block p-3 rounded-lg hover:bg-gray-800">
+                {expanded ? "💳 Cobros a DTS" : "💳"}
+              </Link>
+              <Link prefetch={false} href="/dashboard/reports/courier-payments" className="block p-3 rounded-lg hover:bg-gray-800">
+                {expanded ? "💰 Pagos a mensajeros" : "💰"}
+              </Link>
+              <Link prefetch={false} href="/dashboard/settlements/schedules" className="block p-3 rounded-lg hover:bg-gray-800">
+                {expanded ? "📅 Cronogramas de liquidación" : "📅"}
+              </Link>
+            </>
+          )}
+
           {canAccessInternalFeatures && isCourier && (
             <Link prefetch={false}
               href="/dashboard/my-shipments"
