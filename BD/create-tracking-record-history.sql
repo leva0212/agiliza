@@ -76,11 +76,11 @@ begin
   end if;
 
   if old.company_id is distinct from new.company_id then
-    select coalesce(nullif(trim(trade_name), ''), name)
+    select name
       into old_company_name
       from public.companies
       where id = old.company_id;
-    select coalesce(nullif(trim(trade_name), ''), name)
+    select name
       into new_company_name
       from public.companies
       where id = new.company_id;

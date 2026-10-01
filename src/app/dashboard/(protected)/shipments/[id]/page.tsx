@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { getShipment } from "@/modules/shipments/api/get-shipment";
+import { getCompanyLabel } from "@/modules/companies/company-label";
 
 import { getShipmentItems } from "@/modules/shipments/api/get-shipment-items";
 import { getShipmentContactMethods } from "@/modules/shipments/api/get-shipment-contact-methods";
@@ -158,7 +159,7 @@ export default function ShipmentDetailPage() {
       <div className="mx-auto max-w-4xl space-y-2 p-2 sm:space-y-3 sm:p-3">
         <div className="rounded-xl border p-2.5 sm:p-3">
           <div className="mt-1.5 text-xl font-bold text-blue-700 sm:text-2xl">
-            {shipment.company?.name}
+            {getCompanyLabel(shipment.company)}
           </div>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -185,7 +186,7 @@ export default function ShipmentDetailPage() {
                 >
                   <Copy size={16} />
                 </button>
-                <button type="button" onClick={() => router.push(`/dashboard/chat?shipmentId=${shipment.id}&returnTo=${encodeURIComponent(`/dashboard/shipments/${shipment.id}`)}`)} className="inline-flex items-center gap-1 rounded-lg border border-sky-500 px-2 py-1 text-xs sm:text-sm text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30" title="Abrir soporte de este envío"><MessageCircle size={16} /> Abrir soporte</button>
+                {(profile?.is_owner_company_user || profile?.dts_chat_enabled === true) && <button type="button" onClick={() => router.push(`/dashboard/chat?shipmentId=${shipment.id}&returnTo=${encodeURIComponent(`/dashboard/shipments/${shipment.id}`)}`)} className="inline-flex items-center gap-1 rounded-lg border border-sky-500 px-2 py-1 text-xs sm:text-sm text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/30" title="Abrir soporte de este envío"><MessageCircle size={16} /> Abrir soporte</button>}
               </div>
             </div>
 

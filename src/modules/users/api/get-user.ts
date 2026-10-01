@@ -18,6 +18,7 @@ export async function getUser(
       .select(`
         id,
         email,
+        username,
         company_id,
         role,
         full_name,
@@ -48,3 +49,4 @@ export async function getUser(
   return data;
 
 }
+

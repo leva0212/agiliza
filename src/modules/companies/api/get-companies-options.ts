@@ -14,8 +14,10 @@ export async function getCompaniesOptions() {
 
     .select(`
   id,
+  code,
   name,
-  is_system_company
+  is_system_company,
+  is_owner_company
 `)
 
     .eq(

@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { changePassword } from "@/modules/users/api/change-password";
 
 import { UiMessage } from "@/shared/components/ui-message";
+import { Eye, EyeOff } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -14,6 +16,8 @@ export default function ChangePasswordPage() {
   const [password, setPassword] = useState("");
 
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const [messageOpen, setMessageOpen] = useState(false);
 
@@ -26,10 +30,10 @@ export default function ChangePasswordPage() {
   >("info");
 
   async function handleSave() {
-    if (password.length < 8) {
+    if (password.length < 10) {
       setMessageTitle("Contraseña inválida");
 
-      setMessageText("La contraseña debe tener al menos 8 caracteres.");
+      setMessageText("La contraseña debe tener al menos 10 caracteres.");
 
       setMessageType("warning");
 
@@ -51,11 +55,11 @@ export default function ChangePasswordPage() {
     }
 
     try {
-      await changePassword(password);
+      await changePassword(password, confirmPassword);
 
       setMessageTitle("Contraseña actualizada");
 
-      setMessageText("Su contraseña fue actualizada correctamente.");
+      setMessageText("Su contraseña fue actualizada correctamente. Ahora deberá iniciar sesión con esta nueva contraseña.");
 
       setMessageType("success");
 
@@ -69,6 +73,13 @@ export default function ChangePasswordPage() {
 
       setMessageOpen(true);
     }
+  }
+
+  async function returnToLogin() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
   }
 
   return (
@@ -101,17 +112,17 @@ export default function ChangePasswordPage() {
           Nueva contraseña
         </label>
 
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="
-            w-full
-            border
-            rounded-xl
-            p-3
-          "
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input-has-trailing-icon w-full rounded-xl border p-3"
+          />
+          <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white">
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </div>
 
       <div>
@@ -125,17 +136,17 @@ export default function ChangePasswordPage() {
           Confirmar contraseña
         </label>
 
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className="
-            w-full
-            border
-            rounded-xl
-            p-3
-          "
-        />
+        <div className="relative">
+          <input
+            type={showConfirmation ? "text" : "password"}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="input-has-trailing-icon w-full rounded-xl border p-3"
+          />
+          <button type="button" onClick={() => setShowConfirmation((value) => !value)} aria-label={showConfirmation ? "Ocultar confirmación" : "Mostrar confirmación"} title={showConfirmation ? "Ocultar contraseña" : "Mostrar contraseña"} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white">
+            {showConfirmation ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </div>
 
       <button
@@ -161,14 +172,11 @@ export default function ChangePasswordPage() {
           setMessageOpen(false);
 
           if (messageType === "success") {
-            window.location.href = "/dashboard";
-
-            /* router.push(
-              "/dashboard",
-            );*/
+            void returnToLogin();
           }
         }}
       />
     </div>
   );
 }
+

@@ -11,8 +11,9 @@ export type TrackingRecord = {
   comment: string | null;
   company: {
     id: string;
-    name: string;
-    trade_name: string | null;
+    code: string;
+    name: string | null;
+    display_name?: string;
   } | null;
   province: {
     id: number;

@@ -4,6 +4,8 @@ export type UpdateUserRequest = {
 
   company_id: string | null;
 
+  username?: string;
+
   full_name: string;
 
   phone: string | null;

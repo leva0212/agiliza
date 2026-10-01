@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { getVisibleCompanyDirectory } from "@/modules/companies/api/get-visible-company-directory";
 
 type Params = {
   pageIndex: number;
@@ -88,7 +89,6 @@ export async function getShipments({
       internal_reference,
       delivered_at,
       created_at,
-      company:companies(id, name),
       route:routes(id, name, estimated_hours)
       `,
       { count: "exact" },
@@ -110,6 +110,8 @@ export async function getShipments({
   if (error) throw error;
 
   const shipments = data ?? [];
+  const companies = await getVisibleCompanyDirectory(shipments.map((shipment) => shipment.company_id));
+  const companiesById = new Map(companies.map((company) => [company.id, company]));
   const routeIds = [...new Set(shipments.map((shipment) => shipment.route_id).filter((id): id is string => Boolean(id)))];
   const districtIds = [...new Set(shipments.map((shipment) => shipment.district_id).filter((id): id is number => typeof id === "number"))];
 
@@ -136,7 +138,7 @@ export async function getShipments({
       ...shipment,
       delivery_min_hours: delivery?.min_hours ?? null,
       delivery_max_hours: delivery?.max_hours ?? null,
-      company: Array.isArray(shipment.company) ? (shipment.company[0] ?? null) : shipment.company,
+      company: companiesById.get(shipment.company_id) ?? null,
       route: Array.isArray(shipment.route) ? (shipment.route[0] ?? null) : shipment.route,
     };
   });

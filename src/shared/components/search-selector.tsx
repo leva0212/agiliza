@@ -1,5 +1,7 @@
 "use client";
 
+import { Search } from "lucide-react";
+
 type SearchSelectorProps = {
   label: string;
 
@@ -9,6 +11,7 @@ type SearchSelectorProps = {
 
   onSearch: () => void;
   disabled?: boolean;
+  compact?: boolean;
 };
 
 export function SearchSelector({
@@ -20,41 +23,29 @@ export function SearchSelector({
 
   onSearch,
   disabled = false,
+  compact = false,
 }: SearchSelectorProps) {
   return (
     <div
-      className="
-        w-full
-        max-w-[400px]
-      "
+      className={`w-full ${compact ? "max-w-[260px]" : "max-w-[400px]"}`}
     >
       <label
-        className="
-          block
-          text-sm
-          font-medium
-          mb-1
-        "
+        className={compact ? "sr-only" : "mb-1 block text-sm font-medium"}
       >
         {label}
       </label>
 
-      <div
-        className="
-          flex
-          items-center
-          gap-2
-        "
-      >
+      <div className="relative">
         <input
           readOnly
           value={valueName}
           placeholder={placeholder}
-          className={`
-  flex-1
+          className={`input-has-trailing-icon
+  w-full
   border
   rounded-lg
-  p-3
+  ${compact ? "h-9 p-2 text-sm" : "p-3"}
+  pr-12
 
   ${disabled ? "bg-gray-100 text-gray-400" : "bg-white"}
 `}
@@ -65,14 +56,20 @@ export function SearchSelector({
           type="button"
           onClick={onSearch}
           className={`
-  px-4
-  border
-  rounded-lg
+  absolute
+  right-2
+  top-1/2
+  -translate-y-1/2
+  flex
+  size-9
+  items-center
+  justify-center
+  rounded-md
 
-  ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-50"}
+  ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-50 dark:hover:bg-slate-700"}
 `}
         >
-          🔍
+          <Search size={18} />
         </button>
       </div>
     </div>

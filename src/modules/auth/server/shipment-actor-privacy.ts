@@ -7,8 +7,8 @@ type ActorRole = "super_admin" | "company_admin" | "courier" | "seller" | string
 
 type ActorCompany = {
   id: string;
+  code?: string | null;
   name: string;
-  trade_name?: string | null;
   is_owner_company: boolean;
 };
 
@@ -24,6 +24,7 @@ export type ShipmentViewer = {
   id: string;
   companyId: string;
   isOwnerCompanyUser: boolean;
+  isCourier: boolean;
 };
 
 type ShipmentAccess =
@@ -61,7 +62,7 @@ export async function authorizeShipmentAccess(
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("id, company_id, active, company:companies(is_owner_company)")
+    .select("id, company_id, role, active, company:companies(is_owner_company)")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -92,6 +93,7 @@ export async function authorizeShipmentAccess(
       id: profile.id,
       companyId: profile.company_id,
       isOwnerCompanyUser,
+      isCourier: profile.role === "courier",
     },
   };
 }
@@ -114,10 +116,17 @@ export function sanitizeActor(
     displayName = "Usuario externo";
   }
 
+  const visibleCompany = company ? {
+    id: company.id,
+    code: company.code ?? null,
+    name: viewer.isCourier ? null : company.name,
+    is_owner_company: company.is_owner_company,
+  } : null;
+
   return {
     id: actor.id,
     full_name: displayName,
     company_id: actor.company_id,
-    company,
+    company: visibleCompany,
   };
 }

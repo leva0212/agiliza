@@ -170,10 +170,11 @@ export function DeliveryFinancialRecordsPage({ recordType }: { recordType: Recor
     setPagination((current) => ({ ...current, pageIndex: 0 }));
   };
   const label = (key: FilterKey, text: string) => (
-    <span className="flex items-center gap-2"><input type="checkbox" checked={enabled[key]} onChange={(event) => {
+    <Tooltip title={`Marca para activar o desactivar el filtrado por ${text.toLowerCase()}. Al desmarcarlo, se conserva el valor pero se ignora.`}><span className="flex w-fit cursor-help items-center gap-2"><input aria-label={`Activar filtro por ${text.toLowerCase()}`} type="checkbox" checked={enabled[key]} onChange={(event) => {
       setEnabled((current) => ({ ...current, [key]: event.target.checked }));
       setPagination((current) => ({ ...current, pageIndex: 0 }));
     }} />{text}</span>
+    </Tooltip>
   );
   const reset = () => {
     setCompany(""); setCourier(""); setRoute(""); setTracking(""); setStatus(""); setFrom(today()); setTo(today());
@@ -225,14 +226,14 @@ export function DeliveryFinancialRecordsPage({ recordType }: { recordType: Recor
       <h2 className="font-semibold">Filtros de {heading.toLowerCase()}</h2>
       <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">{description} Marca el checkbox para aplicar un filtro. Por defecto se muestran las entregas de hoy.</p>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="text-sm font-medium">{label("company", "Empresa DTS")}<SearchSelector label="" valueName={company} placeholder="Seleccione empresa" onSearch={() => setCompanyPickerOpen(true)} /></div>
-        <div className="text-sm font-medium">{label("courier", "Mensajero")}<SearchSelector label="" valueName={courier} placeholder="Seleccione mensajero" onSearch={() => setCourierPickerOpen(true)} /></div>
-        <div className="text-sm font-medium">{label("route", "Ruta")}<SearchSelector label="" valueName={route} placeholder="Seleccione ruta" onSearch={() => setRoutePickerOpen(true)} /></div>
+        <div className="text-sm font-medium">{label("company", "Empresa DTS")}<Tooltip title="Abre una lista para elegir la empresa que deseas filtrar."><span><SearchSelector label="" valueName={company} placeholder="Seleccione empresa" onSearch={() => setCompanyPickerOpen(true)} /></span></Tooltip></div>
+        <div className="text-sm font-medium">{label("courier", "Mensajero")}<Tooltip title="Abre una lista para elegir el mensajero que deseas filtrar."><span><SearchSelector label="" valueName={courier} placeholder="Seleccione mensajero" onSearch={() => setCourierPickerOpen(true)} /></span></Tooltip></div>
+        <div className="text-sm font-medium">{label("route", "Ruta")}<Tooltip title="Abre una lista para elegir la ruta que deseas filtrar."><span><SearchSelector label="" valueName={route} placeholder="Seleccione ruta" onSearch={() => setRoutePickerOpen(true)} /></span></Tooltip></div>
         <label className="text-sm font-medium">{label("tracking", "Número de guía")}<input className={input} value={tracking} onChange={change("tracking", setTracking)} /></label>
         <label className="text-sm font-medium">{label("status", "Estado")}<select className={input} value={status} onChange={change("status", setStatus)}><option value="">Todos los estados</option><option value="pending">Pendiente</option><option value="settled">Liquidado</option><option value="voided">Anulado</option><option value="unrated">Sin tarifa</option></select></label>
         <label className="text-sm font-medium">{label("from", "Fecha desde")}<input className={input} type="date" value={from} onChange={change("from", setFrom)} /></label>
         <label className="text-sm font-medium">{label("to", "Fecha hasta")}<input className={input} type="date" value={to} onChange={change("to", setTo)} /></label>
-        <button type="button" onClick={reset} className="flex items-center justify-center gap-2 self-end rounded-lg border border-amber-500 bg-amber-50 p-3 font-medium text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-200"><RotateCcw size={17} /> Limpiar filtros</button>
+        <Tooltip title="Restaura los filtros de la pantalla y vuelve a mostrar las entregas de hoy."><button type="button" onClick={reset} className="flex items-center justify-center gap-2 self-end rounded-lg border border-amber-500 bg-amber-50 p-3 font-medium text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-200"><RotateCcw size={17} /> Limpiar filtros</button></Tooltip>
       </div>
     </section>
     {error ? <div className="rounded-xl border border-red-400 p-4 text-red-600">{error}</div> : <>

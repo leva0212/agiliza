@@ -174,8 +174,8 @@ export default function TrackingPage() {
           startDate,
           endDate,
           company: isOwnerCompanyUser
-            ? selectedCompany?.trade_name?.trim() || selectedCompany?.name || "Todas las empresas"
-            : profileQuery.data?.company?.trade_name?.trim() || profileQuery.data?.company?.name || "Mi empresa",
+            ? selectedCompany?.name || "Todas las empresas"
+            : profileQuery.data?.company?.name || "Mi empresa",
           status: selectedStatus?.label ?? "Todos los estados",
           province: selectedProvince?.name ?? "Todas las provincias",
           search: debouncedSearch,
@@ -312,7 +312,7 @@ export default function TrackingPage() {
                   <option value="">Todas las empresas</option>
                   {companies.map((company) => (
                     <option key={company.id} value={company.id}>
-                      {company.trade_name?.trim() || company.name}
+                      {company.name}
                     </option>
                   ))}
                 </select>

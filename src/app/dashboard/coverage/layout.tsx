@@ -39,12 +39,19 @@ export default async function CoverageLayout({
   const company = Array.isArray(profile.company)
     ? profile.company[0] ?? null
     : profile.company;
+  const { data: systemSettings } = await supabase
+    .from("system_settings")
+    .select("dts_chat_enabled,restricted_supervisor_mode")
+    .eq("id", true)
+    .maybeSingle();
 
   return (
     <DashboardShell
       profile={{
         ...profile,
         is_owner_company_user: company?.is_owner_company === true,
+        dts_chat_enabled: systemSettings?.dts_chat_enabled ?? false,
+        restricted_supervisor_mode: systemSettings?.restricted_supervisor_mode ?? false,
       }}
     >
       {children}

@@ -26,15 +26,15 @@ export async function GET(
       *,
       validator:profiles!shipment_evidences_validated_by_fkey(
         id, full_name, role, company_id,
-        company:companies(id, name, trade_name, is_owner_company)
+        company:companies(id, code, name, is_owner_company)
       ),
       creator:profiles!shipment_evidences_created_by_fkey(
         id, full_name, role, company_id,
-        company:companies(id, name, trade_name, is_owner_company)
+        company:companies(id, code, name, is_owner_company)
       ),
       deleted_by_profile:profiles!shipment_evidences_deleted_by_fkey(
         id, full_name, role, company_id,
-        company:companies(id, name, trade_name, is_owner_company)
+        company:companies(id, code, name, is_owner_company)
       )
     `)
     .eq("shipment_id", id);

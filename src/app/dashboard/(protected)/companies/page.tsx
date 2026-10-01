@@ -25,7 +25,6 @@ export default function CompaniesPage() {
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
-  const [tradeName, setTradeName] = useState("");
   const [address, setAddress] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactPosition, setContactPosition] = useState("");
@@ -58,7 +57,6 @@ export default function CompaniesPage() {
       setSelectedProducts(selectedIds);
       setCode(company.code || "");
       setName(company.name || "");
-      setTradeName(company.trade_name || "");
       setAddress(company.address || "");
       setActive(company.active);
       setContactName(company.primary_contact?.full_name || "");
@@ -82,7 +80,6 @@ export default function CompaniesPage() {
 
           name,
 
-          tradeName,
 
           address,
 
@@ -116,7 +113,6 @@ export default function CompaniesPage() {
 
           name,
 
-          tradeName,
 
           address,
 
@@ -183,22 +179,11 @@ export default function CompaniesPage() {
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              Nombre legal
+              Nombre de empresa
             </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg p-3"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Nombre comercial
-            </label>
-            <input
-              value={tradeName}
-              onChange={(e) => setTradeName(e.target.value)}
               className="w-full border rounded-lg p-3"
             />
           </div>
@@ -451,8 +436,6 @@ export default function CompaniesPage() {
       code,
 
       name,
-
-      tradeName,
 
       address,
 

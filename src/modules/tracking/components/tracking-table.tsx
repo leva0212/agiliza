@@ -15,6 +15,7 @@ import {
   trackingStatusOptions,
 } from "../constants/tracking-status-options";
 import type { TrackingRecord } from "../types/tracking-record";
+import { getCompanyLabel } from "@/modules/companies/company-label";
 
 type Props = {
   data: TrackingRecord[];
@@ -160,7 +161,7 @@ export function TrackingTable({
       baseColumns.push({
         id: "company",
         header: "Empresa",
-        accessorFn: (row) => row.company?.trade_name?.trim() || row.company?.name || "",
+        accessorFn: (row) => getCompanyLabel(row.company),
         size: 190,
       });
     }

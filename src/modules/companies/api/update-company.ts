@@ -7,8 +7,6 @@ type Input = {
 
   name: string;
 
-  tradeName: string;
-
   address: string;
 
   contactName: string;
@@ -38,9 +36,6 @@ export async function updateCompany(
       code: input.code,
 
       name: input.name,
-
-      trade_name:
-        input.tradeName,
 
       address:
         input.address,

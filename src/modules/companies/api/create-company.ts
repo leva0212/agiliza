@@ -5,8 +5,6 @@ type Input = {
 
   name: string;
 
-  tradeName: string;
-
   address: string;
 
   contactName: string;
@@ -36,8 +34,6 @@ export async function createCompany(
       code: input.code,
 
       name: input.name,
-
-      trade_name: input.tradeName,
 
       address: input.address,
 

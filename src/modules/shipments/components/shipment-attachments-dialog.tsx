@@ -630,7 +630,7 @@ export function ShipmentAttachmentsDialog({ open, onClose, shipmentId, trackingN
                         </p>
                         {attachment.creator?.company && (
                           <p className="text-xs text-slate-600">
-                            Empresa: <span className="font-medium">{attachment.creator.company.trade_name || attachment.creator.company.name}</span>
+                            Empresa: <span className="font-medium">{[attachment.creator.company.code, attachment.creator.company.name].filter(Boolean).join(" - ")}</span>
                           </p>
                         )}
                         <div>

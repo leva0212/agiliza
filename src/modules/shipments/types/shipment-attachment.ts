@@ -22,8 +22,8 @@ export type ShipmentAttachment = {
     company_id: string;
     company?: {
       id: string;
+      code: string | null;
       name: string;
-      trade_name: string | null;
     } | null;
   } | null;
   deleted_by_profile?: {

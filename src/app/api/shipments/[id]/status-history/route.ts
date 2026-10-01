@@ -26,7 +26,7 @@ export async function GET(
       id, shipment_id, previous_status, status, notes, created_at, created_by,
       profile:profiles(
         id, full_name, role, company_id,
-        company:companies(id, name, trade_name, is_owner_company)
+        company:companies(id, code, name, is_owner_company)
       )
     `)
     .eq("shipment_id", id)

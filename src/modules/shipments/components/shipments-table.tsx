@@ -14,6 +14,7 @@ import { getShipmentStatusOption } from "@/modules/shipments/utils/get-shipment-
 import type { PaginationState } from "@tanstack/react-table";
 import { Shipment } from "../types/shipment";
 import { toast } from "sonner";
+import { getCompanyLabel } from "@/modules/companies/company-label";
 
 type Props = {
   data: Shipment[];
@@ -123,7 +124,7 @@ export function ShipmentsTable({
       },
 
       {
-        accessorFn: (row) => row.company?.name ?? "",
+        accessorFn: (row) => getCompanyLabel(row.company),
 
         id: "company",
 

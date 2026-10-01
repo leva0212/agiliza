@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { normalizeUsername } from "@/modules/auth/identity";
 
 import { useParams } from "next/navigation";
 
@@ -70,6 +71,7 @@ export default function EditUserPage() {
   const [failedPay, setFailedPay] = useState("0");
 
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
 
   const [messageOpen, setMessageOpen] = useState(false);
 
@@ -83,9 +85,12 @@ export default function EditUserPage() {
   const [permissions, setPermissions] = useState<any[]>([]);
 
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const selectedCompany = companies.find((company) => company.id === companyId);
+  const isSystemCompany = selectedCompany?.is_system_company === true || selectedCompany?.is_owner_company === true;
 
   function buildFormState() {
     return JSON.stringify({
+      username,
       fullName,
 
       phone,
@@ -149,6 +154,7 @@ export default function EditUserPage() {
         setCompanies(companiesData);
 
         setEmail(user.email ?? "");
+        setUsername(user.username ?? "");
 
         setFullName(user.full_name ?? "");
 
@@ -160,7 +166,9 @@ export default function EditUserPage() {
 
         setActive(user.active);
 
-        setCanDeliver(user.can_deliver ?? false);
+        const userCompany = companiesData.find((company) => company.id === user.company_id);
+        const userBelongsToSystemCompany = userCompany?.is_system_company === true || userCompany?.is_owner_company === true;
+        setCanDeliver(userBelongsToSystemCompany && (user.can_deliver ?? false));
 
         setDeliveryPay(String(user.delivery_pay ?? 0));
 
@@ -191,6 +199,7 @@ export default function EditUserPage() {
 
         setInitialFormState(
           JSON.stringify({
+            username: user.username ?? "",
             fullName: user.full_name ?? "",
 
             phone: user.phone ?? "",
@@ -201,7 +210,7 @@ export default function EditUserPage() {
 
             active: user.active,
 
-            canDeliver: user.can_deliver ?? false,
+            canDeliver: userBelongsToSystemCompany && (user.can_deliver ?? false),
 
             deliveryPay: String(user.delivery_pay ?? 0),
 
@@ -238,6 +247,7 @@ export default function EditUserPage() {
 
         company_id: companyId,
 
+        username,
         full_name: fullName,
 
         phone,
@@ -246,7 +256,7 @@ export default function EditUserPage() {
 
         active,
 
-        can_deliver: canDeliver,
+        can_deliver: isSystemCompany && canDeliver,
 
         delivery_pay: Number(deliveryPay),
 
@@ -410,7 +420,7 @@ export default function EditUserPage() {
         </div>
       </div>
 
-      <div>
+      {isSystemCompany && <div>
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -617,7 +627,7 @@ export default function EditUserPage() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
       <div>
         <label
           className="
@@ -785,7 +795,8 @@ export default function EditUserPage() {
 
               company_id: companyId,
 
-              full_name: fullName,
+              username,
+        full_name: fullName,
 
               phone,
 
@@ -793,7 +804,7 @@ export default function EditUserPage() {
 
               active,
 
-              can_deliver: canDeliver,
+              can_deliver: isSystemCompany && canDeliver,
 
               delivery_pay: Number(deliveryPay),
 

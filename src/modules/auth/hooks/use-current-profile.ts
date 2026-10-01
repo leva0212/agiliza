@@ -51,8 +51,8 @@ export async function getCurrentProfile() {
 
       company:companies(
         id,
+        code,
         name,
-        trade_name,
         is_owner_company
       )
     `)
@@ -81,17 +81,37 @@ export async function getCurrentProfile() {
 
       : data.company;
 
+  const { data: companyContextData } = await supabase
+    .rpc("get_current_company_context")
+    .maybeSingle();
+  const companyContext = companyContextData as { company_id: string; code: string; is_owner_company: boolean } | null;
+
+  const visibleCompany = company ?? (companyContext ? {
+    id: companyContext.company_id,
+    code: companyContext.code,
+    name: null,
+    is_owner_company: companyContext.is_owner_company,
+  } : null);
+
+  const { data: systemSettings } = await supabase
+    .from("system_settings")
+    .select("dts_chat_enabled,restricted_supervisor_mode")
+    .eq("id", true)
+    .maybeSingle();
+
   return {
 
     ...data,
 
-    company,
+    company: visibleCompany,
 
     is_owner_company_user:
 
-      company
+      visibleCompany
         ?.is_owner_company ===
       true,
+    dts_chat_enabled: systemSettings?.dts_chat_enabled ?? false,
+    restricted_supervisor_mode: systemSettings?.restricted_supervisor_mode ?? false,
 
   };
 

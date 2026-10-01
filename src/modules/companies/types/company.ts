@@ -5,8 +5,6 @@ export type Company = {
 
   name: string;
 
-  trade_name: string | null;
-
   address: string | null;
 
   active: boolean;

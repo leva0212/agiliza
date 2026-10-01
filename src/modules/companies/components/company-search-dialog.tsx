@@ -14,6 +14,8 @@ type CompanyOption = {
 
   id: string;
 
+  code: string;
+
   name: string;
 
 };
@@ -117,7 +119,7 @@ export function CompanySearchDialog({
           company,
         ) =>
 
-          company.name
+          `${company.code} ${company.name}`
 
             .toLowerCase()
 
@@ -244,7 +246,7 @@ export function CompanySearchDialog({
           }
 
           placeholder="
-            Buscar por nombre...
+            Buscar por código o nombre...
           "
 
           className="
@@ -344,9 +346,7 @@ export function CompanySearchDialog({
 
                   >
 
-                    {
-                      company.name
-                    }
+                    {`${company.code} - ${company.name}`}
 
                   </button>
 

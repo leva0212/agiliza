@@ -4,6 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
   --background: #f8fafc;
   --foreground: #1f2937;
 
@@ -14,6 +15,7 @@
 }
 
 html.dark {
+  color-scheme: dark;
   --background: #0b1120;
   --foreground: #e5e7eb;
   --primary-soft: #2e1065;
@@ -216,6 +218,41 @@ html.dark textarea {
   border-color: #475569;
 }
 
+/* Los estilos globales de input usan selectores más específicos que las
+   utilidades de Tailwind. Estos modificadores reservan espacio de forma
+   consistente para iconos colocados dentro de un campo. */
+input:not([type="checkbox"]):not([type="radio"]).input-has-leading-icon {
+  padding-left: 3rem;
+}
+
+input:not([type="checkbox"]):not([type="radio"]).input-has-trailing-icon {
+  padding-right: 3rem;
+}
+
+input:not([type="checkbox"]):not([type="radio"]).input-has-both-icons {
+  padding-left: 3rem;
+  padding-right: 3rem;
+}
+
+input:not([type="checkbox"]):not([type="radio"]).input-has-double-trailing-icon {
+  padding-right: 5rem;
+}
+
+/* Los menús de select son controles nativos del navegador. color-scheme
+   hace que su contenedor, scrollbar y opciones respeten el modo oscuro. */
+html.dark select,
+html.dark select option,
+html.dark select optgroup {
+  color-scheme: dark;
+  background-color: #111827;
+  color: #e5e7eb;
+}
+
+html.dark select option:checked {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
 /* Placeholder */
 
 input:not([type="checkbox"]):not([type="radio"])::placeholder,
@@ -266,6 +303,13 @@ input[type="radio"] {
   cursor: pointer;
 
   accent-color: var(--primary);
+}
+
+input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
 }
 
 /* ==========================================

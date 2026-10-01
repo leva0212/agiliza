@@ -52,12 +52,6 @@ export function CompaniesTable({
       },
 
       {
-        accessorKey: "trade_name",
-
-        header: "Nombre comercial",
-      },
-
-      {
         id: "contact",
 
         header: "Contacto",

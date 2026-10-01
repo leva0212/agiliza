@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { getVisibleCompanyDirectory } from "@/modules/companies/api/get-visible-company-directory";
 import type { ShipmentDetail } from "../types/shipment";
 
 export async function getShipment(shipmentId: string): Promise<ShipmentDetail> {
@@ -55,10 +56,6 @@ export async function getShipment(shipmentId: string): Promise<ShipmentDetail> {
 
       created_at,
 
-      company:companies(
-        id,
-        name
-      ),
       courier:profiles(
       id,
       full_name
@@ -104,6 +101,8 @@ neighborhood:neighborhoods(
   }
 
 
+  const [company] = await getVisibleCompanyDirectory([data.company_id]);
+
   return {
     ...data,
 
@@ -120,9 +119,7 @@ neighborhood:neighborhoods(
         ? data.identification_type[0] ?? null
         : data.identification_type,
 
-    company: Array.isArray(data.company)
-      ? (data.company[0] ?? null)
-      : data.company,
+    company: company ?? null,
 
     route: (() => {
       const route = Array.isArray(data.route) ? (data.route[0] ?? null) : data.route;

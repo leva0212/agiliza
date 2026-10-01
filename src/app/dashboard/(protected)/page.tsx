@@ -1,6 +1,7 @@
 import { ArrowRight, Boxes, Building2, Map, Package, Radar, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { RealtimeClock } from "@/modules/dashboard/components/realtime-clock";
@@ -17,6 +18,7 @@ type QuickLink = {
 export default async function DashboardHomePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -26,9 +28,9 @@ export default async function DashboardHomePage() {
       role,
       full_name,
       active,
-      company:companies(id, name, trade_name, is_owner_company)
+      company:companies(id, name, is_owner_company)
     `)
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   const company = Array.isArray(profile?.company) ? profile.company[0] : profile?.company;
@@ -120,7 +122,7 @@ export default async function DashboardHomePage() {
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                  {company?.trade_name || company?.name || "Agiliza"}
+                  {company?.name || "Agiliza"}
                 </span>
                 <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300">
                   {getRoleLabel(profile?.role ?? "")}

@@ -9,6 +9,8 @@ export type User = {
 
   email: string;
 
+  username?: string | null;
+
   company_id: string | null;
 
   full_name: string;
@@ -23,15 +25,17 @@ export type User = {
 
   must_change_password?: boolean;
 
+  can_deliver?: boolean;
+
   company?: {
     id: string;
     name: string;
   } | null;
-
-  last_password?: string | null;
 
   delivery_pay: number;
 
   failed_pay: number;
 
 };
+
+

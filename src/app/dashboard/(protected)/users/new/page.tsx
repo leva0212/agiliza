@@ -1,319 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { useRouter } from "next/navigation";
-
 import { createUser } from "@/modules/users/api/create-user";
-
 import { getCompaniesOptions } from "@/modules/companies/api/get-companies-options";
-
-import { UiMessage } from "@/shared/components/ui-message";
 import { getRoleLabel } from "@/modules/users/utils/get-role-label";
+import { UiMessage } from "@/shared/components/ui-message";
+import { isValidUsername, normalizeUsername } from "@/modules/auth/identity";
+import { copyTemporaryPassword } from "@/modules/auth/copy-temporary-password";
+import { generateTemporaryPassword } from "@/modules/auth/temporary-password";
+import { Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 export default function NewUserPage() {
   const router = useRouter();
-
   const [companies, setCompanies] = useState<any[]>([]);
+  const [fullName, setFullName] = useState(""); const [username, setUsername] = useState(""); const [recoveryEmail, setRecoveryEmail] = useState(""); const [phone, setPhone] = useState("");
+  const [companyId, setCompanyId] = useState(""); const [role, setRole] = useState("company_admin"); const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [canDeliver, setCanDeliver] = useState(false); const [deliveryPay, setDeliveryPay] = useState("0"); const [failedPay, setFailedPay] = useState("0"); const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ title: string; text: string; type: "success" | "error" | "warning" | "info" } | null>(null);
+  const selectedCompany = companies.find((company) => company.id === companyId); const isSystemCompany = selectedCompany?.is_system_company === true || selectedCompany?.is_owner_company === true;
 
-  const [fullName, setFullName] = useState("");
-
-  const [email, setEmail] = useState("");
-
-  const [phone, setPhone] = useState("");
-
-  const [companyId, setCompanyId] = useState("");
-
-  const [role, setRole] = useState("company_admin");
-
-  const [canDeliver, setCanDeliver] = useState(false);
-  const [deliveryPay, setDeliveryPay] = useState("0");
-
-  const [failedPay, setFailedPay] = useState("0");
-  const selectedCompany = companies.find((company) => company.id === companyId);
-
-  const isSystemCompany = selectedCompany?.is_system_company === true;
-
-
-  const [loading, setLoading] = useState(false);
-
-  const [messageOpen, setMessageOpen] = useState(false);
-
-  const [messageTitle, setMessageTitle] = useState("");
-
-  const [messageText, setMessageText] = useState("");
-
-  const [messageType, setMessageType] = useState<
-    "success" | "error" | "warning" | "info"
-  >("info");
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await getCompaniesOptions();
-
-        setCompanies(data);
-      } catch {
-        setMessageTitle("Error");
-
-        setMessageText("No fue posible cargar empresas.");
-
-        setMessageType("error");
-
-        setMessageOpen(true);
-      }
-    }
-
-    load();
-  }, []);
-
+  useEffect(() => { void getCompaniesOptions().then(setCompanies).catch(() => setMessage({ title: "Error", text: "No fue posible cargar empresas.", type: "error" })); setPassword(generateTemporaryPassword()); }, []);
   async function handleSave() {
+    const normalized = normalizeUsername(username);
+    if (!isValidUsername(normalized)) return setMessage({ title: "Usuario inválido", text: "Usa entre 3 y 32 caracteres: letras minúsculas, números, punto, guion o guion bajo.", type: "warning" });
+    setLoading(true);
     try {
-      setLoading(true);
-
-      const result = await createUser({
-        email,
-
-        full_name: fullName,
-
-        phone,
-
-        company_id: companyId,
-
-        role: role as "super_admin" | "company_admin" | "courier",
-
-        can_deliver: canDeliver,
-
-        delivery_pay: Number(deliveryPay),
-
-        failed_pay: Number(failedPay),
-      });
-
-      setMessageTitle("Usuario creado");
-
-      setMessageText(`Contraseña temporal: ${result.temporaryPassword}`);
-
-      setMessageType("success");
-
-      setMessageOpen(true);
-    } catch (error: any) {
-      setMessageTitle("Error");
-
-      setMessageText(error.message);
-
-      setMessageType("error");
-
-      setMessageOpen(true);
-    } finally {
-      setLoading(false);
-    }
+      await createUser({ username: normalized, full_name: fullName, phone, company_id: companyId, role: role as "super_admin" | "company_admin" | "courier" | "seller", recovery_email: recoveryEmail || undefined, temporary_password: password, can_deliver: isSystemCompany && canDeliver, delivery_pay: Number(deliveryPay), failed_pay: Number(failedPay) });
+      setMessage({ title: "Usuario creado", text: "La cuenta se creó correctamente. Entrega la contraseña temporal de forma segura: solo se usará para el primer ingreso.", type: "success" });
+    } catch (error) { setMessage({ title: "Error", text: error instanceof Error ? error.message : "No fue posible crear el usuario.", type: "error" }); }
+    finally { setLoading(false); }
   }
-
-  return (
-    <div className="max-w-2xl mx-auto max-w-[400px] border p-6 rounded-xl space-y-6">
-
-
-      <div className="space-y-4">
-        <input
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Nombre completo"
-          className="w-full border rounded-xl p-3"
-        />
-
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Correo"
-          className="w-full border rounded-xl p-3"
-        />
-
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Teléfono"
-          className="w-full border rounded-xl p-3"
-        />
-
-        <select
-          value={companyId}
-          onChange={(e) => {
-            const value = e.target.value;
-
-            setCompanyId(value);
-
-            const company = companies.find((c) => c.id === value);
-
-            if (
-              !company?.is_system_company &&
-              (role === "courier" || role === "super_admin")
-            ) {
-              setRole("company_admin");
-
-              setCanDeliver(false);
-            }
-          }}
-          className="w-full border rounded-xl p-3"
-        >
-          <option value="" disabled>
-            Seleccione empresa
-          </option>
-
-          {companies.map((company) => (
-            <option key={company.id} value={company.id}>
-              {company.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={role}
-          disabled={!companyId}
-          onChange={(e) => {
-            const value = e.target.value;
-
-            if (value === "courier" && !isSystemCompany) {
-              return;
-            }
-
-            setRole(value);
-
-            if (value === "courier") {
-              setCanDeliver(true);
-            } else {
-              setCanDeliver(false);
-            }
-          }}
-          className="w-full border rounded-xl p-3"
-        >
-          {isSystemCompany && (
-            <option value="super_admin">{getRoleLabel("super_admin")}</option>
-          )}
-
-          <option value="company_admin">{getRoleLabel("company_admin")}</option>
-
-          <option value="seller">{getRoleLabel("seller")}</option>
-
-          {isSystemCompany && (
-            <option value="courier">{getRoleLabel("courier")}</option>
-          )}
-        </select>
-
-        {isSystemCompany && (
-          <label className="flex items-center gap-3 border rounded-xl p-3">
-            <input
-              type="checkbox"
-              checked={canDeliver}
-              disabled={role === "courier"}
-              onChange={(e) => setCanDeliver(e.target.checked)}
-            />
-
-            <span>Puede realizar entregas</span>
-          </label>
-        )}
-
-        {isSystemCompany && canDeliver && (
-          <div
-            className="
-        border
-        rounded-xl
-        p-4
-        space-y-4
-      "
-          >
-            <h3
-              className="
-          font-semibold
-        "
-            >
-              Pagos mensajero
-            </h3>
-
-            <div>
-              <label
-                className="
-            block
-            mb-1
-            font-medium
-          "
-              >
-                Pago entrega
-              </label>
-
-              <input
-                type="number"
-                min="0"
-                value={deliveryPay}
-                onChange={(e) => setDeliveryPay(e.target.value)}
-                className="
-            w-full
-            border
-            rounded-xl
-            p-3
-          "
-              />
-            </div>
-
-            <div>
-              <label
-                className="
-            block
-            mb-1
-            font-medium
-          "
-              >
-                Pago intento fallido
-              </label>
-
-              <input
-                type="number"
-                min="0"
-                value={failedPay}
-                onChange={(e) => setFailedPay(e.target.value)}
-                className="
-            w-full
-            border
-            rounded-xl
-            p-3
-          "
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-4 py-3 border rounded-xl"
-        >
-          Cancelar
-        </button>
-
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={loading}
-          className="px-4 py-3 bg-blue-600 text-white rounded-xl"
-        >
-          {loading ? "Guardando..." : "Guardar"}
-        </button>
-      </div>
-
-      <UiMessage
-        open={messageOpen}
-        title={messageTitle}
-        message={messageText}
-        type={messageType}
-        onClose={() => {
-          setMessageOpen(false);
-
-          if (messageType === "success") {
-            router.push("/dashboard/users/list");
-          }
-        }}
-      />
-    </div>
-  );
+  const field = "w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
+  return <div className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-slate-200 p-6 dark:border-slate-700"><div><h2 className="text-xl font-bold">Nuevo usuario</h2><p className="text-sm text-slate-500">El correo de recuperación es opcional y deberá verificarse antes de usarse.</p></div><div className="grid gap-4 sm:grid-cols-2">
+    <label className="sm:col-span-2">Nombre<input value={fullName} onChange={(e) => setFullName(e.target.value)} className={field} /></label>
+    <label>Usuario<input value={username} onChange={(e) => setUsername(normalizeUsername(e.target.value))} autoCapitalize="none" autoCorrect="off" className={field} placeholder="jperez" /><span className="text-xs text-slate-500">Será su forma principal de ingresar.</span></label>
+    <label>Correo de recuperación <span className="text-slate-500">(opcional)</span><input type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className={field} /></label>
+    <label>Empresa<select value={companyId} onChange={(e) => { const nextCompany = companies.find((c) => c.id === e.target.value); const nextIsSystemCompany = nextCompany?.is_system_company === true || nextCompany?.is_owner_company === true; setCompanyId(e.target.value); if (!nextIsSystemCompany) { setCanDeliver(false); if (["courier", "super_admin"].includes(role)) setRole("company_admin"); } }} className={field}><option value="">Seleccione empresa</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
+    <label>Rol<select value={role} disabled={!companyId} onChange={(e) => { setRole(e.target.value); setCanDeliver(e.target.value === "courier"); }} className={field}>{isSystemCompany && <option value="super_admin">{getRoleLabel("super_admin")}</option>}<option value="company_admin">{getRoleLabel("company_admin")}</option><option value="seller">{getRoleLabel("seller")}</option>{isSystemCompany && <option value="courier">{getRoleLabel("courier")}</option>}</select></label>
+    <label className="sm:col-span-2">Contraseña temporal<span className="relative mt-1 block"><input type={showPassword ? "text" : "password"} value={password} readOnly className={`${field} input-has-double-trailing-icon`} autoComplete="new-password" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ocultar contraseña temporal" : "Mostrar contraseña temporal"} title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} className="absolute right-14 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button><button type="button" onClick={() => void copyTemporaryPassword(password)} aria-label="Copiar contraseña temporal" title="Copiar contraseña temporal" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 dark:hover:text-white"><Copy size={18} /></button></span><span className="mt-1 flex items-center gap-2 text-xs text-slate-500">Se genera automáticamente y solo se usa una vez. <button type="button" onClick={() => setPassword(generateTemporaryPassword())} className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline dark:text-blue-400"><RefreshCw size={13} /> Generar otra</button></span></label>
+    <label>Teléfono<input value={phone} onChange={(e) => setPhone(e.target.value)} className={field} /></label>
+  </div>{isSystemCompany && <label className="flex items-center gap-3 rounded-xl border p-3"><input type="checkbox" checked={canDeliver} disabled={role === "courier"} onChange={(e) => setCanDeliver(e.target.checked)} /> Puede realizar entregas</label>}
+  {isSystemCompany && canDeliver && <div className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2"><label>Pago por entrega<input type="number" min="0" value={deliveryPay} onChange={(e) => setDeliveryPay(e.target.value)} className={field} /></label><label>Pago por intento fallido<input type="number" min="0" value={failedPay} onChange={(e) => setFailedPay(e.target.value)} className={field} /></label></div>}
+  <div className="flex gap-3"><button type="button" onClick={() => router.back()} className="rounded-xl border px-4 py-3">Cancelar</button><button type="button" onClick={() => void handleSave()} disabled={loading} className="rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white disabled:opacity-50">{loading ? "Guardando..." : "Crear usuario"}</button></div>
+  <UiMessage open={Boolean(message)} title={message?.title ?? ""} message={message?.text ?? ""} type={message?.type ?? "info"} onClose={() => { const success = message?.type === "success"; setMessage(null); if (success) router.push("/dashboard/users/list"); }} />
+  </div>;
 }

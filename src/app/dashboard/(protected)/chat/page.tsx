@@ -7,11 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { formatElapsedTime } from "@/shared/utils/format-elapsed-time";
 import { UiMessage } from "@/shared/components/ui-message";
 
-type CompanyReference = { name: string; is_owner_company?: boolean } | null;
+type CompanyReference = { id?: string; code?: string; name: string; is_owner_company?: boolean } | null;
 type Conversation = {
   id: string;
   subject: string | null;
   shipment_id: string | null;
+  client_company_id?: string | null;
+  owner_company_id?: string | null;
   category: "support" | "customer_service";
   client_company: CompanyReference;
   owner_company: CompanyReference;
@@ -49,7 +51,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [showList, setShowList] = useState(!shipmentId && !conversationId);
   const [category, setCategory] = useState<"support" | "customer_service">("support");
-  const [customerCompanies, setCustomerCompanies] = useState<Array<{ id: string; name: string }>>([]);
+  const [customerCompanies, setCustomerCompanies] = useState<Array<{ id: string; code: string; name: string }>>([]);
   const [selectedCustomerCompanyId, setSelectedCustomerCompanyId] = useState("");
   const [creatingCustomerService, setCreatingCustomerService] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
@@ -87,7 +89,18 @@ export default function ChatPage() {
     }, {});
     setConversationPreviews(previews);
   };
-  const conversationSelect = "id,subject,shipment_id,category,client_company:companies!chat_conversations_client_company_id_fkey(name),owner_company:companies!chat_conversations_owner_company_id_fkey(name),shipment:shipments(tracking_number)";
+  const conversationSelect = "id,subject,shipment_id,category,client_company_id,owner_company_id,shipment:shipments(tracking_number)";
+  const hydrateCompanyLabels = async (rows: Conversation[]) => {
+    const ids = rows.flatMap((row) => [row.client_company_id, row.owner_company_id]).filter((id): id is string => Boolean(id));
+    if (!ids.length) return rows;
+    const { data } = await supabase.rpc("get_visible_company_directory", { p_company_ids: [...new Set(ids)] });
+    const directory = new Map(((data ?? []) as Array<{ id: string; code: string; display_name: string }>).map((company) => [company.id, company]));
+    return rows.map((row) => ({
+      ...row,
+      client_company: row.client_company_id ? { ...directory.get(row.client_company_id), name: directory.get(row.client_company_id)?.display_name ?? "Empresa cliente" } : null,
+      owner_company: row.owner_company_id ? { ...directory.get(row.owner_company_id), name: directory.get(row.owner_company_id)?.display_name ?? "Agiliza" } : null,
+    }));
+  };
   const loadConversationPage = async (targetCategory: Conversation["category"], reset = false, selectedConversation?: Conversation | null) => {
     if (!reset && (loadingMoreConversations[targetCategory] || !hasMoreConversations[targetCategory])) return;
     const currentCount = reset ? 0 : conversations.filter((conversation) => conversation.category === targetCategory).length;
@@ -99,7 +112,7 @@ export default function ChatPage() {
       .order("updated_at", { ascending: false })
       .range(currentCount, currentCount + 24);
     if (error) setMessagesError(error.message);
-    const page = (data ?? []) as unknown as Conversation[];
+    const page = await hydrateCompanyLabels((data ?? []) as unknown as Conversation[]);
     setConversations((current) => {
       const previous = reset ? current.filter((conversation) => conversation.category !== targetCategory) : current;
       const candidates = selectedConversation && selectedConversation.category === targetCategory ? [selectedConversation, ...page] : page;
@@ -158,14 +171,14 @@ export default function ChatPage() {
 
       const { data: me } = await supabase
         .from("profiles")
-        .select("id,full_name,role,company_id,can_chat_directly_with_clients,company:companies(name,is_owner_company)")
+        .select("id,full_name,role,company_id,can_chat_directly_with_clients,company:companies(is_owner_company)")
         .eq("id", user.id)
         .single();
 setProfile(me);
       const myCompany = Array.isArray(me?.company) ? me.company[0] ?? null : me?.company;
       if (myCompany?.is_owner_company && ["super_admin", "company_admin"].includes(me?.role ?? "")) {
-        const { data: companies } = await supabase.from("companies").select("id,name").or("is_owner_company.is.null,is_owner_company.eq.false").order("name");
-        setCustomerCompanies((companies ?? []) as Array<{ id: string; name: string }>);
+        const { data: companies } = await supabase.from("companies").select("id,code,name").or("is_owner_company.is.null,is_owner_company.eq.false").order("name");
+        setCustomerCompanies((companies ?? []) as Array<{ id: string; code: string; name: string }>);
       }
 
       let selected: string | null = conversationId;
@@ -181,7 +194,7 @@ setProfile(me);
           .select(conversationSelect)
           .eq("id", selected)
           .maybeSingle();
-        chosen = data as unknown as Conversation | null;
+        chosen = (await hydrateCompanyLabels(data ? [data as unknown as Conversation] : []))[0] ?? null;
       }
       const initialCategory = chosen?.category ?? "support";
       setCategory(initialCategory);
@@ -297,10 +310,10 @@ async (payload) => {
     }
     const { data } = await supabase
       .from("chat_conversations")
-      .select("id,subject,shipment_id,category,client_company:companies!chat_conversations_client_company_id_fkey(name),owner_company:companies!chat_conversations_owner_company_id_fkey(name),shipment:shipments(tracking_number)")
+      .select(conversationSelect)
       .eq("id", id)
       .single();
-    const conversation = data as unknown as Conversation | null;
+    const conversation = (await hydrateCompanyLabels(data ? [data as unknown as Conversation] : []))[0] ?? null;
     if (conversation) {
       setConversations((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)]);
       setActive(conversation);
@@ -383,7 +396,7 @@ async (payload) => {
             {canUseCustomerService && <button type="button" onClick={() => { setCategory("customer_service"); void loadConversationPage("customer_service", true); }} aria-pressed={category === "customer_service"} className={`flex-1 rounded-lg px-2 py-2 text-xs font-bold transition ${category === "customer_service" ? "bg-sky-600 text-white shadow-md ring-1 ring-sky-400" : "border border-transparent text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"}`}>Servicio al cliente</button>}
           </div>
           {category === "customer_service" && canUseCustomerService && <div className="mt-3 space-y-2">
-            {isOwnerCompanyUser && <select value={selectedCustomerCompanyId} onChange={(event) => setSelectedCustomerCompanyId(event.target.value)} className="w-full rounded-lg border bg-transparent px-2 py-1.5 text-xs"><option value="">Seleccione empresa DTS</option>{customerCompanies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select>}
+            {isOwnerCompanyUser && <select value={selectedCustomerCompanyId} onChange={(event) => setSelectedCustomerCompanyId(event.target.value)} className="w-full rounded-lg border bg-transparent px-2 py-1.5 text-xs"><option value="">Seleccione empresa DTS</option>{customerCompanies.map((company) => <option key={company.id} value={company.id}>{company.code} - {company.name}</option>)}</select>}
             <button type="button" disabled={creatingCustomerService || (isOwnerCompanyUser && !selectedCustomerCompanyId)} onClick={() => void createCustomerService()} className="w-full rounded-lg border border-sky-500 px-2 py-1.5 text-xs font-semibold text-sky-700 disabled:opacity-50 dark:text-sky-300">{creatingCustomerService ? "Abriendo…" : "Abrir servicio al cliente"}</button>
           </div>}
         </div>

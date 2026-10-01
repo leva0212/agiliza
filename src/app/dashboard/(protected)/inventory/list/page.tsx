@@ -124,7 +124,7 @@ export default function InventoryListPage() {
         <div
           className="
       flex
-      items-center
+      items-start
       gap-2  border border-blue-200 rounded-lg p-3
     "
         >
@@ -158,7 +158,7 @@ export default function InventoryListPage() {
         <div
           className="
       flex
-      items-center
+      items-start
       gap-2  border border-blue-200 rounded-lg p-3
     "
         >
@@ -191,7 +191,7 @@ export default function InventoryListPage() {
         <div
           className="
       flex
-      items-center
+      items-start
       gap-2  border border-blue-200 rounded-lg p-3
     "
         >
@@ -497,3 +497,4 @@ export default function InventoryListPage() {
     </div>
   );
 }
+

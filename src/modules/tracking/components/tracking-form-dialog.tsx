@@ -174,7 +174,7 @@ export function TrackingFormDialog({
                 <option value="">Seleccione una empresa</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
-                    {company.trade_name?.trim() || company.name}
+                    {[company.code, company.name].filter(Boolean).join(" - ")}
                   </option>
                 ))}
               </select>

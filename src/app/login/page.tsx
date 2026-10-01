@@ -1,238 +1,60 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { FormEvent, useRef, useState } from "react";
+import { Eye, EyeOff, KeyRound, Lock, UserRound } from "lucide-react";
 import { UiMessage } from "@/shared/components/ui-message";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
-//import { supabase } from "@/services/supabase/client";
-import {
-  createClient,
-} from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
+
 export default function LoginPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
-
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState<{ title: string; text: string; type: "success" | "error" | "warning" | "info" } | null>(null);
 
-  const [messageOpen, setMessageOpen] = useState(false);
-  const [messageTitle, setMessageTitle] = useState("");
-  const [messageText, setMessageText] = useState("");
-  const [messageType, setMessageType] = useState<
-    "success" | "error" | "warning" | "info"
-  >("info");
-
-  async function handleLogin() {
-    const supabase =
-  createClient();
-
-  if (!email.trim()) {
-
-    setMessageTitle(
-      "Correo requerido",
-    );
-
-    setMessageText(
-      "Ingrese su correo electrónico.",
-    );
-
-    setMessageType(
-      "warning",
-    );
-
-    setMessageOpen(
-      true,
-    );
-
-    return;
+  async function handleLogin(event?: FormEvent) {
+    event?.preventDefault();
+    if (!identifier.trim() || !password) return setMessage({ title: "Datos requeridos", text: "Ingresa tu usuario o correo y tu contraseña.", type: "warning" });
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier, password }) });
+      if (!response.ok) return setMessage({ title: "Acceso denegado", text: "No fue posible iniciar sesión con esos datos.", type: "error" });
+      const data = await response.json();
+      if (!data.session?.access_token || !data.session?.refresh_token) throw new Error("La sesión no fue recibida.");
+      const supabase = createClient();
+      const { error: sessionError } = await supabase.auth.setSession(data.session);
+      if (sessionError) throw sessionError;
+      window.location.replace("/dashboard");
+    } catch {
+      setMessage({ title: "Error", text: "No fue posible iniciar sesión.", type: "error" });
+    } finally { setLoading(false); }
   }
 
-  if (!password.trim()) {
-
-    setMessageTitle(
-      "Contraseña requerida",
-    );
-
-    setMessageText(
-      "Ingrese su contraseña.",
-    );
-
-    setMessageType(
-      "warning",
-    );
-
-    setMessageOpen(
-      true,
-    );
-
-    return;
+  async function requestRecovery(help = false) {
+    if (!identifier.trim()) return setMessage({ title: "Indica tu cuenta", text: "Escribe primero tu usuario o correo electrónico.", type: "warning" });
+    setLoading(true);
+    try {
+      const endpoint = help ? "/api/auth/request-reset-help" : "/api/auth/forgot-password";
+      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier }) });
+      const data = await response.json();
+      setMessage({ title: help ? "Solicitud enviada" : "Revisa tu correo", text: data.message, type: "info" });
+    } catch { setMessage({ title: "Error", text: "No fue posible procesar la solicitud.", type: "error" }); }
+    finally { setLoading(false); }
   }
 
-  try {
-
-    setLoading(
-      true,
-    );
-
-  const {
-  error,
-} =
-  await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-
-
-    if (error) {
-
-      setMessageTitle(
-        "Acceso denegado",
-      );
-
-      setMessageText(
-        error.message,
-      );
-
-      setMessageType(
-        "error",
-      );
-
-      setMessageOpen(
-        true,
-      );
-
-      return;
-    }
-
-    setMessageTitle(
-      "Bienvenido",
-    );
-
-    setMessageText(
-      "Inicio de sesión exitoso.",
-    );
-
-    setMessageType(
-      "success",
-    );
-
-    setMessageOpen(
-      true,
-    );
-    setPassword("");
-    setShowPassword(false);
-
-    if (passwordRef.current) {
-      passwordRef.current.value = "";
-    }
-
-    window.location.replace("/dashboard/");
-
-  } catch {
-
-    setMessageTitle(
-      "Error",
-    );
-
-    setMessageText(
-      "No fue posible iniciar sesión.",
-    );
-
-    setMessageType(
-      "error",
-    );
-
-    setMessageOpen(
-      true,
-    );
-
-  } finally {
-
-    setLoading(
-      false,
-    );
-
-  }
-
-}
-
-  return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white">
-              Portal administrativo
-            </h1>
-            <p className="text-slate-400 mt-2 text-sm">
-              Inicia sesión para continuar
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            <div className="relative">
-              <Mail className="absolute left-0 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="email"
-                autoComplete="username"
-                placeholder="Correo electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    passwordRef.current?.focus();
-                  }
-                }}
-                className="w-full rounded-2xl bg-white/5 border border-white/10 pl-14 pr-4 py-4 text-white placeholder:text-slate-500 outline-none focus:border-blue-400"
-              />
-            </div>
-
-            <div className="relative">
-              <Lock className="absolute left-0 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                ref={passwordRef}
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleLogin();
-                  }
-                }}
-                className="w-full rounded-2xl bg-white/5 border border-white/10 pl-14 pr-14 py-4 text-white placeholder:text-slate-500 outline-none focus:border-blue-400"
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleLogin}
-              disabled={loading}
-              className="w-full rounded-2xl py-3 font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all disabled:opacity-50"
-            >
-              {loading ? "Entrando..." : "Ingresar"}
-            </button>
-          </div>
+  return <>
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+      <form onSubmit={handleLogin} className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
+        <div className="mb-8 text-center"><h1 className="text-3xl font-bold text-white">Portal administrativo</h1><p className="mt-2 text-sm text-slate-400">Inicia sesión para continuar</p></div>
+        <div className="space-y-5">
+          <div className="relative"><UserRound className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" /><input autoComplete="username" placeholder="Usuario o correo electrónico" value={identifier} onChange={(event) => setIdentifier(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") passwordRef.current?.focus(); }} className="input-has-leading-icon w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-white outline-none placeholder:text-slate-500 focus:border-blue-400" /></div>
+          <div className="relative"><Lock className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" /><input ref={passwordRef} type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Contraseña" value={password} onChange={(event) => setPassword(event.target.value)} className="input-has-both-icons w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-white outline-none placeholder:text-slate-500 focus:border-blue-400" /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
+          <button disabled={loading} className="w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50">{loading ? "Entrando..." : "Ingresar"}</button>
+          <div className="flex flex-col items-center gap-2 text-sm"><button type="button" disabled={loading} onClick={() => void requestRecovery()} className="text-sky-300 hover:text-sky-200">¿Olvidaste tu contraseña?</button><button type="button" disabled={loading} onClick={() => void requestRecovery(true)} className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-200"><KeyRound size={15} /> Solicitar ayuda a Agiliza</button></div>
         </div>
-      </div>
-
-      <UiMessage
-        open={messageOpen}
-        title={messageTitle}
-        message={messageText}
-        type={messageType}
-        onClose={() => setMessageOpen(false)}
-      />
-    </>
-  );
+      </form>
+    </main>
+    <UiMessage open={Boolean(message)} title={message?.title ?? ""} message={message?.text ?? ""} type={message?.type ?? "info"} onClose={() => setMessage(null)} />
+  </>;
 }

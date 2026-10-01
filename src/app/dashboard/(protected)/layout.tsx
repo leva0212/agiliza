@@ -37,6 +37,8 @@ export default async function DashboardLayout({
   active,
   must_change_password,
   company:companies(
+    code,
+    name,
     is_owner_company
   )
 `,
@@ -64,12 +66,27 @@ export default async function DashboardLayout({
     ? profile.company[0] ?? null
     : profile.company;
   const isOwnerCompanyUser = company?.is_owner_company === true;
+  const { data: companyContextData } = await supabase
+    .rpc("get_current_company_context")
+    .maybeSingle();
+  const companyContext = companyContextData as { code: string } | null;
+  const companyLabel = profile.role === "courier"
+    ? companyContext?.code ?? null
+    : company?.name ?? companyContext?.code ?? null;
+  const { data: systemSettings } = await supabase
+    .from("system_settings")
+    .select("dts_chat_enabled,restricted_supervisor_mode")
+    .eq("id", true)
+    .maybeSingle();
 
   return (
     <DashboardShell
       profile={{
         ...profile,
         is_owner_company_user: isOwnerCompanyUser,
+        dts_chat_enabled: systemSettings?.dts_chat_enabled ?? false,
+        restricted_supervisor_mode: systemSettings?.restricted_supervisor_mode ?? false,
+        company_label: companyLabel,
       }}
       contentClassName="p-3 sm:p-6"
     >

@@ -72,8 +72,9 @@ export type Shipment = {
 
   company?: {
     id: string;
-
-    name: string;
+    code: string;
+    name: string | null;
+    display_name?: string;
   } | null;
 
   route?: {
@@ -112,7 +113,9 @@ export type ShipmentDetail = Shipment & {
 
   company: {
     id: string;
-    name: string;
+    code: string;
+    name: string | null;
+    display_name?: string;
   } | null;
 
   route: {

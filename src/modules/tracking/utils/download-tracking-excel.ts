@@ -103,7 +103,7 @@ export async function downloadTrackingExcel({
       record.status,
       record.comment ?? "",
       ...(includeCompany
-        ? [record.company?.trade_name?.trim() || record.company?.name || ""]
+        ? [record.company?.display_name || [record.company?.code, record.company?.name].filter(Boolean).join(" - ")]
         : []),
     ]);
 

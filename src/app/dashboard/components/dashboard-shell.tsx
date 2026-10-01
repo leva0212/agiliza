@@ -38,8 +38,12 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (pathname === "/dashboard/reports/dts-charges") return "Cobros a DTS";
   if (pathname === "/dashboard/reports/courier-payments") return "Pagos a mensajeros";
   if (pathname === "/dashboard/settlements/schedules") return "Cronogramas de liquidación";
+  if (pathname === "/dashboard/settlements/dts") return "Totales por DTS";
+  if (pathname === "/dashboard/settlements/couriers") return "Totales por mensajero";
   if (pathname === "/dashboard/rates") return "Tarifas";
   if (pathname === "/dashboard/chat") return "Chat";
+  if (pathname === "/dashboard/profile/security") return "Mi seguridad";
+  if (pathname === "/dashboard/settings/chat") return "Configuración del chat";
   if (pathname === "/dashboard/users/list") return "Usuarios";
   if (pathname === "/dashboard/users/new") return "Nuevo usuario";
   if (/^\/dashboard\/users\/edit\/[^/]+$/.test(pathname)) return "Modificar usuario";
@@ -69,7 +73,6 @@ function DashboardPageTitle({ pathname }: { pathname: string }) {
   const searchParams = useSearchParams();
   return getPageTitle(pathname, searchParams);
 }
-
 export function DashboardShell({ children, profile, contentClassName = "" }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -160,7 +163,15 @@ export function DashboardShell({ children, profile, contentClassName = "" }: Pro
                 </p>
               </div>
 
-              <div className="ml-auto flex shrink-0 items-center gap-2">{profile && <ChatNotifications />}<div id="dashboard-appbar-actions" className="flex shrink-0 items-center gap-2" /></div>
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                {profile && (
+                  <ChatNotifications
+                    enabled={profile.is_owner_company_user || profile.dts_chat_enabled}
+                    accountEnabled={profile.is_owner_company_user}
+                  />
+                )}
+                <div id="dashboard-appbar-actions" className="flex shrink-0 items-center gap-2" />
+              </div>
 
               {!isHomePage && (pathname !== "/dashboard/coverage" || profile) && (
                 <button

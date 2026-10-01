@@ -53,6 +53,8 @@ ALTER TABLE public.settlement_periods
   ADD COLUMN IF NOT EXISTS party_type text,
   ADD COLUMN IF NOT EXISTS party_id uuid,
   ADD COLUMN IF NOT EXISTS closed_by uuid;
+ALTER TABLE public.settlement_periods
+  ALTER COLUMN status SET DEFAULT 'open';
 UPDATE public.settlement_periods SET status = 'open' WHERE status = 'active';
 CREATE INDEX IF NOT EXISTS settlement_periods_party_open_idx ON public.settlement_periods(party_type, party_id, status, starts_at DESC);
 
@@ -81,6 +83,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS settlement_period_items_financial_record_idx
   ON public.settlement_period_items(financial_record_id) WHERE financial_record_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS settlement_period_items_period_idx ON public.settlement_period_items(period_id, excluded);
 
+CREATE TABLE IF NOT EXISTS public.settlement_adjustments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  period_id uuid NOT NULL REFERENCES public.settlement_periods(id) ON DELETE RESTRICT,
+  adjustment_type text NOT NULL CHECK (adjustment_type IN ('extra','deduction')),
+  amount numeric(14,2) NOT NULL CHECK (amount > 0),
+  observation text NOT NULL CHECK (length(trim(observation)) BETWEEN 1 AND 500),
+  created_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS settlement_adjustments_period_idx ON public.settlement_adjustments(period_id, created_at DESC);
+
 ALTER TABLE public.settlement_schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settlement_periods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settlement_period_items ENABLE ROW LEVEL SECURITY;
@@ -95,6 +108,7 @@ DECLARE
   start_date date;
   end_date date;
   period_id uuid;
+  period_status text;
   days_per_period integer;
 BEGIN
   SELECT * INTO record_row FROM public.shipment_delivery_financial_records WHERE id = p_record_id;
@@ -114,20 +128,38 @@ BEGIN
     start_date := schedule_row.anchor_date + floor(((record_row.occurred_at AT TIME ZONE 'America/Costa_Rica')::date - schedule_row.anchor_date)::numeric / days_per_period)::integer * days_per_period;
     end_date := start_date + days_per_period;
   END IF;
-  INSERT INTO public.settlement_periods(schedule_id, party_type, party_id, starts_at, ends_at)
-  VALUES (schedule_row.id, subject_type, subject_id,
-          (start_date::timestamp AT TIME ZONE 'America/Costa_Rica'),
-          (end_date::timestamp AT TIME ZONE 'America/Costa_Rica'))
-  ON CONFLICT (schedule_id, party_id, starts_at) DO NOTHING;
-  SELECT id INTO period_id FROM public.settlement_periods
-   WHERE schedule_id = schedule_row.id AND party_id = subject_id
-     AND starts_at = (start_date::timestamp AT TIME ZONE 'America/Costa_Rica') FOR UPDATE;
-  IF (SELECT status FROM public.settlement_periods WHERE id = period_id) <> 'open' THEN
-    RAISE EXCEPTION 'El período financiero correspondiente ya está cerrado.';
+  SELECT period.id INTO period_id FROM public.settlement_periods period
+   WHERE period.schedule_id = schedule_row.id AND period.party_id = subject_id
+     AND period.starts_at = (start_date::timestamp AT TIME ZONE 'America/Costa_Rica') FOR UPDATE;
+  IF NOT FOUND THEN
+    INSERT INTO public.settlement_periods(
+  schedule_id,
+  party_type,
+  party_id,
+  starts_at,
+  ends_at,
+  status
+)
+VALUES (
+  schedule_row.id,
+  subject_type,
+  subject_id,
+  (start_date::timestamp AT TIME ZONE 'America/Costa_Rica'),
+  (end_date::timestamp AT TIME ZONE 'America/Costa_Rica'),
+  'open'
+)
+RETURNING id INTO period_id;
   END IF;
-  INSERT INTO public.settlement_period_items(period_id, financial_record_id, original_amount, final_amount)
-  VALUES (period_id, record_row.id, record_row.original_amount, record_row.amount)
-  ON CONFLICT (financial_record_id) DO NOTHING;
+  SELECT period.status::text INTO period_status FROM public.settlement_periods period WHERE period.id = period_id;
+  IF period_status IS DISTINCT FROM 'open' THEN
+    RAISE EXCEPTION 'El período financiero correspondiente no está abierto. Período: % · Estado: %.', period_id, coalesce(period_status, 'no encontrado');
+  END IF;
+  INSERT INTO public.settlement_period_items(period_id, shipment_id, company_id, courier_id, financial_record_id, original_amount, final_amount)
+  SELECT period_id, record_row.shipment_id, record_row.company_id, record_row.courier_id, record_row.id, record_row.original_amount, record_row.amount
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.settlement_period_items item
+    WHERE item.financial_record_id = record_row.id
+  );
 END;
 $$;
 
@@ -196,4 +228,27 @@ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECL
   ) RETURNING id INTO v_id; RETURN v_id; END; $$;
 GRANT EXECUTE ON FUNCTION public.get_settlement_schedules() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.save_settlement_schedule(text,uuid,text,integer,date,boolean) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.get_open_settlement_summaries(p_party_type text)
+RETURNS TABLE(period_id uuid, party_name text, starts_at timestamptz, ends_at timestamptz, total_entregas numeric, total_envios_cobrados numeric, total_depositos numeric, pagos_extra numeric, total_deducciones numeric, total_liquidacion numeric)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+  IF p_party_type NOT IN ('company','courier') THEN RAISE EXCEPTION 'Tipo no válido.'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM profiles pr JOIN companies own ON own.id=pr.company_id WHERE pr.id=auth.uid() AND pr.active AND pr.role IN ('super_admin','company_admin') AND (coalesce(own.is_owner_company,false) OR coalesce(own.is_system_company,false))) THEN RAISE EXCEPTION 'No tiene permiso para consultar cierres.'; END IF;
+  RETURN QUERY WITH base AS (
+    SELECT period.id AS settlement_period_id,period.starts_at,period.ends_at,record.*,item.excluded
+    FROM settlement_periods period JOIN settlement_period_items item ON item.period_id=period.id
+    JOIN shipment_delivery_financial_records record ON record.id=item.financial_record_id
+    WHERE period.status='open' AND period.party_type=p_party_type AND NOT item.excluded
+  ), sums AS (
+    SELECT base.settlement_period_id, max(base.starts_at) starts_at,max(base.ends_at) ends_at,
+      max(CASE WHEN p_party_type='company' THEN base.company_name ELSE base.courier_name END) party_name,
+      coalesce(sum(base.amount),0) total_entregas,
+      coalesce(sum(CASE WHEN base.operation_type='delivery' THEN shipment.shipping_collected ELSE 0 END),0) total_envios,
+      coalesce(sum(CASE WHEN base.operation_type='delivery' THEN shipment.deposit_collected ELSE 0 END),0) total_depositos
+    FROM base LEFT JOIN shipments shipment ON shipment.id=base.shipment_id GROUP BY base.settlement_period_id
+  ), adj AS (SELECT adjustment.period_id,coalesce(sum(adjustment.amount) FILTER(WHERE adjustment.adjustment_type='extra'),0) extra,coalesce(sum(adjustment.amount) FILTER(WHERE adjustment.adjustment_type='deduction'),0) deduction FROM settlement_adjustments adjustment GROUP BY adjustment.period_id)
+  SELECT sums.settlement_period_id,sums.party_name,sums.starts_at,sums.ends_at,sums.total_entregas,sums.total_envios,sums.total_depositos,coalesce(adj.extra,0),coalesce(adj.deduction,0),sums.total_entregas-sums.total_envios-sums.total_depositos+coalesce(adj.extra,0)-coalesce(adj.deduction,0) FROM sums LEFT JOIN adj ON adj.period_id=sums.settlement_period_id ORDER BY sums.party_name;
+END; $$;
+GRANT EXECUTE ON FUNCTION public.get_open_settlement_summaries(text) TO authenticated;
 NOTIFY pgrst, 'reload schema';

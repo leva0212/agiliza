@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { getVisibleCompanyDirectory } from "@/modules/companies/api/get-visible-company-directory";
 import type { TrackingRecord } from "../types/tracking-record";
 
 export type TrackingRecordFilters = {
@@ -38,13 +39,12 @@ export async function getTrackingRecords({
         province_id,
         status,
         comment,
-        company:companies(id, name, trade_name),
         province:provinces(id, name)
       `,
       { count: "exact" },
     )
-    .gte("created_at", `${startDate}T00:00:00`)
-    .lte("created_at", `${endDate}T23:59:59.999`);
+    .gte("created_at", `${startDate}T00:00:00-06:00`)
+    .lte("created_at", `${endDate}T23:59:59.999-06:00`);
 
   if (companyId) {
     query = query.eq("company_id", companyId);
@@ -73,11 +73,11 @@ export async function getTrackingRecords({
     throw error;
   }
 
+  const directory = await getVisibleCompanyDirectory((data ?? []).map((record) => record.company_id));
+  const companiesById = new Map(directory.map((company) => [company.id, company]));
   const records = (data ?? []).map((record) => ({
     ...record,
-    company: Array.isArray(record.company)
-      ? record.company[0] ?? null
-      : record.company,
+    company: companiesById.get(record.company_id) ?? null,
     province: Array.isArray(record.province)
       ? record.province[0] ?? null
       : record.province,

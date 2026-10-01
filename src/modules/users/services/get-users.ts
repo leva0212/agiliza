@@ -16,11 +16,13 @@ export async function getUsers(): Promise<User[]> {
     .select(`
       id,
       email,
+      username,
       company_id,
       role,
       full_name,
       phone,
       active,
+      can_deliver,
       created_at,
 
       company:companies(
@@ -47,3 +49,4 @@ export async function getUsers(): Promise<User[]> {
 ) as User[];
 
 }
+
