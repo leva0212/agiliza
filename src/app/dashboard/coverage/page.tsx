@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+
 import {
   LOCALIDADES_PROVINCES,
   loadLocalidadesProvince,
@@ -9,9 +12,8 @@ import { getProvinceCoverageCounts } from "@/modules/routes/api/get-province-cov
 import { getDistrictNeighborhoods } from "@/modules/routes/api/get-district-neighborhoods";
 import { ClientCoverageTable } from "@/modules/routes/components/client-coverage-table";
 import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { AppVersion } from "@/shared/components/app-version";
+import { createClient } from "@/lib/supabase/client";
 
 type CoverageRow = {
   district_id: number;
@@ -29,6 +31,7 @@ export default function CoveragePage() {
 
   const STORAGE_KEY = "coverage_selected_province";
 
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [selectedProvince, setSelectedProvince] = useState("");
   const [coverageData, setCoverageData] = useState<CoverageRow[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,6 +44,33 @@ export default function CoveragePage() {
   >([]);
   const [selectedCanton, setSelectedCanton] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
+
+  /*
+   * Comprueba si existe una sesión activa.
+   * Mientras se realiza la comprobación isLoggedIn permanece en null,
+   * evitando que el botón de ingreso aparezca momentáneamente.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkSession() {
+      const supabase = createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!cancelled) {
+        setIsLoggedIn(Boolean(user));
+      }
+    }
+
+    void checkSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,12 +115,14 @@ export default function CoveragePage() {
   async function loadCoverage(provinceName: string) {
     try {
       const provinceMap = await loadLocalidadesProvince(provinceName);
+
       if (!provinceMap) {
         setCoverageData([]);
         return;
       }
 
       const localDistricts: Omit<CoverageRow, "district_id">[] = [];
+
       Object.entries(provinceMap).forEach(([cantonName, districtsMap]) => {
         Object.keys(districtsMap).forEach((districtName) => {
           localDistricts.push({
@@ -112,6 +144,7 @@ export default function CoveragePage() {
             loose(item.canton) === loose(district.canton) &&
             loose(item.district) === loose(district.district),
         );
+
         return {
           ...district,
           district_id: match?.district_id ?? 0,
@@ -130,20 +163,25 @@ export default function CoveragePage() {
 
   async function handleViewDistrict(row: any) {
     if (!row.district_id) return;
+
     const result = await getDistrictNeighborhoods(row.district_id, null);
+
     setDialogTitle(`${row.canton} → ${row.district}`);
     setSelectedCanton(row.canton);
     setSelectedDistrict(row.district);
+
     setCoveredNeighborhoods(
       result
         .filter((item: any) => item.has_coverage)
         .map((item: any) => item.name),
     );
+
     setUncoveredNeighborhoods(
       result
         .filter((item: any) => !item.has_coverage)
         .map((item: any) => item.name),
     );
+
     setDialogOpen(true);
   }
 
@@ -173,9 +211,9 @@ export default function CoveragePage() {
     <div className="min-h-screen bg-slate-50">
       {/* Contenedor con padding responsivo */}
       <div className="max-w-5xl mx-auto px-3 py-4 sm:px-6 sm:py-6 space-y-4">
-        {/* Identidad corporativa compacta; el título vive en la AppBar. */}
+        {/* Identidad corporativa */}
         <div className="rounded-2xl border border-sky-600 bg-white px-4 py-3 shadow-sm dark:bg-slate-900">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Image
                 src="/images/agiliza-logo-corporate.jpg"
@@ -192,13 +230,15 @@ export default function CoveragePage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard")}
-              className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900 hover:underline"
-            >
-              Ingresar al sistema
-            </button>
+            {isLoggedIn === false && (
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
+                className="self-end whitespace-nowrap text-sm font-medium text-sky-700 hover:text-sky-900 hover:underline sm:self-auto dark:text-sky-400 dark:hover:text-sky-300"
+              >
+                Ingresar al sistema
+              </button>
+            )}
           </div>
         </div>
 
@@ -208,6 +248,7 @@ export default function CoveragePage() {
             <h2 className="text-sm font-semibold text-slate-700">
               Seleccione una provincia para visualizar su mapa de cobertura
             </h2>
+
             <p className="text-xs text-slate-500 mt-1">
               Consulte zonas cubiertas, horarios de visita y barrios atendidos.
             </p>
@@ -220,6 +261,7 @@ export default function CoveragePage() {
               onChange={(e) => handleProvinceChange(e.target.value)}
             >
               <option value="">Seleccione provincia</option>
+
               {provinces.map((province) => (
                 <option key={province} value={province}>
                   {province}
@@ -254,7 +296,7 @@ export default function CoveragePage() {
           </div>
         </div>
 
-        {/* TABLA — overflow-x-auto para scroll horizontal solo dentro de la tabla */}
+        {/* TABLA */}
         <div className="bg-white border border-sky-600 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <ClientCoverageTable
