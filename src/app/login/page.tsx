@@ -4,6 +4,7 @@ import { FormEvent, useRef, useState } from "react";
 import { Eye, EyeOff, KeyRound, Lock, UserRound } from "lucide-react";
 import { UiMessage } from "@/shared/components/ui-message";
 import { createClient } from "@/lib/supabase/client";
+import { AppVersion } from "@/shared/components/app-version";
 
 export default function LoginPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -54,6 +55,9 @@ export default function LoginPage() {
           <div className="flex flex-col items-center gap-2 text-sm"><button type="button" disabled={loading} onClick={() => void requestRecovery()} className="text-sky-300 hover:text-sky-200">¿Olvidaste tu contraseña?</button><button type="button" disabled={loading} onClick={() => void requestRecovery(true)} className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-200"><KeyRound size={15} /> Solicitar ayuda a Agiliza</button></div>
         </div>
       </form>
+      <div className="fixed bottom-3 left-3 z-10 text-left sm:bottom-4 sm:left-4">
+        <AppVersion showUpdateTooltip />
+      </div>
     </main>
     <UiMessage open={Boolean(message)} title={message?.title ?? ""} message={message?.text ?? ""} type={message?.type ?? "info"} onClose={() => setMessage(null)} />
   </>;
