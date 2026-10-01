@@ -12,6 +12,7 @@ type SearchSelectorProps = {
   onSearch: () => void;
   disabled?: boolean;
   compact?: boolean;
+  tooltip?: string;
 };
 
 export function SearchSelector({
@@ -24,12 +25,15 @@ export function SearchSelector({
   onSearch,
   disabled = false,
   compact = false,
+  tooltip,
 }: SearchSelectorProps) {
+  const helpText = tooltip ?? `Abre una lista para seleccionar ${label || placeholder.toLowerCase()}.`;
   return (
     <div
       className={`w-full ${compact ? "max-w-[260px]" : "max-w-[400px]"}`}
     >
       <label
+        title={helpText}
         className={compact ? "sr-only" : "mb-1 block text-sm font-medium"}
       >
         {label}
@@ -40,6 +44,8 @@ export function SearchSelector({
           readOnly
           value={valueName}
           placeholder={placeholder}
+          aria-label={label || placeholder}
+          title={helpText}
           className={`input-has-trailing-icon
   w-full
   border
@@ -55,6 +61,8 @@ export function SearchSelector({
           disabled={disabled}
           type="button"
           onClick={onSearch}
+          aria-label={helpText}
+          title={helpText}
           className={`
   absolute
   right-2

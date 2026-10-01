@@ -142,10 +142,11 @@ export default function InventoryListPage() {
 
 
 <div className={`flex-1`}>
-            <SearchSelector             
+            <SearchSelector
               label="Mensajero"
               valueName={courierName}
               placeholder="Seleccione un mensajero"
+              tooltip="Marca el filtro y abre la lista para elegir un mensajero."
               onSearch={() => setCourierDialogOpen(true)}
             />
           </div>
@@ -179,6 +180,7 @@ export default function InventoryListPage() {
               label="Empresa"
               valueName={companyName}
               placeholder="Seleccione una empresa"
+              tooltip="Marca el filtro y abre la lista para elegir una empresa."
               onSearch={() => setCompanyDialogOpen(true)}
             />
           </div>
@@ -216,6 +218,7 @@ export default function InventoryListPage() {
                   ? "Seleccione un producto"
                   : "Seleccione una empresa primero"
               }
+              tooltip="Marca el filtro y abre la lista para elegir un producto de la empresa seleccionada."
               onSearch={() => {
                 if (!companyId) {
                   setWarningOpen(true);
@@ -244,6 +247,7 @@ export default function InventoryListPage() {
       >
         <div>
           <label
+            title="Elige cómo comparar la cantidad disponible para filtrar el inventario."
             className="
         block
         text-sm
@@ -255,6 +259,7 @@ export default function InventoryListPage() {
           </label>
 
           <select
+            title="Selecciona el operador para la cantidad de inventario."
             value={quantityOperator}
             onChange={(event) => setQuantityOperator(event.target.value)}
             className="
@@ -284,6 +289,7 @@ export default function InventoryListPage() {
           <>
             <div>
               <label
+                title="Indica el valor mínimo de cantidad para filtrar."
                 className="
             block
             text-sm
@@ -296,6 +302,7 @@ export default function InventoryListPage() {
 
               <input
                 type="number"
+                title="Escribe la cantidad mínima a consultar."
                 value={quantityValue}
                 onChange={(event) => setQuantityValue(event.target.value)}
                 className="
@@ -309,6 +316,7 @@ export default function InventoryListPage() {
 
             <div>
               <label
+                title="Indica el valor máximo de cantidad para filtrar."
                 className="
             block
             text-sm
@@ -321,6 +329,7 @@ export default function InventoryListPage() {
 
               <input
                 type="number"
+                title="Escribe la cantidad máxima a consultar."
                 value={quantityValue2}
                 onChange={(event) => setQuantityValue2(event.target.value)}
                 className="
@@ -335,6 +344,7 @@ export default function InventoryListPage() {
         ) : (
           <div>
             <label
+              title="Indica el valor de cantidad para filtrar."
               className="
           block
           text-sm
@@ -347,6 +357,7 @@ export default function InventoryListPage() {
 
             <input
               type="number"
+              title="Escribe la cantidad que deseas consultar."
               value={quantityValue}
               onChange={(event) => setQuantityValue(event.target.value)}
               className="

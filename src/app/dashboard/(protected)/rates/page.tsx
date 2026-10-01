@@ -131,6 +131,7 @@ export default function RatesPage() {
         "
       >
         <button
+          title="Muestra las tarifas que se cobran a las empresas DTS."
           onClick={() => setActiveTab("dts")}
           className={`
             px-4
@@ -144,6 +145,7 @@ export default function RatesPage() {
         </button>
 
         <button
+          title="Muestra las tarifas que se pagan a los mensajeros."
           onClick={() => setActiveTab("courier")}
           className={`
             px-4
@@ -175,6 +177,7 @@ export default function RatesPage() {
           >
             <input
               id="filter-route"
+              title="Marca para activar o desactivar el filtro por ruta."
               type="checkbox"
               checked={filterRoute}
               onChange={(e) => setFilterRoute(e.target.checked)}
@@ -182,6 +185,7 @@ export default function RatesPage() {
 
             <label
               htmlFor="filter-route"
+              title="Marca para activar o desactivar el filtro por ruta."
               className="
       font-medium
       cursor-pointer
@@ -193,6 +197,7 @@ export default function RatesPage() {
           </div>
 
           <select
+            title="Selecciona la ruta por la que deseas filtrar las tarifas."
             //disabled={!filterRoute}
             value={routeId}
             onChange={(e) => setRouteId(e.target.value)}
@@ -224,6 +229,7 @@ export default function RatesPage() {
               >
                 <input
                   id="filter-company"
+                  title="Marca para activar o desactivar el filtro por empresa."
                   type="checkbox"
                   checked={filterCompany}
                   onChange={(e) => setFilterCompany(e.target.checked)}
@@ -231,6 +237,7 @@ export default function RatesPage() {
 
                 <label
                   htmlFor="filter-company"
+                  title="Marca para activar o desactivar el filtro por empresa."
                   className="
       font-medium
       cursor-pointer
@@ -242,6 +249,7 @@ export default function RatesPage() {
               </div>
 
               <select
+                title="Selecciona la empresa por la que deseas filtrar las tarifas."
                 //disabled={!filterCompany}
                 value={companyId}
                 onChange={(e) => setCompanyId(e.target.value)}
@@ -268,6 +276,7 @@ export default function RatesPage() {
         {activeTab === "courier" && (
           <div>
             <label
+              title="Selecciona el mensajero por el que deseas filtrar las tarifas."
               className="
                 block
                 mb-1
@@ -278,6 +287,7 @@ export default function RatesPage() {
             </label>
 
             <select
+              title="Selecciona el mensajero por el que deseas filtrar las tarifas."
               value={courierId}
               onChange={(e) => setCourierId(e.target.value)}
               className="
@@ -336,6 +346,7 @@ export default function RatesPage() {
             </div>
 
             <button
+              title="Crea una tarifa de cobro para la ruta seleccionada."
               onClick={() => {
                 setEditingRate(null);
 
@@ -408,6 +419,7 @@ export default function RatesPage() {
             </div>
 
             <button
+              title="Crea una tarifa de pago para el mensajero y ruta seleccionados."
               disabled={!routeId || !courierId}
               onClick={() => {
                 setEditingCourierRate(null);

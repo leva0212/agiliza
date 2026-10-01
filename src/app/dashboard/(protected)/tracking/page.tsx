@@ -7,7 +7,7 @@ import { FileSpreadsheet, Plus, RefreshCw, Search } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { getCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
-import { getCompanies } from "@/modules/companies/api/get-companies";
+import { getVisibleCompanyDirectory } from "@/modules/companies/api/get-visible-company-directory";
 import { getProvinces } from "@/modules/routes/api/get-provinces";
 import {
   createTrackingRecord,
@@ -35,6 +35,7 @@ import {
 } from "@/modules/tracking/components/tracking-table";
 import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
 import { UiMessage } from "@/shared/components/ui-message";
+import { FilterSearchInput } from "@/shared/components/filter-search-input";
 import type {
   TrackingRecord,
   TrackingRecordInput,
@@ -86,7 +87,7 @@ export default function TrackingPage() {
   });
   const companiesQuery = useQuery({
     queryKey: ["tracking-companies"],
-    queryFn: () => getCompanies({ pageIndex: 0, pageSize: 1000 }),
+    queryFn: () => getVisibleCompanyDirectory(),
     enabled: profileQuery.data?.is_owner_company_user === true,
   });
 
@@ -119,7 +120,10 @@ export default function TrackingPage() {
     enabled: Boolean(profileQuery.data),
   });
 
-  const companies = companiesQuery.data?.data ?? [];
+  const companies = companiesQuery.data ?? [];
+  const isCourier = profileQuery.data?.role === "courier";
+  const companyOptionLabel = (company: { code: string; name: string | null }) =>
+    isCourier ? company.code : [company.code, company.name].filter(Boolean).join(" - ");
   const provinces = provincesQuery.data ?? [];
 
   async function handleSave(input: TrackingRecordInput) {
@@ -174,7 +178,7 @@ export default function TrackingPage() {
           startDate,
           endDate,
           company: isOwnerCompanyUser
-            ? selectedCompany?.name || "Todas las empresas"
+            ? (selectedCompany ? companyOptionLabel(selectedCompany) : "Todas las empresas")
             : profileQuery.data?.company?.name || "Mi empresa",
           status: selectedStatus?.label ?? "Todos los estados",
           province: selectedProvince?.name ?? "Todas las provincias",
@@ -258,10 +262,10 @@ export default function TrackingPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <label className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+            <label title="Filtra los registros por el nombre o la cédula del cliente." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
               <span className="text-right font-medium sm:text-left">Cliente</span>
-              <input
-                type="search"
+              <FilterSearchInput
+                helpText="Escribe el nombre o la cédula del cliente para filtrar los registros."
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
@@ -272,10 +276,11 @@ export default function TrackingPage() {
               />
             </label>
 
-            <label className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+            <label title="Incluye registros creados desde esta fecha local." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
               <span className="text-right font-medium sm:text-left">Desde</span>
               <input
                 type="date"
+                title="Selecciona la fecha inicial del período a consultar."
                 value={startDate}
                 onChange={(event) => {
                   setStartDate(event.target.value);
@@ -285,10 +290,11 @@ export default function TrackingPage() {
               />
             </label>
 
-            <label className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+            <label title="Incluye registros creados hasta esta fecha local." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
               <span className="text-right font-medium sm:text-left">Hasta</span>
               <input
                 type="date"
+                title="Selecciona la fecha final del período a consultar."
                 value={endDate}
                 onChange={(event) => {
                   setEndDate(event.target.value);
@@ -299,10 +305,11 @@ export default function TrackingPage() {
             </label>
 
             {isOwnerCompanyUser && (
-              <label className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+              <label title="Filtra los registros por empresa." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
                 <span className="text-right font-medium sm:text-left">Empresa</span>
                 <select
                   value={companyId}
+                  title="Selecciona la empresa cuyos tracking deseas consultar."
                   onChange={(event) => {
                     setCompanyId(event.target.value);
                     setPagination((value) => ({ ...value, pageIndex: 0 }));
@@ -312,17 +319,18 @@ export default function TrackingPage() {
                   <option value="">Todas las empresas</option>
                   {companies.map((company) => (
                     <option key={company.id} value={company.id}>
-                      {company.name}
+                      {companyOptionLabel(company)}
                     </option>
                   ))}
                 </select>
               </label>
             )}
 
-            <label className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+            <label title="Filtra los registros según su estado actual." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
               <span className="text-right font-medium sm:text-left">Estatus</span>
               <select
                 value={status}
+                title="Selecciona el estado de tracking a consultar."
                 onChange={(event) => {
                   setStatus(event.target.value);
                   setPagination((value) => ({ ...value, pageIndex: 0 }));
@@ -338,10 +346,11 @@ export default function TrackingPage() {
               </select>
             </label>
 
-            <label className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+            <label title="Filtra los registros por provincia." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
               <span className="text-right font-medium sm:text-left">Provincia</span>
               <select
                 value={provinceId}
+                title="Selecciona la provincia de los registros a consultar."
                 onChange={(event) => {
                   setProvinceId(event.target.value);
                   setPagination((value) => ({ ...value, pageIndex: 0 }));

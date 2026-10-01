@@ -1574,8 +1574,9 @@ export default function RoutesPage() {
         </div>{/* SELECTS PROVINCIA / CANTÓN / DISTRITO */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 max-w-[600px] md:grid-cols-2 gap-4">
-            <label className="grid gap-1 text-sm font-medium">Provincia
+            <label title="Filtra la cobertura por provincia." className="grid gap-1 text-sm font-medium">Provincia
             <select
+              title="Filtra la cobertura por provincia."
               value={selectedProvince}
               className="border max-w-[300px] rounded-lg p-2"
               onChange={(e) => {
@@ -1599,8 +1600,9 @@ export default function RoutesPage() {
             </select>
             </label>
 
-            <label className="grid gap-1 text-sm font-medium">Cantón
+            <label title="Filtra la cobertura por cantón." className="grid gap-1 text-sm font-medium">Cantón
             <select
+              title="Filtra la cobertura por cantón."
               value={selectedCanton}
               className="border max-w-[300px] rounded-lg p-3"
               onChange={(e) => {
@@ -1626,8 +1628,9 @@ export default function RoutesPage() {
           {/* DISTRITO + HORAS + DÍAS */}
           <div className="border p-2 rounded-lg">
             <div className="flex flex-col md:flex-row md:items-end gap-2 rounded-lg p-4 flex-wrap">
-              <label className="grid gap-1 text-sm font-medium">Distrito
+              <label title="Filtra la cobertura por distrito." className="grid gap-1 text-sm font-medium">Distrito
               <select
+                title="Filtra la cobertura por distrito."
                 value={selectedDistrict || ""}
                 className="border max-w-[300px] rounded-lg p-3"
                 onChange={async (e) => {
@@ -1742,7 +1745,7 @@ export default function RoutesPage() {
         <div className="mt-6 rounded-xl border p-4">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div><h2 className="font-semibold">Barrios del distrito</h2><p className="text-sm text-slate-500">{neighborhoods.filter((neighborhood) => selectedNeighborhoods.includes(neighborhood.id)).length} de {neighborhoods.length} incluidos</p></div>
-            <label className="relative w-full sm:w-72"><Search size={16} className="absolute left-3 top-3 text-slate-400" /><input value={neighborhoodSearch} onChange={(event) => setNeighborhoodSearch(event.target.value)} placeholder="Buscar barrio..." className="w-full rounded-lg border py-2 pl-9 pr-3 dark:bg-slate-800" /></label>
+            <label title="Busca un barrio dentro del distrito seleccionado." className="relative w-full sm:w-72"><Search size={16} className="pointer-events-none absolute left-3 top-3 text-slate-400" /><input title="Busca un barrio dentro del distrito seleccionado." type="search" value={neighborhoodSearch} onChange={(event) => setNeighborhoodSearch(event.target.value)} placeholder="Buscar barrio..." className="w-full rounded-lg border py-2 pl-9 pr-3 dark:bg-slate-800" /></label>
           </div>
 
           <div className="grid max-h-96 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">

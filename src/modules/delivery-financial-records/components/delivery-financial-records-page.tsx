@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { standardMrtFeatures } from "@/shared/config/material-react-table";
 import { SearchSelector } from "@/shared/components/search-selector";
+import { FilterSearchInput } from "@/shared/components/filter-search-input";
 import Link from "next/link";
 import { getCompaniesOptions } from "@/modules/companies/api/get-companies-options";
 import { getCouriersOptions } from "@/modules/rates/api/get-couriers-options";
@@ -229,10 +230,10 @@ export function DeliveryFinancialRecordsPage({ recordType }: { recordType: Recor
         <div className="text-sm font-medium">{label("company", "Empresa DTS")}<Tooltip title="Abre una lista para elegir la empresa que deseas filtrar."><span><SearchSelector label="" valueName={company} placeholder="Seleccione empresa" onSearch={() => setCompanyPickerOpen(true)} /></span></Tooltip></div>
         <div className="text-sm font-medium">{label("courier", "Mensajero")}<Tooltip title="Abre una lista para elegir el mensajero que deseas filtrar."><span><SearchSelector label="" valueName={courier} placeholder="Seleccione mensajero" onSearch={() => setCourierPickerOpen(true)} /></span></Tooltip></div>
         <div className="text-sm font-medium">{label("route", "Ruta")}<Tooltip title="Abre una lista para elegir la ruta que deseas filtrar."><span><SearchSelector label="" valueName={route} placeholder="Seleccione ruta" onSearch={() => setRoutePickerOpen(true)} /></span></Tooltip></div>
-        <label className="text-sm font-medium">{label("tracking", "Número de guía")}<input className={input} value={tracking} onChange={change("tracking", setTracking)} /></label>
-        <label className="text-sm font-medium">{label("status", "Estado")}<select className={input} value={status} onChange={change("status", setStatus)}><option value="">Todos los estados</option><option value="pending">Pendiente</option><option value="settled">Liquidado</option><option value="voided">Anulado</option><option value="unrated">Sin tarifa</option></select></label>
-        <label className="text-sm font-medium">{label("from", "Fecha desde")}<input className={input} type="date" value={from} onChange={change("from", setFrom)} /></label>
-        <label className="text-sm font-medium">{label("to", "Fecha hasta")}<input className={input} type="date" value={to} onChange={change("to", setTo)} /></label>
+        <label title="Busca registros por el número de guía del envío." className="text-sm font-medium">{label("tracking", "Número de guía")}<FilterSearchInput helpText="Busca registros por el número de guía del envío." className={input} value={tracking} onChange={change("tracking", setTracking)} /></label>
+        <label title="Selecciona el estado financiero por el que deseas filtrar." className="text-sm font-medium">{label("status", "Estado")}<select title="Selecciona el estado financiero por el que deseas filtrar." className={input} value={status} onChange={change("status", setStatus)}><option value="">Todos los estados</option><option value="pending">Pendiente</option><option value="settled">Liquidado</option><option value="voided">Anulado</option><option value="unrated">Sin tarifa</option></select></label>
+        <label title="Incluye registros desde esta fecha." className="text-sm font-medium">{label("from", "Fecha desde")}<input title="Incluye registros desde esta fecha." className={input} type="date" value={from} onChange={change("from", setFrom)} /></label>
+        <label title="Incluye registros hasta esta fecha." className="text-sm font-medium">{label("to", "Fecha hasta")}<input title="Incluye registros hasta esta fecha." className={input} type="date" value={to} onChange={change("to", setTo)} /></label>
         <Tooltip title="Restaura los filtros de la pantalla y vuelve a mostrar las entregas de hoy."><button type="button" onClick={reset} className="flex items-center justify-center gap-2 self-end rounded-lg border border-amber-500 bg-amber-50 p-3 font-medium text-amber-800 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-200"><RotateCcw size={17} /> Limpiar filtros</button></Tooltip>
       </div>
     </section>

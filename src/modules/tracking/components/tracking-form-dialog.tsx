@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import type { Company } from "@/modules/companies/types/company";
 import type { Province } from "@/modules/routes/types/province";
 import {
   trackingStatusOptions,
@@ -17,7 +16,7 @@ type Props = {
   open: boolean;
   record: TrackingRecord | null;
   provinces: Province[];
-  companies: Company[];
+  companies: Array<{ id: string; code: string; name: string | null }>;
   defaultCompanyId: string;
   canManageStatus: boolean;
   onClose: () => void;

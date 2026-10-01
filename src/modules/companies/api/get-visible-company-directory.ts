@@ -7,11 +7,10 @@ export type VisibleCompany = {
   display_name: string;
 };
 
-export async function getVisibleCompanyDirectory(companyIds: string[]) {
-  if (!companyIds.length) return [] as VisibleCompany[];
+export async function getVisibleCompanyDirectory(companyIds?: string[]) {
   const supabase = createClient();
   const { data, error } = await supabase.rpc("get_visible_company_directory", {
-    p_company_ids: [...new Set(companyIds)],
+    p_company_ids: companyIds?.length ? [...new Set(companyIds)] : null,
   });
   if (error) throw error;
   return (data ?? []) as VisibleCompany[];
