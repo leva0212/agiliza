@@ -14,6 +14,8 @@ export async function updateTrackingRecord(
         full_name: input.full_name,
         identification: input.identification,
         province_id: input.province_id,
+        canton_id: input.canton_id,
+        district_id: input.district_id,
       };
 
   const { error } = await supabase

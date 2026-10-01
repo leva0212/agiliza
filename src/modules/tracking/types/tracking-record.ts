@@ -7,6 +7,8 @@ export type TrackingRecord = {
   full_name: string;
   identification: string;
   province_id: number;
+  canton_id: number;
+  district_id: number;
   status: TrackingStatus;
   comment: string | null;
   company: {
@@ -19,6 +21,15 @@ export type TrackingRecord = {
     id: number;
     name: string;
   } | null;
+  canton: {
+    id: number;
+    name: string;
+    area_classification: "gam" | "rural" | null;
+  } | null;
+  district: {
+    id: number;
+    name: string;
+  } | null;
 };
 
 export type TrackingRecordInput = {
@@ -26,6 +37,8 @@ export type TrackingRecordInput = {
   full_name: string;
   identification: string;
   province_id: number;
+  canton_id: number;
+  district_id: number;
   status: TrackingStatus;
   comment: string;
 };

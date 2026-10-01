@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { getCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
 import { getVisibleCompanyDirectory } from "@/modules/companies/api/get-visible-company-directory";
 import { getProvinces } from "@/modules/routes/api/get-provinces";
+import { getCantons } from "@/modules/routes/api/get-cantons";
+import { getDistricts } from "@/modules/routes/api/get-districts";
 import {
   createTrackingRecord,
 } from "@/modules/tracking/api/create-tracking-record";
@@ -61,6 +63,9 @@ export default function TrackingPage() {
   const [companyId, setCompanyId] = useState("");
   const [status, setStatus] = useState("");
   const [provinceId, setProvinceId] = useState("");
+  const [cantonId, setCantonId] = useState("");
+  const [districtId, setDistrictId] = useState("");
+  const [classification, setClassification] = useState<"" | "gam" | "rural">("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -90,6 +95,16 @@ export default function TrackingPage() {
     queryFn: () => getVisibleCompanyDirectory(),
     enabled: profileQuery.data?.is_owner_company_user === true,
   });
+  const cantonsQuery = useQuery({
+    queryKey: ["tracking-filter-cantons", provinceId],
+    queryFn: () => getCantons(Number(provinceId)),
+    enabled: Boolean(provinceId),
+  });
+  const districtsQuery = useQuery({
+    queryKey: ["tracking-filter-districts", cantonId],
+    queryFn: () => getDistricts(Number(cantonId)),
+    enabled: Boolean(cantonId),
+  });
 
   const isOwnerCompanyUser = profileQuery.data?.is_owner_company_user === true;
   const effectiveCompanyId = isOwnerCompanyUser ? companyId : profileQuery.data?.company_id ?? "";
@@ -104,6 +119,9 @@ export default function TrackingPage() {
       effectiveCompanyId,
       status,
       provinceId,
+      cantonId,
+      districtId,
+      classification,
       debouncedSearch,
     ],
     staleTime: 0,
@@ -115,6 +133,9 @@ export default function TrackingPage() {
       companyId: effectiveCompanyId || undefined,
       status: status || undefined,
       provinceId: provinceId ? Number(provinceId) : undefined,
+      cantonId: cantonId ? Number(cantonId) : undefined,
+      districtId: districtId ? Number(districtId) : undefined,
+      classification: classification || undefined,
       search: debouncedSearch || undefined,
     }),
     enabled: Boolean(profileQuery.data),
@@ -162,6 +183,9 @@ export default function TrackingPage() {
         companyId: effectiveCompanyId || undefined,
         status: status || undefined,
         provinceId: provinceId ? Number(provinceId) : undefined,
+        cantonId: cantonId ? Number(cantonId) : undefined,
+        districtId: districtId ? Number(districtId) : undefined,
+        classification: classification || undefined,
         search: debouncedSearch || undefined,
       });
       const selectedCompany = companies.find((company) => company.id === effectiveCompanyId);
@@ -353,6 +377,8 @@ export default function TrackingPage() {
                 title="Selecciona la provincia de los registros a consultar."
                 onChange={(event) => {
                   setProvinceId(event.target.value);
+                  setCantonId("");
+                  setDistrictId("");
                   setPagination((value) => ({ ...value, pageIndex: 0 }));
                 }}
                 className="min-w-0 rounded-xl border border-sky-200 bg-white p-2.5 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 sm:mt-1"
@@ -364,6 +390,21 @@ export default function TrackingPage() {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label title="Filtra los registros por cantón dentro de la provincia seleccionada." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+              <span className="text-right font-medium sm:text-left">Cantón</span>
+              <select value={cantonId} title="Selecciona el cantón de los registros a consultar." disabled={!provinceId || cantonsQuery.isLoading} onChange={(event) => { setCantonId(event.target.value); setDistrictId(""); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 rounded-xl border border-sky-200 bg-white p-2.5 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 sm:mt-1"><option value="">{cantonsQuery.isLoading ? "Cargando cantones..." : "Todos los cantones"}</option>{(cantonsQuery.data ?? []).map((canton) => <option key={canton.id} value={canton.id}>{canton.name}</option>)}</select>
+            </label>
+
+            <label title="Filtra los registros por distrito dentro del cantón seleccionado." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+              <span className="text-right font-medium sm:text-left">Distrito</span>
+              <select value={districtId} title="Selecciona el distrito de los registros a consultar." disabled={!cantonId || districtsQuery.isLoading} onChange={(event) => { setDistrictId(event.target.value); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 rounded-xl border border-sky-200 bg-white p-2.5 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 sm:mt-1"><option value="">{districtsQuery.isLoading ? "Cargando distritos..." : "Todos los distritos"}</option>{(districtsQuery.data ?? []).map((district) => <option key={district.id} value={district.id}>{district.name}</option>)}</select>
+            </label>
+
+            <label title="Filtra los registros según la clasificación del cantón." className="grid w-full grid-cols-[105px_minmax(0,1fr)] items-center gap-2 text-sm text-slate-700 dark:text-slate-200 sm:block">
+              <span className="text-right font-medium sm:text-left">Clasificación</span>
+              <select value={classification} title="Selecciona GAM o Rural para filtrar por clasificación de cantón." onChange={(event) => { setClassification(event.target.value as "" | "gam" | "rural"); setPagination((value) => ({ ...value, pageIndex: 0 })); }} className="min-w-0 rounded-xl border border-sky-200 bg-white p-2.5 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 sm:mt-1"><option value="">GAM y Rural</option><option value="gam">GAM</option><option value="rural">Rural</option></select>
             </label>
           </div>
         </section>
@@ -394,7 +435,6 @@ export default function TrackingPage() {
                 pagination={pagination}
                 setPagination={setPagination}
                 totalRows={recordsQuery.data?.total ?? 0}
-                showCompanyColumn={isOwnerCompanyUser}
                 showHistoryAction={isOwnerCompanyUser}
                 onEdit={(record) => {
                   setSelectedRecord(record);

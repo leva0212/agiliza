@@ -10,6 +10,9 @@ export type TrackingRecordFilters = {
   companyId?: string;
   status?: string;
   provinceId?: number;
+  cantonId?: number;
+  districtId?: number;
+  classification?: "gam" | "rural";
   search?: string;
 };
 
@@ -21,11 +24,25 @@ export async function getTrackingRecords({
   companyId,
   status,
   provinceId,
+  cantonId,
+  districtId,
+  classification,
   search,
 }: TrackingRecordFilters) {
   const supabase = createClient();
   const from = pageIndex * pageSize;
   const to = from + pageSize - 1;
+  let classifiedCantonIds: number[] | undefined;
+
+  if (classification) {
+    const { data: cantons, error: cantonsError } = await supabase
+      .from("cantons")
+      .select("id")
+      .eq("area_classification", classification);
+    if (cantonsError) throw cantonsError;
+    classifiedCantonIds = (cantons ?? []).map((canton) => Number(canton.id));
+    if (!classifiedCantonIds.length) return { data: [], total: 0 };
+  }
 
   let query = supabase
     .from("tracking_records")
@@ -37,9 +54,13 @@ export async function getTrackingRecords({
         full_name,
         identification,
         province_id,
+        canton_id,
+        district_id,
         status,
         comment,
-        province:provinces(id, name)
+        province:provinces(id, name),
+        canton:cantons(id, name, area_classification),
+        district:districts(id, name)
       `,
       { count: "exact" },
     )
@@ -56,6 +77,18 @@ export async function getTrackingRecords({
 
   if (provinceId) {
     query = query.eq("province_id", provinceId);
+  }
+
+  if (cantonId) {
+    query = query.eq("canton_id", cantonId);
+  }
+
+  if (districtId) {
+    query = query.eq("district_id", districtId);
+  }
+
+  if (classifiedCantonIds) {
+    query = query.in("canton_id", classifiedCantonIds);
   }
 
   if (search?.trim()) {
@@ -81,6 +114,12 @@ export async function getTrackingRecords({
     province: Array.isArray(record.province)
       ? record.province[0] ?? null
       : record.province,
+    canton: Array.isArray(record.canton)
+      ? record.canton[0] ?? null
+      : record.canton,
+    district: Array.isArray(record.district)
+      ? record.district[0] ?? null
+      : record.district,
   })) as TrackingRecord[];
 
   return {

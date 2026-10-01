@@ -15,14 +15,12 @@ import {
   trackingStatusOptions,
 } from "../constants/tracking-status-options";
 import type { TrackingRecord } from "../types/tracking-record";
-import { getCompanyLabel } from "@/modules/companies/company-label";
 
 type Props = {
   data: TrackingRecord[];
   pagination: PaginationState;
   setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
   totalRows: number;
-  showCompanyColumn: boolean;
   showHistoryAction: boolean;
   onEdit: (record: TrackingRecord) => void;
   onViewHistory: (record: TrackingRecord) => void;
@@ -34,7 +32,6 @@ export function TrackingTable({
   pagination,
   setPagination,
   totalRows,
-  showCompanyColumn,
   showHistoryAction,
   onEdit,
   onViewHistory,
@@ -67,6 +64,8 @@ export function TrackingTable({
                   record.full_name,
                   record.identification,
                   record.province?.name ?? "",
+                  record.canton?.name ?? "",
+                  record.district?.name ?? "",
                   record.status,
                   record.comment ?? "",
                 ].filter(Boolean).join(" | ");
@@ -109,7 +108,34 @@ export function TrackingTable({
       {
         accessorKey: "identification",
         header: "Cédula",
-        size: 148,
+        size: 175,
+        Cell: ({ row }) => <div className="flex items-center gap-1"><span>{row.original.identification}</span><button type="button" title="Copiar cédula" aria-label={`Copiar cédula de ${row.original.full_name}`} onClick={async () => { await navigator.clipboard.writeText(row.original.identification); toast.success("Cédula copiada"); }} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-sky-700 dark:hover:bg-slate-800"><Copy size={15} /></button></div>,
+      },
+      {
+        accessorKey: "status",
+        header: "Estatus",
+        size: 165,
+        Cell: ({ cell }) => {
+          const status = trackingStatusOptions.find((option) => option.value === cell.getValue<string>());
+          return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${status?.className ?? "bg-slate-100 text-slate-700 border-slate-200"}`}>{status?.label ?? cell.getValue<string>()}</span>;
+        },
+      },
+      {
+        accessorKey: "comment",
+        header: "Comentario",
+        Cell: ({ row }) => {
+          const comment = row.original.comment?.trim();
+          if (!comment) return "—";
+          return <button type="button" title="Clic en esta celda para ver los comentarios" aria-label={`Ver comentario completo de ${row.original.full_name}`} onClick={() => onViewComment(row.original)} className="block w-full truncate rounded-md px-2 py-1 text-left text-sm text-slate-700 hover:bg-sky-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-sky-300">{comment}</button>;
+        },
+        size: 260,
+      },
+      {
+        id: "classification",
+        header: "Clasificación",
+        accessorFn: (row) => row.canton?.area_classification ?? "",
+        Cell: ({ row }) => row.original.canton?.area_classification === "gam" ? "GAM" : row.original.canton?.area_classification === "rural" ? "RURAL" : "Sin clasificar",
+        size: 150,
       },
       {
         id: "province",
@@ -118,53 +144,13 @@ export function TrackingTable({
         size: 160,
       },
       {
-        accessorKey: "status",
-        header: "Estatus",
-        size: 165,
-        Cell: ({ cell }) => {
-          const status = trackingStatusOptions.find(
-            (option) => option.value === cell.getValue<string>(),
-          );
-
-          return (
-            <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${status?.className ?? "bg-slate-100 text-slate-700 border-slate-200"}`}>
-              {status?.label ?? cell.getValue<string>()}
-            </span>
-          );
-        },
+        id: "canton",
+        header: "Cantón",
+        accessorFn: (row) => row.canton?.name ?? "",
+        size: 160,
       },
-      {
-        accessorKey: "comment",
-        header: "Comentario",
-        Cell: ({ row }) => {
-          const comment = row.original.comment?.trim();
-
-          if (!comment) return "—";
-
-          return (
-            <button
-              type="button"
-              title="Clic en esta celda para ver los comentarios"
-              aria-label={`Ver comentario completo de ${row.original.full_name}`}
-              onClick={() => onViewComment(row.original)}
-              className="block w-full truncate rounded-md px-2 py-1 text-left text-sm text-slate-700 hover:bg-sky-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-sky-300"
-            >
-              {comment}
-            </button>
-          );
-        },
-        size: 260,
-      },
+      { id: "district", header: "Distrito", accessorFn: (row) => row.district?.name ?? "", size: 160 },
     ];
-
-    if (showCompanyColumn) {
-      baseColumns.push({
-        id: "company",
-        header: "Empresa",
-        accessorFn: (row) => getCompanyLabel(row.company),
-        size: 190,
-      });
-    }
 
     if (showHistoryAction) {
       baseColumns.push({
@@ -188,7 +174,7 @@ export function TrackingTable({
     }
 
     return baseColumns;
-  }, [onEdit, onViewComment, onViewHistory, showCompanyColumn, showHistoryAction]);
+  }, [onEdit, onViewComment, onViewHistory, showHistoryAction]);
 
   return (
     <MaterialReactTable

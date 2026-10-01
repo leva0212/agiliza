@@ -286,7 +286,7 @@ export function DashboardSidebar({
           </SidebarNavLink>
           </SidebarSection>
 
-          <SidebarSection title="Operación" expanded={expanded} collapsed={Boolean(collapsedSections.operation)} onToggle={() => toggleSection("operation")} className={menuSectionClassName} forceOpen={Boolean(normalizedNavigationFilter)} visible={sectionMatches("operacion", "tracking", "cobertura", "envios", "mis entregas")}>
+          <SidebarSection title="Operación" expanded={expanded} collapsed={Boolean(collapsedSections.operation)} onToggle={() => toggleSection("operation")} className={menuSectionClassName} forceOpen={Boolean(normalizedNavigationFilter)} visible={sectionMatches("operacion", "tracking", "cobertura", "clasificacion de cantones", "envios", "mis entregas")}>
           <SidebarNavLink prefetch={false}
             href="/dashboard/tracking"
             className="block p-3 rounded-lg hover:bg-gray-800"
@@ -300,6 +300,16 @@ export function DashboardSidebar({
           >
             {expanded ? "🗺️ Cobertura" : "🗺️"}
           </SidebarNavLink>
+
+          {canAccessInternalFeatures && !isRestrictedSupervisor && (isSuperAdmin || isCompanyAdmin) && (
+            <SidebarNavLink prefetch={false}
+              href="/dashboard/coverage/cantons"
+              searchTerms="clasificacion cantones gam rural"
+              className="block p-3 rounded-lg hover:bg-gray-800"
+            >
+              {expanded ? "🏷️ Clasificación de cantones" : "🏷️"}
+            </SidebarNavLink>
+          )}
 
           {canAccessInternalFeatures && !isRestrictedSupervisor && (isSuperAdmin || isCompanyAdmin) && (
             <SidebarNavLink prefetch={false}

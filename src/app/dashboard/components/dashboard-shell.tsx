@@ -22,6 +22,7 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (pathname === "/dashboard" || pathname === "/dashboard/") return "Inicio";
   if (pathname === "/dashboard/tracking") return "Tracking";
   if (pathname === "/dashboard/coverage") return "Cobertura";
+  if (pathname === "/dashboard/coverage/cantons") return "Clasificación de cantones";
   if (pathname === "/dashboard/shipments") return "Nuevo envío";
   if (pathname === "/dashboard/shipments/list") return "Envíos";
   if (/^\/dashboard\/shipments\/[^/]+\/edit$/.test(pathname)) return "Modificar envío";

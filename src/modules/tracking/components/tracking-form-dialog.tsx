@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import type { Province } from "@/modules/routes/types/province";
+import { getCantons } from "@/modules/routes/api/get-cantons";
+import { getDistricts } from "@/modules/routes/api/get-districts";
 import {
   trackingStatusOptions,
   type TrackingStatus,
@@ -31,6 +34,8 @@ function normalizeForm(input: TrackingRecordInput): TrackingRecordInput {
     full_name: input.full_name.trim(),
     identification: input.identification.trim(),
     province_id: Number(input.province_id),
+    canton_id: Number(input.canton_id),
+    district_id: Number(input.district_id),
     comment: input.comment.trim(),
   };
 }
@@ -44,10 +49,13 @@ function hasEditableChanges(
     current.full_name !== initial.full_name ||
     current.identification !== initial.identification ||
     current.province_id !== initial.province_id;
+  const locationChanged =
+    current.canton_id !== initial.canton_id ||
+    current.district_id !== initial.district_id;
 
-  if (!canManageStatus) return commonFieldsChanged;
+  if (!canManageStatus) return commonFieldsChanged || locationChanged;
 
-  return commonFieldsChanged ||
+  return commonFieldsChanged || locationChanged ||
     current.company_id !== initial.company_id ||
     current.status !== initial.status ||
     current.comment !== initial.comment;
@@ -63,6 +71,8 @@ function getInitialForm(
       full_name: record.full_name,
       identification: record.identification,
       province_id: record.province_id,
+      canton_id: record.canton_id,
+      district_id: record.district_id,
       status: record.status,
       comment: record.comment ?? "",
     };
@@ -73,6 +83,8 @@ function getInitialForm(
     full_name: "",
     identification: "",
     province_id: 0,
+    canton_id: 0,
+    district_id: 0,
     status: defaultStatus,
     comment: "",
   };
@@ -92,6 +104,22 @@ export function TrackingFormDialog({
     getInitialForm(record, defaultCompanyId),
   );
   const [saving, setSaving] = useState(false);
+  const cantonQuery = useQuery({
+    queryKey: ["tracking-cantons", form.province_id],
+    queryFn: () => getCantons(form.province_id),
+    enabled: form.province_id > 0,
+  });
+  const districtQuery = useQuery({
+    queryKey: ["tracking-districts", form.canton_id],
+    queryFn: () => getDistricts(form.canton_id),
+    enabled: form.canton_id > 0,
+  });
+  const selectedCanton = (cantonQuery.data ?? []).find((canton) => canton.id === form.canton_id);
+  const cantonClassification = selectedCanton?.area_classification === "gam"
+    ? "GAM"
+    : selectedCanton?.area_classification === "rural"
+      ? "RURAL"
+      : "Sin clasificar";
 
   if (!open) {
     return null;
@@ -107,7 +135,9 @@ export function TrackingFormDialog({
     normalizedForm.company_id &&
     normalizedForm.full_name &&
     normalizedForm.identification &&
-    normalizedForm.province_id,
+    normalizedForm.province_id &&
+    normalizedForm.canton_id &&
+    normalizedForm.district_id,
   );
   const canSave = !saving && isFormValid && hasChanges;
 
@@ -204,7 +234,11 @@ export function TrackingFormDialog({
             <span className="text-sm font-medium text-slate-700">Provincia</span>
             <select
               value={form.province_id || ""}
-              onChange={(event) => updateField("province_id", Number(event.target.value))}
+              onChange={(event) => {
+                updateField("province_id", Number(event.target.value));
+                updateField("canton_id", 0);
+                updateField("district_id", 0);
+              }}
               required
               className="w-full rounded-xl border p-3"
             >
@@ -214,6 +248,48 @@ export function TrackingFormDialog({
               ))}
             </select>
           </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Cantón</span>
+            <select
+              value={form.canton_id || ""}
+              onChange={(event) => {
+                updateField("canton_id", Number(event.target.value));
+                updateField("district_id", 0);
+              }}
+              disabled={!form.province_id || cantonQuery.isLoading}
+              required
+              className="w-full rounded-xl border p-3 disabled:cursor-not-allowed disabled:bg-slate-100"
+            >
+              <option value="">{cantonQuery.isLoading ? "Cargando cantones..." : "Seleccione un cantón"}</option>
+              {(cantonQuery.data ?? []).map((canton) => (
+                <option key={canton.id} value={canton.id}>{canton.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Distrito</span>
+            <select
+              value={form.district_id || ""}
+              onChange={(event) => updateField("district_id", Number(event.target.value))}
+              disabled={!form.canton_id || districtQuery.isLoading}
+              required
+              className="w-full rounded-xl border p-3 disabled:cursor-not-allowed disabled:bg-slate-100"
+            >
+              <option value="">{districtQuery.isLoading ? "Cargando distritos..." : "Seleccione un distrito"}</option>
+              {(districtQuery.data ?? []).map((district) => (
+                <option key={district.id} value={district.id}>{district.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <div className="space-y-1" title="Clasificación registrada para el cantón seleccionado.">
+            <span className="text-sm font-medium text-slate-700">Clasificación del cantón</span>
+            <div role="status" aria-readonly="true" className="flex min-h-[50px] cursor-not-allowed items-center rounded-xl border border-dashed bg-slate-100 px-3 text-sm font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              {form.canton_id ? cantonClassification : "Seleccione un cantón"}
+            </div>
+          </div>
 
           <label className="space-y-1">
             <span className="text-sm font-medium text-slate-700">Estatus</span>

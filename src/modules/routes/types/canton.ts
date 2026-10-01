@@ -4,4 +4,6 @@ export type Canton = {
   province_id: number;
 
   name: string;
+
+  area_classification: "gam" | "rural" | null;
 };
