@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LOCALIDADES_PROVINCES, loadLocalidadesProvince } from "@/services/localidades/provinces";
+import {
+  LOCALIDADES_PROVINCES,
+  loadLocalidadesProvince,
+} from "@/services/localidades/provinces";
 import { getProvinceCoverageCounts } from "@/modules/routes/api/get-province-coverage-counts";
 import { getDistrictNeighborhoods } from "@/modules/routes/api/get-district-neighborhoods";
 import { ClientCoverageTable } from "@/modules/routes/components/client-coverage-table";
 import { CoverageNeighborhoodsDialog } from "@/modules/routes/components/coverage-neighborhoods-dialog";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { AppVersion } from "@/shared/components/app-version";
 
 type CoverageRow = {
@@ -20,6 +24,7 @@ type CoverageRow = {
 };
 
 export default function CoveragePage() {
+  const router = useRouter();
   const provinces = LOCALIDADES_PROVINCES;
 
   const STORAGE_KEY = "coverage_selected_province";
@@ -28,8 +33,12 @@ export default function CoveragePage() {
   const [coverageData, setCoverageData] = useState<CoverageRow[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState("");
-  const [coveredNeighborhoods, setCoveredNeighborhoods] = useState<string[]>([]);
-  const [uncoveredNeighborhoods, setUncoveredNeighborhoods] = useState<string[]>([]);
+  const [coveredNeighborhoods, setCoveredNeighborhoods] = useState<string[]>(
+    [],
+  );
+  const [uncoveredNeighborhoods, setUncoveredNeighborhoods] = useState<
+    string[]
+  >([]);
   const [selectedCanton, setSelectedCanton] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
 
@@ -66,13 +75,20 @@ export default function CoveragePage() {
   }
 
   function loose(s: string): string {
-    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+    return s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim();
   }
 
   async function loadCoverage(provinceName: string) {
     try {
       const provinceMap = await loadLocalidadesProvince(provinceName);
-      if (!provinceMap) { setCoverageData([]); return; }
+      if (!provinceMap) {
+        setCoverageData([]);
+        return;
+      }
 
       const localDistricts: Omit<CoverageRow, "district_id">[] = [];
       Object.entries(provinceMap).forEach(([cantonName, districtsMap]) => {
@@ -107,7 +123,6 @@ export default function CoveragePage() {
       });
 
       setCoverageData(merged);
-
     } catch (error) {
       console.error(error);
     }
@@ -120,10 +135,14 @@ export default function CoveragePage() {
     setSelectedCanton(row.canton);
     setSelectedDistrict(row.district);
     setCoveredNeighborhoods(
-      result.filter((item: any) => item.has_coverage).map((item: any) => item.name),
+      result
+        .filter((item: any) => item.has_coverage)
+        .map((item: any) => item.name),
     );
     setUncoveredNeighborhoods(
-      result.filter((item: any) => !item.has_coverage).map((item: any) => item.name),
+      result
+        .filter((item: any) => !item.has_coverage)
+        .map((item: any) => item.name),
     );
     setDialogOpen(true);
   }
@@ -154,18 +173,37 @@ export default function CoveragePage() {
     <div className="min-h-screen bg-slate-50">
       {/* Contenedor con padding responsivo */}
       <div className="max-w-5xl mx-auto px-3 py-4 sm:px-6 sm:py-6 space-y-4">
-
         {/* Identidad corporativa compacta; el título vive en la AppBar. */}
         <div className="rounded-2xl border border-sky-600 bg-white px-4 py-3 shadow-sm dark:bg-slate-900">
-          <div className="flex items-center gap-3">
-            <Image src="/images/agiliza-logo-corporate.jpg" alt="Agiliza" loading="eager" priority width={54} height={54} className="shrink-0 object-contain" />
-            <p className="text-sm text-slate-600 dark:text-slate-300">Cobertura por zonas, días de visita y barrios atendidos.</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/images/agiliza-logo-corporate.jpg"
+                alt="Agiliza"
+                loading="eager"
+                priority
+                width={54}
+                height={54}
+                className="shrink-0 object-contain"
+              />
+
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Cobertura por zonas, días de visita y barrios atendidos.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="shrink-0 text-sm font-medium text-sky-700 hover:text-sky-900 hover:underline"
+            >
+              Ingresar al sistema
+            </button>
           </div>
         </div>
 
         {/* FILTRO */}
         <div className="bg-white border border-sky-600 rounded-2xl shadow-sm p-4">
-
           <div className="mb-3">
             <h2 className="text-sm font-semibold text-slate-700">
               Seleccione una provincia para visualizar su mapa de cobertura
