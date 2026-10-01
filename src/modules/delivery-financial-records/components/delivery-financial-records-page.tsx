@@ -28,6 +28,7 @@ type FinancialRecord = {
   id: string;
   shipment_id: string;
   occurred_at: string;
+  operation_type: "delivery" | "failed_attempt";
   tracking_number: string;
   customer_name: string | null;
   company_name: string | null;
@@ -62,6 +63,10 @@ const statusColors: Record<FinancialRecord["status"], "warning" | "success" | "d
   voided: "default",
   unrated: "error",
 };
+const operationLabels: Record<FinancialRecord["operation_type"], string> = {
+  delivery: "Entrega",
+  failed_attempt: "Intento fallido",
+};
 const today = () => {
   const date = new Date();
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
@@ -90,8 +95,8 @@ export function DeliveryFinancialRecordsPage({ recordType }: { recordType: Recor
   const isCompanyCharge = recordType === "company_delivery_charge";
   const heading = isCompanyCharge ? "Cobros a DTS" : "Pagos a mensajeros";
   const description = isCompanyCharge
-    ? "Entregas confirmadas que deben cobrarse a cada empresa cliente."
-    : "Entregas confirmadas que deben pagarse a los mensajeros de Agiliza.";
+    ? "Entregas confirmadas e intentos fallidos que deben cobrarse a cada empresa cliente."
+    : "Entregas confirmadas e intentos fallidos que deben pagarse a los mensajeros de Agiliza.";
   const [data, setData] = useState<FinancialRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -143,7 +148,7 @@ export function DeliveryFinancialRecordsPage({ recordType }: { recordType: Recor
     setLoading(true);
     void (async () => {
       try {
-        const { data: response, error: queryError } = await createClient().rpc("get_delivery_financial_records_page", filters);
+        const { data: response, error: queryError } = await createClient().rpc("get_delivery_financial_records_page_v2", filters);
         if (!active) return;
         if (queryError) {
           setError(queryError.message);
@@ -210,7 +215,8 @@ export function DeliveryFinancialRecordsPage({ recordType }: { recordType: Recor
   };
 
   const columns = useMemo<MRT_ColumnDef<FinancialRecord>[]>(() => [
-    { accessorKey: "occurred_at", header: "Fecha de entrega", Cell: ({ cell }) => new Date(String(cell.getValue())).toLocaleString("es-CR") },
+    { accessorKey: "occurred_at", header: "Fecha de operación", Cell: ({ cell }) => new Date(String(cell.getValue())).toLocaleString("es-CR") },
+    { accessorKey: "operation_type", header: "Operación", Cell: ({ cell }) => <Chip size="small" label={operationLabels[cell.getValue() as FinancialRecord["operation_type"]]} color={cell.getValue() === "failed_attempt" ? "error" : "success"} /> },
     { accessorKey: "tracking_number", header: "Guía", Cell: ({ row }) => <Link href={`/dashboard/shipments/${row.original.shipment_id}`} className="font-semibold text-blue-600 underline dark:text-blue-400">{row.original.tracking_number}</Link> },
     { accessorKey: "customer_name", header: "Persona receptora", Cell: ({ cell }) => String(cell.getValue() ?? "Sin nombre") },
     { accessorKey: "company_name", header: "Empresa DTS" },

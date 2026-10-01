@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PaginationState } from "@tanstack/react-table";
-import { FileSpreadsheet, Plus, RefreshCw, Search } from "lucide-react";
+import { FileSpreadsheet, Plus, RefreshCw, RotateCcw, Search } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { getCurrentProfile } from "@/modules/auth/hooks/use-current-profile";
@@ -48,18 +48,25 @@ function toDateInputValue(date: Date) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function getDefaultDateRange() {
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - 6);
+
+  return {
+    startDate: toDateInputValue(startDate),
+    endDate: toDateInputValue(endDate),
+  };
+}
+
 export default function TrackingPage() {
   const queryClient = useQueryClient();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 100,
   });
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 6);
-    return toDateInputValue(date);
-  });
-  const [endDate, setEndDate] = useState(() => toDateInputValue(new Date()));
+  const [startDate, setStartDate] = useState(() => getDefaultDateRange().startDate);
+  const [endDate, setEndDate] = useState(() => getDefaultDateRange().endDate);
   const [companyId, setCompanyId] = useState("");
   const [status, setStatus] = useState("");
   const [provinceId, setProvinceId] = useState("");
@@ -146,6 +153,21 @@ export default function TrackingPage() {
   const companyOptionLabel = (company: { code: string; name: string | null }) =>
     isCourier ? company.code : [company.code, company.name].filter(Boolean).join(" - ");
   const provinces = provincesQuery.data ?? [];
+
+  function clearFilters() {
+    const defaultRange = getDefaultDateRange();
+    setSearch("");
+    setDebouncedSearch("");
+    setStartDate(defaultRange.startDate);
+    setEndDate(defaultRange.endDate);
+    setCompanyId("");
+    setStatus("");
+    setProvinceId("");
+    setCantonId("");
+    setDistrictId("");
+    setClassification("");
+    setPagination((value) => ({ ...value, pageIndex: 0 }));
+  }
 
   async function handleSave(input: TrackingRecordInput) {
     try {
@@ -282,7 +304,15 @@ export default function TrackingPage() {
                 Se muestran los registros de la última semana por defecto.
               </p>
             </div>
-
+            <button
+              type="button"
+              title="Limpia los filtros y restablece el rango predeterminado de los últimos siete días."
+              onClick={clearFilters}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-400 bg-amber-50 px-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-950/70"
+            >
+              <RotateCcw size={16} />
+              Limpiar filtros
+            </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

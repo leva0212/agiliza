@@ -35,6 +35,7 @@ export default async function DashboardLayout({
   role,
   full_name,
   active,
+  can_deliver,
   must_change_password,
   company:companies(
     code,
@@ -78,6 +79,12 @@ export default async function DashboardLayout({
     .select("dts_chat_enabled,restricted_supervisor_mode")
     .eq("id", true)
     .maybeSingle();
+  const { data: incomePermission } = await supabase
+    .from("profile_permissions")
+    .select("permission_id")
+    .eq("profile_id", profile.id)
+    .eq("permission_id", "view_own_income")
+    .maybeSingle();
 
   return (
     <DashboardShell
@@ -87,6 +94,7 @@ export default async function DashboardLayout({
         dts_chat_enabled: systemSettings?.dts_chat_enabled ?? false,
         restricted_supervisor_mode: systemSettings?.restricted_supervisor_mode ?? false,
         company_label: companyLabel,
+        can_view_own_income: Boolean(incomePermission),
       }}
       contentClassName="p-3 sm:p-6"
     >

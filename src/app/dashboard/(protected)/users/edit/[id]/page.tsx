@@ -87,6 +87,10 @@ export default function EditUserPage() {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const selectedCompany = companies.find((company) => company.id === companyId);
   const isSystemCompany = selectedCompany?.is_system_company === true || selectedCompany?.is_owner_company === true;
+  const visiblePermissions = permissions.filter((permission) => permission.id !== "view_own_income" || (isSystemCompany && canDeliver));
+  const effectivePermissions = isSystemCompany && canDeliver
+    ? selectedPermissions
+    : selectedPermissions.filter((permissionId) => permissionId !== "view_own_income");
 
   function buildFormState() {
     return JSON.stringify({
@@ -265,7 +269,7 @@ export default function EditUserPage() {
       await saveProfilePermissions(
         id,
 
-        selectedPermissions,
+        effectivePermissions,
       );
       // El usuario puede haberse habilitado como mensajero en este mismo guardado.
       const savedCourierId = await getCourierIdByProfileId(id);
@@ -649,7 +653,7 @@ export default function EditUserPage() {
     overflow-auto
   "
         >
-          {permissions.map((permission) => (
+          {visiblePermissions.map((permission) => (
             <label
               key={permission.id}
               className="

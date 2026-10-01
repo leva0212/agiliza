@@ -62,7 +62,7 @@ export function SettlementSummaryFiltered({ party }: { party: Party }) {
   const columns: MRT_ColumnDef<Row>[] = [
     { accessorKey: "party_name", header: filterLabel },
     { accessorKey: "total_liquidacion", header: isCompany ? "Total a cobrar" : "Total a pagar", Cell: ({ cell }) => <b>{money.format(Number(cell.getValue()))}</b> },
-    { accessorKey: "total_entregas", header: "Total entregas", Cell: ({ cell }) => money.format(Number(cell.getValue())) },
+    { accessorKey: "total_entregas", header: "Entregas e intentos", Cell: ({ cell }) => money.format(Number(cell.getValue())) },
     { accessorKey: "total_envios_cobrados", header: "Envíos cobrados", Cell: ({ cell }) => money.format(Number(cell.getValue())) },
     { accessorKey: "total_depositos", header: "Depósitos", Cell: ({ cell }) => money.format(Number(cell.getValue())) },
     { accessorKey: "pagos_extra", header: "Pago extra", Cell: ({ cell }) => money.format(Number(cell.getValue())) },
@@ -85,6 +85,6 @@ export function SettlementSummaryFiltered({ party }: { party: Party }) {
     <section className="rounded-xl border border-sky-700/40 bg-sky-950/30 p-3 text-sm"><div className="flex items-center gap-1"><strong>Resumen del período abierto</strong><Tooltip title="Explica cómo se calculan los totales de liquidación."><IconButton size="small" onClick={() => setHelpOpen(true)}><CircleHelp size={17} /></IconButton></Tooltip></div><p className="mt-1">Los totales se calculan en BD sobre todos los ítems incluidos.</p></section>
     {error ? <p className="text-red-600">{error}</p> : <MaterialReactTable {...standardMrtFeatures} columns={columns} data={rows} state={{ isLoading: loading }} localization={MRT_Localization_ES} />}
     <PickerDialog open={pickerOpen} title={`Seleccionar ${filterLabel}`} options={options} onClose={() => setPickerOpen(false)} onSelect={select} />
-    <UiMessage open={helpOpen} type="info" title="Cómo se calcula este total" message={<div className="space-y-2 text-left"><p><strong>{isCompany ? "Total a cobrar" : "Total a pagar"}:</strong> total de entregas menos dinero recolectado por envíos y depósitos, más pagos extra y menos deducciones.</p><p>La selección filtra exclusivamente períodos abiertos de {isCompany ? "ese DTS" : "ese mensajero"}.</p></div>} onClose={() => setHelpOpen(false)} />
+    <UiMessage open={helpOpen} type="info" title="Cómo se calcula este total" message={<div className="space-y-2 text-left"><p><strong>{isCompany ? "Total a cobrar" : "Total a pagar"}:</strong> tarifas de entregas e intentos fallidos, menos el dinero efectivamente recolectado por envíos y depósitos, más pagos extra y menos deducciones.</p><p>Los depósitos y cobros de envío se toman del monto realmente registrado al confirmar una entrega; los intentos fallidos no agregan dinero recolectado.</p><p>La selección filtra exclusivamente períodos abiertos de {isCompany ? "ese DTS" : "ese mensajero"}.</p></div>} onClose={() => setHelpOpen(false)} />
   </div>;
 }

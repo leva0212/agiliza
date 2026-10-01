@@ -224,7 +224,6 @@ export function TrackingFormDialog({
   return createPortal(
     <div
       className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/50 p-3 sm:p-4"
-      onClick={onClose}
     >
       <form
         onSubmit={handleSubmit}

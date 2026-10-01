@@ -28,6 +28,8 @@ export type DashboardProfile = {
   dts_chat_enabled: boolean;
   restricted_supervisor_mode: boolean;
   company_label?: string | null;
+  can_deliver?: boolean;
+  can_view_own_income?: boolean;
 };
 
 type Props = {
@@ -286,7 +288,7 @@ export function DashboardSidebar({
           </SidebarNavLink>
           </SidebarSection>
 
-          <SidebarSection title="Operación" expanded={expanded} collapsed={Boolean(collapsedSections.operation)} onToggle={() => toggleSection("operation")} className={menuSectionClassName} forceOpen={Boolean(normalizedNavigationFilter)} visible={sectionMatches("operacion", "tracking", "cobertura", "clasificacion de cantones", "envios", "mis entregas")}>
+          <SidebarSection title="Operación" expanded={expanded} collapsed={Boolean(collapsedSections.operation)} onToggle={() => toggleSection("operation")} className={menuSectionClassName} forceOpen={Boolean(normalizedNavigationFilter)} visible={sectionMatches("operacion", "tracking", "cobertura", "clasificacion de cantones", "envios", "mis entregas", "mis ingresos", "ingresos", "liquidacion")}>
           <SidebarNavLink prefetch={false}
             href="/dashboard/tracking"
             className="block p-3 rounded-lg hover:bg-gray-800"
@@ -326,6 +328,15 @@ export function DashboardSidebar({
               className="block p-3 rounded-lg hover:bg-gray-800"
             >
               {expanded ? "🚚 Mis entregas" : "🚚"}
+            </SidebarNavLink>
+          )}
+          {profile.can_deliver && profile.can_view_own_income && (
+            <SidebarNavLink prefetch={false}
+              href="/dashboard/my-income"
+              searchTerms="ingresos liquidación liquidacion pagos entregas depósitos depositos cobros"
+              className="block p-3 rounded-lg hover:bg-gray-800"
+            >
+              {expanded ? "💰 Mis ingresos" : "💰"}
             </SidebarNavLink>
           )}
           </SidebarSection>

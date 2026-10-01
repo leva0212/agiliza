@@ -41,6 +41,7 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (pathname === "/dashboard/settlements/schedules") return "Cronogramas de liquidación";
   if (pathname === "/dashboard/settlements/dts") return "Totales por DTS";
   if (pathname === "/dashboard/settlements/couriers") return "Totales por mensajero";
+  if (pathname === "/dashboard/my-income") return "Mis ingresos";
   if (pathname === "/dashboard/rates") return "Tarifas";
   if (pathname === "/dashboard/chat") return "Chat";
   if (pathname === "/dashboard/profile/security") return "Mi seguridad";
