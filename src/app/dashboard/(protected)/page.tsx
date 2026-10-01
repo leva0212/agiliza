@@ -115,7 +115,7 @@ export default async function DashboardHomePage() {
                 Sesión activa
               </span>
               <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-                ¡Bienvenido, {firstName}!
+                ¡Bienvenid@, {firstName}!
               </h2>
               <p className="mt-2 text-base text-slate-600 dark:text-slate-300 sm:text-lg">
                 Todo listo para gestionar tu operación en Agiliza.
