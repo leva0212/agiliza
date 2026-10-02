@@ -3,6 +3,8 @@ import type { TrackingStatus } from "../constants/tracking-status-options";
 export type TrackingRecord = {
   id: string;
   created_at: string;
+  created_by_label: string;
+  created_by_company_label: string;
   company_id: string;
   full_name: string;
   identification: string;

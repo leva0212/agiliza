@@ -39,6 +39,14 @@ export default async function DashboardHomePage() {
   const isOwnerCompany = Boolean(company?.is_owner_company);
   const isInternalAdmin = isOwnerCompany &&
     (profile?.role === "super_admin" || profile?.role === "company_admin");
+  const { data: systemSettings } = await supabase
+    .from("system_settings")
+    .select("restricted_supervisor_mode")
+    .eq("id", true)
+    .maybeSingle();
+  const isRestrictedOperational = isOwnerCompany &&
+    profile?.role === "company_admin" &&
+    systemSettings?.restricted_supervisor_mode === true;
 
   const quickLinks: QuickLink[] = [
     {
@@ -57,7 +65,7 @@ export default async function DashboardHomePage() {
     },
   ];
 
-  if (isInternalAdmin) {
+  if (isInternalAdmin && !isRestrictedOperational) {
     quickLinks.push({
       href: "/dashboard/shipments/list",
       label: "Envíos",

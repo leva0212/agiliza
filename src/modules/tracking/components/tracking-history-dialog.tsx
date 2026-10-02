@@ -50,6 +50,9 @@ export function TrackingHistoryDialog({
             <p className="mt-1 text-sm text-slate-500">
               {record.full_name} · {record.identification}
             </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Creado por: <span className="font-medium text-slate-700">{record.created_by_label}</span>
+            </p>
           </div>
           <button
             type="button"

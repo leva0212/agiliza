@@ -22,6 +22,8 @@ type Props = {
   setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
   totalRows: number;
   showHistoryAction: boolean;
+  showCompanyColumn: boolean;
+  showCreatorCompanyColumn: boolean;
   onEdit: (record: TrackingRecord) => void;
   onViewHistory: (record: TrackingRecord) => void;
   onViewComment: (record: TrackingRecord) => void;
@@ -33,6 +35,8 @@ export function TrackingTable({
   setPagination,
   totalRows,
   showHistoryAction,
+  showCompanyColumn,
+  showCreatorCompanyColumn,
   onEdit,
   onViewHistory,
   onViewComment,
@@ -150,6 +154,22 @@ export function TrackingTable({
         size: 160,
       },
       { id: "district", header: "Distrito", accessorFn: (row) => row.district?.name ?? "", size: 160 },
+      ...(showCompanyColumn ? [{
+        id: "company",
+        header: "Empresa",
+        accessorFn: (row: TrackingRecord) => row.company?.display_name ?? [row.company?.code, row.company?.name].filter(Boolean).join(" - ") ?? "Sin empresa",
+        size: 190,
+      } satisfies MRT_ColumnDef<TrackingRecord>] : []),
+      ...(showCreatorCompanyColumn ? [{
+        accessorKey: "created_by_company_label",
+        header: "Empresa creadora",
+        size: 190,
+      } satisfies MRT_ColumnDef<TrackingRecord>] : []),
+      {
+        accessorKey: "created_by_label",
+        header: "Creado por",
+        size: 180,
+      },
     ];
 
     if (showHistoryAction) {
@@ -174,7 +194,7 @@ export function TrackingTable({
     }
 
     return baseColumns;
-  }, [onEdit, onViewComment, onViewHistory, showHistoryAction]);
+  }, [onEdit, onViewComment, onViewHistory, showCompanyColumn, showCreatorCompanyColumn, showHistoryAction]);
 
   return (
     <MaterialReactTable

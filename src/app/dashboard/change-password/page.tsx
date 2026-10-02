@@ -9,6 +9,7 @@ import { changePassword } from "@/modules/users/api/change-password";
 import { UiMessage } from "@/shared/components/ui-message";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { PASSWORD_MIN_LENGTH } from "@/modules/auth/identity";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -30,10 +31,10 @@ export default function ChangePasswordPage() {
   >("info");
 
   async function handleSave() {
-    if (password.length < 10) {
+    if (password.length < PASSWORD_MIN_LENGTH) {
       setMessageTitle("Contraseña inválida");
 
-      setMessageText("La contraseña debe tener al menos 10 caracteres.");
+      setMessageText(`La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`);
 
       setMessageType("warning");
 

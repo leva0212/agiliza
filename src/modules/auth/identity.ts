@@ -23,7 +23,7 @@ export function isEmailIdentifier(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
 }
 
-export const PASSWORD_MIN_LENGTH = 10;
+export const PASSWORD_MIN_LENGTH = 6;
 
 export function getPasswordValidationMessage(password: string) {
   if (password.length < PASSWORD_MIN_LENGTH) {

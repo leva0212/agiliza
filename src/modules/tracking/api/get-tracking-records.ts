@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/client";
 import { getVisibleCompanyDirectory } from "@/modules/companies/api/get-visible-company-directory";
 import type { TrackingRecord } from "../types/tracking-record";
 
+type TrackingCreatorLabel = {
+  record_id: string;
+  created_by_label: string;
+  created_by_company_label: string;
+};
+
 export type TrackingRecordFilters = {
   pageIndex: number;
   pageSize: number;
@@ -107,9 +113,18 @@ export async function getTrackingRecords({
   }
 
   const directory = await getVisibleCompanyDirectory((data ?? []).map((record) => record.company_id));
+  const recordIds = (data ?? []).map((record) => record.id);
+  const { data: creatorLabels, error: creatorLabelsError } = await supabase
+    .rpc("get_tracking_record_creator_labels", { p_record_ids: recordIds });
+  if (creatorLabelsError) throw creatorLabelsError;
+  const creatorLabelsByRecordId = new Map(
+    ((creatorLabels ?? []) as TrackingCreatorLabel[]).map((label) => [label.record_id, label]),
+  );
   const companiesById = new Map(directory.map((company) => [company.id, company]));
   const records = (data ?? []).map((record) => ({
     ...record,
+    created_by_label: creatorLabelsByRecordId.get(record.id)?.created_by_label ?? "Sin información",
+    created_by_company_label: creatorLabelsByRecordId.get(record.id)?.created_by_company_label ?? "Sin información",
     company: companiesById.get(record.company_id) ?? null,
     province: Array.isArray(record.province)
       ? record.province[0] ?? null

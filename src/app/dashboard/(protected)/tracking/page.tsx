@@ -114,6 +114,7 @@ export default function TrackingPage() {
   });
 
   const isOwnerCompanyUser = profileQuery.data?.is_owner_company_user === true;
+  const showCreatorCompanyColumn = profileQuery.data?.role !== "courier";
   const effectiveCompanyId = isOwnerCompanyUser ? companyId : profileQuery.data?.company_id ?? "";
 
   const recordsQuery = useQuery({
@@ -466,6 +467,8 @@ export default function TrackingPage() {
                 setPagination={setPagination}
                 totalRows={recordsQuery.data?.total ?? 0}
                 showHistoryAction={isOwnerCompanyUser}
+                showCompanyColumn={isOwnerCompanyUser}
+                showCreatorCompanyColumn={showCreatorCompanyColumn}
                 onEdit={(record) => {
                   setSelectedRecord(record);
                   setDialogOpen(true);
