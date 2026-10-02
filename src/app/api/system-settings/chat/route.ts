@@ -36,7 +36,7 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   const actor = await getActor();
   if (!actor || !["super_admin", "company_admin"].includes(actor.role)) {
-    return Response.json({ message: "Solo administradores y supervisores EPS pueden cambiar esta configuración." }, { status: 403 });
+    return Response.json({ message: "Solo personal administrativo y operativo de EPS puede cambiar esta configuración." }, { status: 403 });
   }
   const body = await request.json();
   if (typeof body.dts_chat_enabled !== "boolean" || typeof body.restricted_supervisor_mode !== "boolean") {
@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest) {
     .single();
   if (readError) return Response.json({ message: "Ejecuta primero la migración de configuración global." }, { status: 503 });
   if (actor.role !== "super_admin" && current.restricted_supervisor_mode !== body.restricted_supervisor_mode) {
-    return Response.json({ message: "Solo un administrador puede cambiar el modo restringido para supervisores EPS." }, { status: 403 });
+    return Response.json({ message: "Solo personal administrativo puede cambiar el modo restringido para operativos EPS." }, { status: 403 });
   }
   if (actor.role !== "super_admin" && current.restricted_supervisor_mode && body.restricted_supervisor_mode && current.dts_chat_enabled !== body.dts_chat_enabled) {
     return Response.json({ message: "Desactiva primero el modo restringido para modificar el chat de empresas DTS." }, { status: 400 });

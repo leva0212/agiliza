@@ -46,7 +46,7 @@ export default function CantonClassificationPage() {
   }
 
   if (profileQuery.isLoading) return <div className="p-6 text-sm text-slate-500">Cargando clasificación de cantones…</div>;
-  if (!isAuthorized) return <div className="mx-auto max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">Solo administradores y supervisores de Agiliza pueden clasificar los cantones.</div>;
+  if (!isAuthorized) return <div className="mx-auto max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">Solo personal administrativo y operativo de Agiliza puede clasificar los cantones.</div>;
 
   const classifiedCount = (cantonsQuery.data ?? []).filter((canton) => canton.area_classification).length;
   return <div className="mx-auto w-full max-w-5xl space-y-4 px-0 py-3 sm:p-6">

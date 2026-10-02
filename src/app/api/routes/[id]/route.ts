@@ -8,7 +8,7 @@ export async function DELETE(request: NextRequest, context: Context) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ message: "Debe iniciar sesión." }, { status: 401 });
   const { data: profile } = await supabaseAdmin.from("profiles").select("active, role").eq("id", user.id).maybeSingle();
-  if (profile?.active !== true || profile.role !== "super_admin") return Response.json({ message: "Solo un administrador activo puede eliminar rutas." }, { status: 403 });
+  if (profile?.active !== true || profile.role !== "super_admin") return Response.json({ message: "Solo personal administrativo activo puede eliminar rutas." }, { status: 403 });
   const body = await request.json().catch(() => ({})) as { successorRouteId?: unknown };
   const successorRouteId = typeof body.successorRouteId === "string" ? body.successorRouteId : null;
   const { id } = await context.params;

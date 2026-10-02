@@ -397,9 +397,9 @@ export default function EditUserPage() {
       p-3
     "
           >
-            <option value="super_admin">Administrador General</option>
+            <option value="super_admin">Administrativo general</option>
 
-            <option value="company_admin">Supervisor Empresa</option>
+            <option value="company_admin">Operativo de empresa</option>
 
             <option value="courier">Mensajero</option>
             <option value="seller">Vendedor</option>

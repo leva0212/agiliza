@@ -38,9 +38,9 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
 function agilizaRoleLabel(role: ActorRole) {
   switch (role) {
     case "super_admin":
-      return "Administrador Agiliza";
+      return "Administrativo Agiliza";
     case "company_admin":
-      return "Supervisor Agiliza";
+      return "Operativo Agiliza";
     case "courier":
       return "Mensajero Agiliza";
     case "seller":

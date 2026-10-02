@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (passwordWasUpdated) {
       return Response.json({
-        message: "La contraseña sí fue actualizada, pero no se pudo completar el estado de seguridad del perfil. Inicia sesión con la nueva contraseña y contacta a un administrador si vuelve a solicitar el cambio.",
+        message: "La contraseña sí fue actualizada, pero no se pudo completar el estado de seguridad del perfil. Inicia sesión con la nueva contraseña y contacta al personal administrativo si vuelve a solicitar el cambio.",
       }, { status: 409 });
     }
     const status = typeof error === "object" && error && "status" in error && typeof error.status === "number" ? error.status : 400;

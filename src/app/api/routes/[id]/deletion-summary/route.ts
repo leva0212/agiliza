@@ -12,7 +12,7 @@ export async function GET(_request: NextRequest, context: Context) {
 
   const { data: profile } = await supabaseAdmin.from("profiles").select("active, role").eq("id", user.id).maybeSingle();
   if (profile?.active !== true || profile.role !== "super_admin") {
-    return Response.json({ message: "Solo un administrador activo puede eliminar rutas." }, { status: 403 });
+    return Response.json({ message: "Solo personal administrativo activo puede eliminar rutas." }, { status: 403 });
   }
 
   const { id } = await context.params;

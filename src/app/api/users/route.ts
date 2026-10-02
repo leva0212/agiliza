@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       .select("is_owner_company,is_system_company").eq("id", companyId).single();
     if (companyError || !company) return Response.json({ message: "Empresa no encontrada" }, { status: 400 });
     if ((role === "courier" || role === "super_admin") && !company.is_system_company && !company.is_owner_company) {
-      return Response.json({ message: role === "courier" ? "Los mensajeros solo pueden pertenecer a la empresa propietaria." : "Los administradores logísticos solo pueden pertenecer a la empresa propietaria." }, { status: 400 });
+      return Response.json({ message: role === "courier" ? "Los mensajeros solo pueden pertenecer a la empresa propietaria." : "El personal administrativo solo puede pertenecer a la empresa propietaria." }, { status: 400 });
     }
     const isOwnerCompanyUser = company.is_system_company === true || company.is_owner_company === true;
     if (!isOwnerCompanyUser && body.can_deliver === true) {

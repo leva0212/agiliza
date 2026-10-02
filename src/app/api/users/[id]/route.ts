@@ -11,7 +11,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (!user) return Response.json({ message: "No autorizado" }, { status: 401 });
     const { data: actor } = await supabaseAdmin.from("profiles").select("role,active,company:companies(is_owner_company,is_system_company)").eq("id", user.id).maybeSingle();
     const company = Array.isArray(actor?.company) ? actor?.company[0] : actor?.company;
-    if (actor?.role !== "super_admin" || !actor?.active || (!company?.is_owner_company && !company?.is_system_company)) return Response.json({ message: "Solo un administrador de Agiliza puede modificar usuarios." }, { status: 403 });
+    if (actor?.role !== "super_admin" || !actor?.active || (!company?.is_owner_company && !company?.is_system_company)) return Response.json({ message: "Solo personal administrativo de Agiliza puede modificar usuarios." }, { status: 403 });
     const { id } = await params; const body = await request.json(); const username = typeof body.username === "string" ? normalizeUsername(body.username) : undefined;
     if (username !== undefined && !isValidUsername(username)) return Response.json({ message: "El usuario debe tener entre 3 y 32 caracteres válidos." }, { status: 400 });
     if (username) { const { data: other } = await supabaseAdmin.from("profiles").select("id").eq("username", username).neq("id", id).maybeSingle(); if (other) return Response.json({ message: "Ese usuario ya está en uso." }, { status: 400 }); }

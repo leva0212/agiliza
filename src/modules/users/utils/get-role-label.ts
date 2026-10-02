@@ -5,10 +5,10 @@ export function getRoleLabel(
   switch (role) {
 
     case "super_admin":
-      return "✅Administrador del sistema";
+      return "✅Administrativo del sistema";
 
     case "company_admin":
-      return "Supervisor";
+      return "Operativo";
 
     case "courier":
       return "Mensajero";

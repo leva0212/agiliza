@@ -9,7 +9,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   if (!user) return Response.json({ message: "No autorizado." }, { status: 401 });
 
   const { data: profile } = await supabase.from("profiles").select("active, role").eq("id", user.id).single();
-  if (profile?.active !== true || profile.role !== "super_admin") return Response.json({ message: "Solo un superadministrador activo puede aplicar cambios masivos." }, { status: 403 });
+  if (profile?.active !== true || profile.role !== "super_admin") return Response.json({ message: "Solo personal administrativo activo puede aplicar cambios masivos." }, { status: 403 });
 
   const body = await request.json().catch(() => ({})) as Body;
   const districtIds = Array.isArray(body.districtIds) ? [...new Set(body.districtIds.filter((id): id is number => typeof id === "number" && Number.isInteger(id) && id > 0))] : [];

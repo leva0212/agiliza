@@ -35,7 +35,7 @@ export async function POST(
     const { data: actor, error: actorError } = await supabaseAdmin
       .from("profiles").select("role, active").eq("id", user.id).single();
     if (actorError || actor?.active !== true || actor.role !== "super_admin") {
-      return Response.json({ message: "Solo un administrador activo puede modificar usuarios." }, { status: 403 });
+      return Response.json({ message: "Solo personal administrativo activo puede modificar usuarios." }, { status: 403 });
     }
 
     const {

@@ -12,8 +12,8 @@ import { SearchSelector } from "@/shared/components/search-selector";
 import { FilterSearchInput } from "@/shared/components/filter-search-input";
 
 const ROLE_OPTIONS: Array<{ value: UserRole; label: string }> = [
-  { value: "super_admin", label: "Administrador" },
-  { value: "company_admin", label: "Supervisor" },
+  { value: "super_admin", label: "Administrativo" },
+  { value: "company_admin", label: "Operativo" },
   { value: "courier", label: "Mensajero" },
   { value: "seller", label: "Vendedor" },
 ];

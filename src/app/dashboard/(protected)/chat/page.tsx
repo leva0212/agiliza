@@ -26,7 +26,7 @@ const templates = [
   "Cliente quedó en enviar la ubicación pero no la ha enviado",
   "Cliente indica que programe la entrega para otro día",
   "El número proporcionado no responde llamadas ni mensajes",
-  "Necesito apoyo del supervisor para este envío",
+  "Necesito apoyo del operativo para este envío",
 ];
 
 

@@ -127,8 +127,8 @@ export function DashboardSidebar({
   const isRestrictedSupervisor = canAccessInternalFeatures && isCompanyAdmin && profile.restricted_supervisor_mode;
   const normalizedNavigationFilter = navigationFilter.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   const roleLabel: Record<DashboardProfile["role"], string> = {
-    super_admin: "Administrador",
-    company_admin: "Supervisor",
+    super_admin: "Administrativo",
+    company_admin: "Operativo",
     courier: "Mensajero",
     seller: "Vendedor",
   };

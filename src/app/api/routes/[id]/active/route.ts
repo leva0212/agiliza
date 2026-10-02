@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     .eq("id", user.id)
     .maybeSingle();
   if (profile?.active !== true || profile.role !== "super_admin") {
-    return Response.json({ message: "Solo un administrador activo puede cambiar el estado de una ruta." }, { status: 403 });
+    return Response.json({ message: "Solo personal administrativo activo puede cambiar el estado de una ruta." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null) as { active?: unknown } | null;

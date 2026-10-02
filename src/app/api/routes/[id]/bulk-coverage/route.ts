@@ -5,7 +5,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ message: "No autorizado." }, { status: 401 });
   const { data: profile } = await supabase.from("profiles").select("active, role").eq("id", user.id).single();
-  if (profile?.active !== true || profile.role !== "super_admin") return Response.json({ message: "Solo un superadministrador activo puede agregar cobertura." }, { status: 403 });
+  if (profile?.active !== true || profile.role !== "super_admin") return Response.json({ message: "Solo personal administrativo activo puede agregar cobertura." }, { status: 403 });
   const body = await request.json().catch(() => ({})) as Body;
   const ids = (value: unknown) => Array.isArray(value) ? [...new Set(value.filter((item): item is number => typeof item === "number" && Number.isInteger(item) && item > 0))] : [];
   const districtIds = ids(body.districtIds), neighborhoodIds = ids(body.neighborhoodIds);
