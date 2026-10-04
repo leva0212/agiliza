@@ -8,12 +8,19 @@ import {
   ChevronRight,
   Crop,
   RefreshCcw,
+  Copy,
+  ScanLine,
 } from "lucide-react";
 
 import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
 import { processImage } from "@/shared/utils/process-image";
 import { generateThumbnail } from "../../utils/generate-thumbnail";
+import {
+  analyzeEvidenceImage,
+  type EvidenceImageAnalysis,
+} from "../../utils/analyze-evidence-image";
+import { toast } from "sonner";
 type Props = {
   open: boolean;
 
@@ -24,6 +31,8 @@ type Props = {
   onUpload: (evidences: PendingEvidence[]) => Promise<void>;
 
   isUploading?: boolean;
+  shipmentItems?: Array<{ id: string; productName: string }>;
+  shipmentCompanyCode?: string | null;
 };
 
 export function ShipmentEvidenceEditor({
@@ -32,6 +41,8 @@ export function ShipmentEvidenceEditor({
   onClose,
   onUpload,
   isUploading = false,
+  shipmentItems = [],
+  shipmentCompanyCode,
 }: Props) {
   const [cropOpen, setCropOpen] = useState(false);
   const [index, setIndex] = useState(0);
@@ -40,6 +51,7 @@ export function ShipmentEvidenceEditor({
   const [activePreviewLoading, setActivePreviewLoading] = useState(false);
   const [cropImageUrl, setCropImageUrl] = useState("");
   const [thumbnailGenerationPaused, setThumbnailGenerationPaused] = useState(false);
+  const [analysisByEvidenceId, setAnalysisByEvidenceId] = useState<Record<string, EvidenceImageAnalysis | "loading">>({});
 
   const touchStartX = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -48,6 +60,7 @@ export function ShipmentEvidenceEditor({
   const thumbnailUrlsRef = useRef(new Set<string>());
   const thumbnailEvidenceIdsRef = useRef(new Set<string>());
   const imageWorkQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const analyzedEvidenceIdsRef = useRef(new Set<string>());
 
   const current = items[index];
   const currentId = current?.id;
@@ -295,7 +308,10 @@ export function ShipmentEvidenceEditor({
       await Promise.resolve();
 
       if (!cancelled) {
-        setItems(evidences);
+        setItems(evidences.map((evidence) => ({
+          ...evidence,
+          shipmentItemId: evidence.shipmentItemId ?? (shipmentItems.length === 1 ? shipmentItems[0].id : null),
+        })));
         setIndex(0);
       }
     }
@@ -305,11 +321,58 @@ export function ShipmentEvidenceEditor({
     return () => {
       cancelled = true;
     };
-  }, [open, evidences]);
+  }, [open, evidences, shipmentItems]);
+
+  useEffect(() => {
+    if (!open || items.length === 0) return;
+
+    let cancelled = false;
+
+    async function analyzePendingEvidences() {
+      for (const evidence of items) {
+        if (cancelled || analyzedEvidenceIdsRef.current.has(evidence.id)) continue;
+
+        analyzedEvidenceIdsRef.current.add(evidence.id);
+        setAnalysisByEvidenceId((current) => ({ ...current, [evidence.id]: "loading" }));
+
+        const analysis = await analyzeEvidenceImage(evidence.originalFile);
+        if (!cancelled) {
+          setAnalysisByEvidenceId((current) => ({ ...current, [evidence.id]: analysis }));
+          setItems((currentItems) => currentItems.map((item) => item.id === evidence.id ? {
+            ...item,
+            detectedBarcode: analysis.barcode,
+            detectedText: analysis.text,
+            detectedCompanyCode: analysis.internalCompanyCode,
+          } : item));
+        }
+      }
+    }
+
+    void analyzePendingEvidences();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items, open]);
+
+  useEffect(() => {
+    if (open) return;
+    analyzedEvidenceIdsRef.current.clear();
+    setAnalysisByEvidenceId({});
+  }, [open]);
 
   if (!open || items.length === 0) {
     return null;
   }
+
+  const currentAnalysis = current ? analysisByEvidenceId[current.id] : undefined;
+  const hasPendingAnalysis = items.some((item) => analysisByEvidenceId[item.id] === "loading" || !analysisByEvidenceId[item.id]);
+  const detectedDtsCode = currentAnalysis !== "loading" ? currentAnalysis?.internalCompanyCode : null;
+  const expectedDetectedCode = shipmentCompanyCode?.match(/^DTS(0\d{2})$/i)?.[1] ?? null;
+  const companyMismatch = Boolean(detectedDtsCode && expectedDetectedCode && detectedDtsCode !== expectedDetectedCode);
+  const hasUnjustifiedCompanyMismatch = items.some((item) => Boolean(
+    item.detectedCompanyCode && expectedDetectedCode && item.detectedCompanyCode !== expectedDetectedCode && !item.companyMismatchJustification.trim(),
+  ));
 
   return (
     <div
@@ -594,6 +657,48 @@ export function ShipmentEvidenceEditor({
     z-20
   "
       >
+        <div className="mb-2 rounded-2xl bg-black/70 p-3 text-white backdrop-blur">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <ScanLine size={17} /> Lectura de la imagen
+          </div>
+          {currentAnalysis === "loading" ? (
+            <p className="mt-1 text-xs text-white/75">Leyendo código de barras y texto…</p>
+          ) : currentAnalysis ? (
+            <div className="mt-2 grid gap-1.5 text-xs">
+              <AnalysisValue label="Código de barras" value={currentAnalysis.barcode} />
+              <AnalysisValue label="Código DTS detectado" value={currentAnalysis.internalCompanyCode} />
+              <p className="text-white/70">Texto: {currentAnalysis.text ? currentAnalysis.text.slice(0, 180) : "No se detectó texto"}</p>
+              {companyMismatch && (
+                <div className="rounded-xl border-2 border-red-300 bg-red-700 p-3 text-sm font-bold text-white shadow-lg">
+                  ⚠️ POSIBLE ARTÍCULO DE OTRA EMPRESA: el código {detectedDtsCode} corresponde a DTS{detectedDtsCode}, pero el envío pertenece a {shipmentCompanyCode}. Verifique antes de entregar; los casos excepcionales quedarán auditados.
+                  <label className="mt-3 grid gap-1 text-xs font-medium">
+                    <span>Justificación obligatoria para continuar</span>
+                    <textarea
+                      value={current.companyMismatchJustification}
+                      maxLength={500}
+                      onChange={(event) => setItems((currentItems) => currentItems.map((item) => item.id === current.id ? { ...item, companyMismatchJustification: event.target.value } : item))}
+                      placeholder="Explique por qué se acepta este artículo de otra empresa"
+                      className="min-h-18 rounded-lg border border-red-200 bg-white p-2 text-slate-900"
+                    />
+                  </label>
+                </div>
+              )}
+              {shipmentItems.length > 0 && (
+                <label className="mt-1 grid gap-1 text-white/80">
+                  <span>Artículo del envío</span>
+                  <select
+                    value={current.shipmentItemId ?? ""}
+                    onChange={(event) => setItems((currentItems) => currentItems.map((item) => item.id === current.id ? { ...item, shipmentItemId: event.target.value || null } : item))}
+                    className="rounded-lg border border-white/30 bg-black/50 px-2 py-1.5 text-white"
+                  >
+                    <option value="">Seleccione un artículo</option>
+                    {shipmentItems.map((item) => <option key={item.id} value={item.id}>{item.productName}</option>)}
+                  </select>
+                </label>
+              )}
+            </div>
+          ) : null}
+        </div>
         {/* Miniaturas */}
 
         <div
@@ -820,7 +925,7 @@ export function ShipmentEvidenceEditor({
           <button
             type="button"
             onClick={async () => {
-              if (isUploading) {
+              if (isUploading || hasPendingAnalysis || hasUnjustifiedCompanyMismatch) {
                 return;
               }
 
@@ -833,7 +938,8 @@ export function ShipmentEvidenceEditor({
                 setThumbnailGenerationPaused(false);
               }
             }}
-            disabled={isUploading}
+            disabled={isUploading || hasPendingAnalysis || hasUnjustifiedCompanyMismatch}
+            title={hasPendingAnalysis ? "Espere a que termine la lectura de las imágenes" : hasUnjustifiedCompanyMismatch ? "Indique la justificación de la excepción" : "Subir evidencias"}
             className="
     w-16
     h-16
@@ -892,6 +998,29 @@ export function ShipmentEvidenceEditor({
           closeCropDialog();
         }}
       />
+    </div>
+  );
+}
+
+function AnalysisValue({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-white/70">{label}:</span>
+      <span className="font-mono font-semibold">{value ?? "No detectado"}</span>
+      {value && (
+        <button
+          type="button"
+          title={`Copiar ${label.toLowerCase()}`}
+          aria-label={`Copiar ${label.toLowerCase()}`}
+          onClick={async () => {
+            await navigator.clipboard.writeText(value);
+            toast.success(`${label} copiado`);
+          }}
+          className="rounded p-1 text-white hover:bg-white/15"
+        >
+          <Copy size={14} />
+        </button>
+      )}
     </div>
   );
 }

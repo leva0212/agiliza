@@ -19,6 +19,11 @@ type Input = {
   isProcessed?: boolean;
   hd?: boolean;
   notes?: string;
+  shipmentItemId?: string | null;
+  detectedBarcode?: string | null;
+  detectedText?: string;
+  detectedCompanyCode?: string | null;
+  companyMismatchJustification?: string;
   createdBy?: string | null;
   signal?: AbortSignal;
   onProgress?: (progress: ShipmentEvidenceUploadProgress) => void;
@@ -30,6 +35,11 @@ export async function createShipmentEvidence({
   isProcessed = false,
   hd = false,
   notes,
+  shipmentItemId,
+  detectedBarcode,
+  detectedText,
+  detectedCompanyCode,
+  companyMismatchJustification,
   createdBy,
   signal,
   onProgress,
@@ -109,6 +119,11 @@ export async function createShipmentEvidence({
         created_by: createdBy ?? null,
         created_company_id: companyId,
         notes: notes?.trim() ?? "",
+        shipment_item_id: shipmentItemId ?? null,
+        detected_barcode: detectedBarcode?.trim() || null,
+        detected_text: detectedText?.trim() || null,
+        detected_company_code: detectedCompanyCode?.trim() || null,
+        company_mismatch_justification: companyMismatchJustification?.trim() || null,
         validated: false,
         validated_at: null,
         validated_by: null,

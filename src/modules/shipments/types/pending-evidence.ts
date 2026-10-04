@@ -14,6 +14,11 @@ export type PendingEvidence = {
   cropY: number;
   cropWidth: number;
   cropHeight: number;
+  shipmentItemId: string | null;
+  detectedBarcode: string | null;
+  detectedText: string;
+  detectedCompanyCode: string | null;
+  companyMismatchJustification: string;
 };
 
 /**
@@ -35,5 +40,10 @@ export function createPendingEvidence(file: File): PendingEvidence {
     cropY: 0,
     cropWidth: 0,
     cropHeight: 0,
+    shipmentItemId: null,
+    detectedBarcode: null,
+    detectedText: "",
+    detectedCompanyCode: null,
+    companyMismatchJustification: "",
   };
 }

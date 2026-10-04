@@ -383,6 +383,11 @@ export default function ShipmentDetailPage() {
           <ShipmentEvidencesCard
             shipmentId={shipmentId}
             trackingNumber={shipment.tracking_number}
+            shipmentItems={items.map((item) => ({
+              id: item.id,
+              productName: item.product?.name ?? item.product_id,
+            }))}
+            shipmentCompanyCode={shipment.company?.code}
           />
           <div
             className="

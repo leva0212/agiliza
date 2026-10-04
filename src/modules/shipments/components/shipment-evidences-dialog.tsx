@@ -49,6 +49,8 @@ type Props = {
   trackingNumber: string;
   initialFiles?: File[];
   onInitialFilesConsumed?: () => void;
+  shipmentItems?: Array<{ id: string; productName: string }>;
+  shipmentCompanyCode?: string | null;
 };
 
 type EvidenceUploadProgress = {
@@ -80,6 +82,8 @@ export function ShipmentEvidencesDialog({
   trackingNumber,
   initialFiles = [],
   onInitialFilesConsumed,
+  shipmentItems = [],
+  shipmentCompanyCode,
 }: Props) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -144,6 +148,11 @@ export function ShipmentEvidencesDialog({
       isProcessed,
       hd,
       notes,
+      shipmentItemId,
+      detectedBarcode,
+      detectedText,
+      detectedCompanyCode,
+      companyMismatchJustification,
       signal,
       onProgress,
     }: {
@@ -151,6 +160,11 @@ export function ShipmentEvidencesDialog({
       isProcessed?: boolean;
       hd?: boolean;
       notes?: string;
+      shipmentItemId?: string | null;
+      detectedBarcode?: string | null;
+      detectedText?: string;
+      detectedCompanyCode?: string | null;
+      companyMismatchJustification?: string;
       signal?: AbortSignal;
       onProgress?: (progress: { stage: "preparing" | "uploading" | "saving"; percent: number }) => void;
       suppressNotifications?: boolean;
@@ -166,6 +180,11 @@ export function ShipmentEvidencesDialog({
         hd,
 
         notes,
+        shipmentItemId,
+        detectedBarcode,
+        detectedText,
+        detectedCompanyCode,
+        companyMismatchJustification,
 
         createdBy: profile?.id,
 
@@ -382,6 +401,11 @@ export function ShipmentEvidencesDialog({
           isProcessed: true,
           hd: item.hd,
           notes: item.notes,
+          shipmentItemId: item.shipmentItemId,
+          detectedBarcode: item.detectedBarcode,
+          detectedText: item.detectedText,
+          detectedCompanyCode: item.detectedCompanyCode,
+          companyMismatchJustification: item.companyMismatchJustification,
           signal: controller.signal,
           onProgress: ({ stage, percent }) => updateProgress(percent, stage),
           suppressNotifications: true,
@@ -1295,6 +1319,8 @@ Ingrese un comentario...
           }}
           onUpload={handleUpload}
           isUploading={uploadProgress !== null}
+          shipmentItems={shipmentItems}
+          shipmentCompanyCode={shipmentCompanyCode}
         />
 
         <EvidenceUploadProgressDialog

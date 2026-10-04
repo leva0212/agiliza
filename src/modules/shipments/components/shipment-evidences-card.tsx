@@ -18,12 +18,16 @@ type Props = {
   shipmentId: string;
 
   trackingNumber: string;
+  shipmentItems?: Array<{ id: string; productName: string }>;
+  shipmentCompanyCode?: string | null;
 
 };
 
 export function ShipmentEvidencesCard({
   shipmentId,
   trackingNumber,
+  shipmentItems = [],
+  shipmentCompanyCode,
 }: Props) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,6 +154,8 @@ export function ShipmentEvidencesCard({
             shipmentId={shipmentId}
             initialFiles={selectedFiles}
             onInitialFilesConsumed={clearSelectedFiles}
+            shipmentItems={shipmentItems}
+            shipmentCompanyCode={shipmentCompanyCode}
           />
         )}
       </div>
