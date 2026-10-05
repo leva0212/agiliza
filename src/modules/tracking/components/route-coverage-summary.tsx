@@ -32,7 +32,7 @@ type Props = {
 /** Muestra cada ruta por separado para no mezclar días ni plazos entre rutas. */
 export function RouteCoverageSummary({ coverage, compact = false }: Props) {
   if (!coverage.length) {
-    return <span className="text-sm text-slate-500 dark:text-slate-400">Sin cobertura configurada</span>;
+    return null;
   }
 
   return (
