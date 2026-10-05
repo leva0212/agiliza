@@ -64,12 +64,29 @@ async function readBarcode(file: File) {
 }
 
 async function readText(file: File) {
-  const { recognize } = await import("tesseract.js");
-  const result = await recognize(file, "eng", {
-    logger: () => undefined,
-  });
+  const { createWorker, PSM } = await import("tesseract.js");
+  const worker = await createWorker(
+    "eng",
+    undefined,
+    {
+      logger: () => undefined,
+      errorHandler: () => undefined,
+    },
+  );
 
-  return result.data.text.replace(/\s+/g, " ").trim();
+  try {
+    // Las fotos de evidencia combinan etiquetas, códigos de barras y texto en
+    // distintas posiciones. El modo disperso evita que el OCR intente formar
+    // una línea con trazos muy delgados del código de barras.
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+      preserve_interword_spaces: "1",
+    });
+    const result = await worker.recognize(file);
+    return result.data.text.replace(/\s+/g, " ").trim();
+  } finally {
+    await worker.terminate();
+  }
 }
 
 /** Analiza localmente una evidencia; no carga la imagen a un servicio externo. */

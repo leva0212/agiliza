@@ -10,6 +10,7 @@ import {
   RefreshCcw,
   Copy,
   ScanLine,
+  ScanBarcode,
 } from "lucide-react";
 
 import type { PendingEvidence } from "../../types/pending-evidence";
@@ -21,6 +22,7 @@ import {
   type EvidenceImageAnalysis,
 } from "../../utils/analyze-evidence-image";
 import { toast } from "sonner";
+import { BarcodeLiveScannerDialog } from "../barcode-live-scanner-dialog";
 type Props = {
   open: boolean;
 
@@ -52,6 +54,7 @@ export function ShipmentEvidenceEditor({
   const [cropImageUrl, setCropImageUrl] = useState("");
   const [thumbnailGenerationPaused, setThumbnailGenerationPaused] = useState(false);
   const [analysisByEvidenceId, setAnalysisByEvidenceId] = useState<Record<string, EvidenceImageAnalysis | "loading">>({});
+  const [liveScannerOpen, setLiveScannerOpen] = useState(false);
 
   const touchStartX = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -61,6 +64,7 @@ export function ShipmentEvidenceEditor({
   const thumbnailEvidenceIdsRef = useRef(new Set<string>());
   const imageWorkQueueRef = useRef<Promise<void>>(Promise.resolve());
   const analyzedEvidenceIdsRef = useRef(new Set<string>());
+  const cleanupTimerRef = useRef<number | null>(null);
 
   const current = items[index];
   const currentId = current?.id;
@@ -217,26 +221,36 @@ export function ShipmentEvidenceEditor({
   useEffect(() => {
     if (!open) return;
 
+    // React Strict Mode ejecuta limpieza y montaje una vez adicional en desarrollo.
+    // Se difiere la liberación para que el nuevo montaje pueda cancelarla.
+    if (cleanupTimerRef.current !== null) {
+      window.clearTimeout(cleanupTimerRef.current);
+      cleanupTimerRef.current = null;
+    }
+
     const thumbnailUrls = thumbnailUrlsRef.current;
     const thumbnailEvidenceIds = thumbnailEvidenceIdsRef.current;
 
     return () => {
-      if (activePreviewUrlRef.current) {
-        URL.revokeObjectURL(activePreviewUrlRef.current);
-        activePreviewUrlRef.current = "";
-      }
+      cleanupTimerRef.current = window.setTimeout(() => {
+        if (activePreviewUrlRef.current) {
+          URL.revokeObjectURL(activePreviewUrlRef.current);
+          activePreviewUrlRef.current = "";
+        }
 
-      if (cropImageUrlRef.current) {
-        URL.revokeObjectURL(cropImageUrlRef.current);
-        cropImageUrlRef.current = "";
-      }
+        if (cropImageUrlRef.current) {
+          URL.revokeObjectURL(cropImageUrlRef.current);
+          cropImageUrlRef.current = "";
+        }
 
-      for (const thumbnailUrl of thumbnailUrls) {
-        URL.revokeObjectURL(thumbnailUrl);
-      }
+        for (const thumbnailUrl of thumbnailUrls) {
+          URL.revokeObjectURL(thumbnailUrl);
+        }
 
-      thumbnailUrls.clear();
-      thumbnailEvidenceIds.clear();
+        thumbnailUrls.clear();
+        thumbnailEvidenceIds.clear();
+        cleanupTimerRef.current = null;
+      }, 250);
     };
   }, [open]);
   useEffect(() => {
@@ -340,7 +354,7 @@ export function ShipmentEvidenceEditor({
           setAnalysisByEvidenceId((current) => ({ ...current, [evidence.id]: analysis }));
           setItems((currentItems) => currentItems.map((item) => item.id === evidence.id ? {
             ...item,
-            detectedBarcode: analysis.barcode,
+            detectedBarcode: item.detectedBarcode ?? analysis.barcode,
             detectedText: analysis.text,
             detectedCompanyCode: analysis.internalCompanyCode,
           } : item));
@@ -367,7 +381,8 @@ export function ShipmentEvidenceEditor({
 
   const currentAnalysis = current ? analysisByEvidenceId[current.id] : undefined;
   const hasPendingAnalysis = items.some((item) => analysisByEvidenceId[item.id] === "loading" || !analysisByEvidenceId[item.id]);
-  const detectedDtsCode = currentAnalysis !== "loading" ? currentAnalysis?.internalCompanyCode : null;
+  const detectedBarcode = current?.detectedBarcode ?? (currentAnalysis !== "loading" ? currentAnalysis?.barcode : null) ?? null;
+  const detectedDtsCode = current?.detectedCompanyCode ?? (currentAnalysis !== "loading" ? currentAnalysis?.internalCompanyCode : null) ?? null;
   const expectedDetectedCode = shipmentCompanyCode?.match(/^DTS(0\d{2})$/i)?.[1] ?? null;
   const companyMismatch = Boolean(detectedDtsCode && expectedDetectedCode && detectedDtsCode !== expectedDetectedCode);
   const hasUnjustifiedCompanyMismatch = items.some((item) => Boolean(
@@ -520,6 +535,14 @@ export function ShipmentEvidenceEditor({
           >
             <Crop size={18} />
           </button>
+          <button
+            type="button"
+            onClick={() => setLiveScannerOpen(true)}
+            title="Escanear código de barras con la cámara"
+            className="flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-3 text-sm font-medium text-white"
+          >
+            <ScanBarcode size={18} /> <span className="hidden sm:inline">Escanear</span>
+          </button>
         </div>
       </div>
 
@@ -665,8 +688,8 @@ export function ShipmentEvidenceEditor({
             <p className="mt-1 text-xs text-white/75">Leyendo código de barras y texto…</p>
           ) : currentAnalysis ? (
             <div className="mt-2 grid gap-1.5 text-xs">
-              <AnalysisValue label="Código de barras" value={currentAnalysis.barcode} />
-              <AnalysisValue label="Código DTS detectado" value={currentAnalysis.internalCompanyCode} />
+              <AnalysisValue label="Código de barras" value={detectedBarcode} />
+              <AnalysisValue label="Código DTS detectado" value={detectedDtsCode} />
               <p className="text-white/70">Texto: {currentAnalysis.text ? currentAnalysis.text.slice(0, 180) : "No se detectó texto"}</p>
               {companyMismatch && (
                 <div className="rounded-xl border-2 border-red-300 bg-red-700 p-3 text-sm font-bold text-white shadow-lg">
@@ -996,6 +1019,15 @@ export function ShipmentEvidenceEditor({
 
           setItems(copy);
           closeCropDialog();
+        }}
+      />
+      <BarcodeLiveScannerDialog
+        open={liveScannerOpen}
+        onClose={() => setLiveScannerOpen(false)}
+        onDetected={(barcode) => {
+          setItems((currentItems) => currentItems.map((item) => item.id === current.id ? { ...item, detectedBarcode: barcode } : item));
+          setLiveScannerOpen(false);
+          toast.success("Código de barras leído");
         }}
       />
     </div>
