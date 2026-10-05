@@ -1,3 +1,5 @@
+import { readBarcodeRegions } from "./barcode-regions";
+
 export type EvidenceAnalysisStage =
   | "starting"
   | "barcode-start"
@@ -356,7 +358,16 @@ async function readBarcodeWithHtml5Qrcode(file: File) {
   return null;
 }
 
-async function readBarcode(file: File) {
+export async function readEvidenceBarcode(file: File, useRegions = true) {
+  const startedAt = performance.now();
+  const regions = useRegions ? await readBarcodeRegions(file) : null;
+  const barcode = regions?.barcode ?? await readBarcodeFallback(file);
+  const result = { barcode, regions: regions?.diagnostics ?? null, fallbackUsed: !regions?.barcode, totalMs: performance.now() - startedAt };
+  console.log("[Barcode] Pipeline", { file: file.name, ...result });
+  return result;
+}
+
+async function readBarcodeFallback(file: File) {
   const startedAt = performance.now();
 
   /*
@@ -598,8 +609,8 @@ export async function analyzeEvidenceImage(
 
   try {
     barcode = await withTimeout(
-      readBarcode(file),
-      15_000,
+      readEvidenceBarcode(file).then((result) => result.barcode),
+      20_000,
       "lectura del código de barras",
     );
 

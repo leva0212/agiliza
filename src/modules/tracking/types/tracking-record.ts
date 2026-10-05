@@ -1,4 +1,5 @@
 import type { TrackingStatus } from "../constants/tracking-status-options";
+import type { DistrictRouteCoverage } from "@/modules/routes/api/get-district-route-coverage";
 
 export type TrackingRecord = {
   id: string;
@@ -32,6 +33,7 @@ export type TrackingRecord = {
     id: number;
     name: string;
   } | null;
+  route_coverage: DistrictRouteCoverage[];
 };
 
 export type TrackingRecordInput = {

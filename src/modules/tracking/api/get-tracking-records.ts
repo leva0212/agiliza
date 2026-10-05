@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { getVisibleCompanyDirectory } from "@/modules/companies/api/get-visible-company-directory";
+import { getDistrictRouteCoverage } from "@/modules/routes/api/get-district-route-coverage";
 import type { TrackingRecord } from "../types/tracking-record";
 
 type TrackingCreatorLabel = {
@@ -112,15 +113,24 @@ export async function getTrackingRecords({
     throw error;
   }
 
-  const directory = await getVisibleCompanyDirectory((data ?? []).map((record) => record.company_id));
   const recordIds = (data ?? []).map((record) => record.id);
-  const { data: creatorLabels, error: creatorLabelsError } = await supabase
-    .rpc("get_tracking_record_creator_labels", { p_record_ids: recordIds });
+  const [{ data: creatorLabels, error: creatorLabelsError }, directory, routeCoverage] = await Promise.all([
+    supabase.rpc("get_tracking_record_creator_labels", { p_record_ids: recordIds }),
+    getVisibleCompanyDirectory((data ?? []).map((record) => record.company_id)),
+    getDistrictRouteCoverage((data ?? []).map((record) => Number(record.district_id))),
+  ]);
   if (creatorLabelsError) throw creatorLabelsError;
   const creatorLabelsByRecordId = new Map(
     ((creatorLabels ?? []) as TrackingCreatorLabel[]).map((label) => [label.record_id, label]),
   );
   const companiesById = new Map(directory.map((company) => [company.id, company]));
+  const coverageByDistrictId = new Map<number, typeof routeCoverage>();
+  for (const coverage of routeCoverage) {
+    coverageByDistrictId.set(coverage.districtId, [
+      ...(coverageByDistrictId.get(coverage.districtId) ?? []),
+      coverage,
+    ]);
+  }
   const records = (data ?? []).map((record) => ({
     ...record,
     created_by_label: creatorLabelsByRecordId.get(record.id)?.created_by_label ?? "Sin información",
@@ -135,6 +145,7 @@ export async function getTrackingRecords({
     district: Array.isArray(record.district)
       ? record.district[0] ?? null
       : record.district,
+    route_coverage: coverageByDistrictId.get(Number(record.district_id)) ?? [],
   })) as TrackingRecord[];
 
   return {

@@ -7,7 +7,8 @@ import { createPortal } from "react-dom";
 import type { Province } from "@/modules/routes/types/province";
 import { getCantons } from "@/modules/routes/api/get-cantons";
 import { getDistricts } from "@/modules/routes/api/get-districts";
-import { getProvinceCoverageCounts } from "@/modules/routes/api/get-province-coverage-counts";
+import { getDistrictRouteCoverage } from "@/modules/routes/api/get-district-route-coverage";
+import { RouteCoverageSummary } from "./route-coverage-summary";
 
 import {
   trackingStatusOptions,
@@ -129,10 +130,6 @@ export function TrackingFormDialog({
     enabled: form.canton_id > 0,
   });
 
-  const selectedProvince = provinces.find(
-    (province) => province.id === form.province_id,
-  );
-
   const selectedCanton = (cantonQuery.data ?? []).find(
     (canton) => canton.id === form.canton_id,
   );
@@ -144,27 +141,15 @@ export function TrackingFormDialog({
         ? "RURAL"
         : "Sin clasificar";
 
-  /*
-   * Consulta la cobertura de la provincia solamente cuando
-   * existe un distrito seleccionado.
-   */
   const coverageQuery = useQuery({
-    queryKey: ["tracking-district-coverage", selectedProvince?.name ?? ""],
-    queryFn: () => getProvinceCoverageCounts(selectedProvince!.name),
-    enabled: Boolean(selectedProvince?.name && form.district_id > 0),
+    queryKey: ["tracking-district-route-coverage", form.district_id],
+    queryFn: () => getDistrictRouteCoverage([form.district_id]),
+    enabled: form.district_id > 0,
   });
-
-  /*
-   * Un distrito se considera cubierto cuando la consulta de cobertura
-   * devuelve ese district_id con al menos un barrio cubierto.
-   */
-  const selectedDistrictCoverage = (coverageQuery.data ?? []).find(
-    (item: any) => Number(item.district_id) === Number(form.district_id),
-  );
 
   const districtHasCoverage =
     form.district_id > 0 &&
-    Number(selectedDistrictCoverage?.covered_count ?? 0) > 0;
+    (coverageQuery.data?.length ?? 0) > 0;
 
   const districtWithoutCoverage =
     form.district_id > 0 &&
@@ -421,6 +406,12 @@ export function TrackingFormDialog({
               {form.canton_id ? cantonClassification : "Seleccione un cantón"}
             </div>
           </div>
+
+          {form.district_id > 0 && !coverageQuery.isLoading && !coverageQuery.isFetching && !coverageQuery.isError && (
+            <div className="md:col-span-2">
+              <RouteCoverageSummary coverage={coverageQuery.data ?? []} />
+            </div>
+          )}
 
           <label className="space-y-1">
             <span className="text-sm font-medium text-slate-700">Estatus</span>
