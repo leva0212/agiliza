@@ -136,6 +136,13 @@ export function TrackingTable({
         size: 260,
       },
       {
+        id: "route_coverage",
+        header: "Cobertura de ruta",
+        accessorFn: (row) => row.route_coverage.map((coverage) => coverage.routeName).join(" · "),
+        Cell: ({ row }) => <RouteCoverageSummary coverage={row.original.route_coverage} compact />,
+        size: 300,
+      },
+      {
         id: "classification",
         header: "Clasificación",
         accessorFn: (row) => row.canton?.area_classification ?? "",
@@ -155,13 +162,6 @@ export function TrackingTable({
         size: 160,
       },
       { id: "district", header: "Distrito", accessorFn: (row) => row.district?.name ?? "", size: 160 },
-      {
-        id: "route_coverage",
-        header: "Cobertura de ruta",
-        accessorFn: (row) => row.route_coverage.map((coverage) => coverage.routeName).join(" · "),
-        Cell: ({ row }) => <RouteCoverageSummary coverage={row.original.route_coverage} compact />,
-        size: 300,
-      },
       ...(showCompanyColumn ? [{
         id: "company",
         header: "Empresa",
