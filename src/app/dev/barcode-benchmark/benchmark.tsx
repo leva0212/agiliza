@@ -43,7 +43,7 @@ export default function BarcodeBenchmark() {
   }
   return <main style={{ padding: 24, display: 'grid', gap: 16 }}>
     <h1>Comparación de códigos de barras</h1>
-    <p>Selecciona las 18 fotografías de test-images/barcodes. Procesamiento local, sin OCR. Tiempos en milisegundos; mismas fotos y navegador para ambos flujos.</p>
+    <p>Selecciona las fotografías que deseas comparar. Procesamiento local, sin OCR. Tiempos en milisegundos; mismas fotos y navegador para ambos flujos.</p>
     <input aria-label="Fotografías" type="file" multiple accept="image/*" disabled={busy} onChange={e => setFiles(Array.from(e.target.files ?? []).sort((a, b) => a.name.localeCompare(b.name)))} />
     <label>ICC esperado por nombre de archivo (JSON, valores como texto)
       <textarea style={{ display: 'block', width: '100%' }} rows={6} value={manifest} disabled={busy} onChange={e => setManifest(e.target.value)} placeholder={'{"foto.jpg":"895000000000000000"}'} />
