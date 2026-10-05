@@ -126,6 +126,13 @@ export function TrackingTable({
         },
       },
       {
+        id: "route_coverage",
+        header: "Cobertura de ruta",
+        accessorFn: (row) => row.route_coverage.map((coverage) => coverage.routeName).join(" · "),
+        Cell: ({ row }) => <RouteCoverageSummary coverage={row.original.route_coverage} compact />,
+        size: 300,
+      },
+      {
         accessorKey: "comment",
         header: "Comentario",
         Cell: ({ row }) => {
@@ -134,13 +141,6 @@ export function TrackingTable({
           return <button type="button" title="Clic en esta celda para ver los comentarios" aria-label={`Ver comentario completo de ${row.original.full_name}`} onClick={() => onViewComment(row.original)} className="block w-full truncate rounded-md px-2 py-1 text-left text-sm text-slate-700 hover:bg-sky-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-sky-300">{comment}</button>;
         },
         size: 260,
-      },
-      {
-        id: "route_coverage",
-        header: "Cobertura de ruta",
-        accessorFn: (row) => row.route_coverage.map((coverage) => coverage.routeName).join(" · "),
-        Cell: ({ row }) => <RouteCoverageSummary coverage={row.original.route_coverage} compact />,
-        size: 300,
       },
       {
         id: "classification",
