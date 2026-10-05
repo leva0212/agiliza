@@ -20,9 +20,15 @@ import { generateThumbnail } from "../../utils/generate-thumbnail";
 import {
   analyzeEvidenceImage,
   type EvidenceImageAnalysis,
+  type EvidenceAnalysisProgress,
 } from "../../utils/analyze-evidence-image";
 import { toast } from "sonner";
 import { BarcodeLiveScannerDialog } from "../barcode-live-scanner-dialog";
+type AnalysisDebugInfo = {
+  barcodeMs: number | null;
+  totalMs: number;
+};
+
 type Props = {
   open: boolean;
 
@@ -52,9 +58,17 @@ export function ShipmentEvidenceEditor({
   const [activePreviewUrl, setActivePreviewUrl] = useState("");
   const [activePreviewLoading, setActivePreviewLoading] = useState(false);
   const [cropImageUrl, setCropImageUrl] = useState("");
-  const [thumbnailGenerationPaused, setThumbnailGenerationPaused] = useState(false);
-  const [analysisByEvidenceId, setAnalysisByEvidenceId] = useState<Record<string, EvidenceImageAnalysis | "loading">>({});
+  const [thumbnailGenerationPaused, setThumbnailGenerationPaused] =
+    useState(false);
+  const [analysisByEvidenceId, setAnalysisByEvidenceId] = useState<
+    Record<string, EvidenceImageAnalysis | "loading">
+  >({});
   const [liveScannerOpen, setLiveScannerOpen] = useState(false);
+  const [analysisDebugByEvidenceId, setAnalysisDebugByEvidenceId] = useState<
+    Record<string, AnalysisDebugInfo>
+  >({});
+  const [analysisProgressByEvidenceId, setAnalysisProgressByEvidenceId] =
+    useState<Record<string, EvidenceAnalysisProgress>>({});
 
   const touchStartX = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -322,10 +336,14 @@ export function ShipmentEvidenceEditor({
       await Promise.resolve();
 
       if (!cancelled) {
-        setItems(evidences.map((evidence) => ({
-          ...evidence,
-          shipmentItemId: evidence.shipmentItemId ?? (shipmentItems.length === 1 ? shipmentItems[0].id : null),
-        })));
+        setItems(
+          evidences.map((evidence) => ({
+            ...evidence,
+            shipmentItemId:
+              evidence.shipmentItemId ??
+              (shipmentItems.length === 1 ? shipmentItems[0].id : null),
+          })),
+        );
         setIndex(0);
       }
     }
@@ -344,20 +362,79 @@ export function ShipmentEvidenceEditor({
 
     async function analyzePendingEvidences() {
       for (const evidence of items) {
-        if (cancelled || analyzedEvidenceIdsRef.current.has(evidence.id)) continue;
+        if (cancelled || analyzedEvidenceIdsRef.current.has(evidence.id))
+          continue;
 
         analyzedEvidenceIdsRef.current.add(evidence.id);
-        setAnalysisByEvidenceId((current) => ({ ...current, [evidence.id]: "loading" }));
+        setAnalysisByEvidenceId((current) => ({
+          ...current,
+          [evidence.id]: "loading",
+        }));
 
-        const analysis = await analyzeEvidenceImage(evidence.originalFile);
-        if (!cancelled) {
-          setAnalysisByEvidenceId((current) => ({ ...current, [evidence.id]: analysis }));
-          setItems((currentItems) => currentItems.map((item) => item.id === evidence.id ? {
-            ...item,
-            detectedBarcode: item.detectedBarcode ?? analysis.barcode,
-            detectedText: analysis.text,
-            detectedCompanyCode: analysis.internalCompanyCode,
-          } : item));
+        try {
+          const analysis = await analyzeEvidenceImage(
+            evidence.originalFile,
+            (progress) => {
+              if (!cancelled) {
+                setAnalysisProgressByEvidenceId((current) => ({
+                  ...current,
+                  [evidence.id]: progress,
+                }));
+              }
+            },
+          );
+
+          if (!cancelled) {
+            setAnalysisDebugByEvidenceId((current) => ({
+              ...current,
+              [evidence.id]: {
+                barcodeMs: analysis.barcodeMs,
+                totalMs: analysis.totalMs,
+              },
+            }));
+            setAnalysisByEvidenceId((current) => ({
+              ...current,
+              [evidence.id]: analysis,
+            }));
+            setItems((currentItems) =>
+              currentItems.map((item) =>
+                item.id === evidence.id
+                  ? {
+                      ...item,
+                      detectedBarcode: item.detectedBarcode ?? analysis.barcode,
+                      detectedText: analysis.text,
+                      detectedCompanyCode: analysis.internalCompanyCode,
+                    }
+                  : item,
+              ),
+            );
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+
+          if (!cancelled) {
+            setAnalysisProgressByEvidenceId((current) => ({
+              ...current,
+              [evidence.id]: {
+                stage: "finished",
+                message: `ERROR GENERAL: ${message}`,
+                elapsedMs: 0,
+                barcode: null,
+              },
+            }));
+            setAnalysisByEvidenceId((current) => ({
+              ...current,
+              [evidence.id]: {
+                barcode: null,
+                text: "",
+                internalCompanyCode: null,
+                barcodeMs: 0,
+                ocrMs: 0,
+                totalMs: 0,
+              },
+            }));
+          }
         }
       }
     }
@@ -373,21 +450,53 @@ export function ShipmentEvidenceEditor({
     if (open) return;
     analyzedEvidenceIdsRef.current.clear();
     setAnalysisByEvidenceId({});
+    setAnalysisDebugByEvidenceId({});
+    setAnalysisProgressByEvidenceId({});
   }, [open]);
 
   if (!open || items.length === 0) {
     return null;
   }
 
-  const currentAnalysis = current ? analysisByEvidenceId[current.id] : undefined;
-  const hasPendingAnalysis = items.some((item) => analysisByEvidenceId[item.id] === "loading" || !analysisByEvidenceId[item.id]);
-  const detectedBarcode = current?.detectedBarcode ?? (currentAnalysis !== "loading" ? currentAnalysis?.barcode : null) ?? null;
-  const detectedDtsCode = current?.detectedCompanyCode ?? (currentAnalysis !== "loading" ? currentAnalysis?.internalCompanyCode : null) ?? null;
-  const expectedDetectedCode = shipmentCompanyCode?.match(/^DTS(0\d{2})$/i)?.[1] ?? null;
-  const companyMismatch = Boolean(detectedDtsCode && expectedDetectedCode && detectedDtsCode !== expectedDetectedCode);
-  const hasUnjustifiedCompanyMismatch = items.some((item) => Boolean(
-    item.detectedCompanyCode && expectedDetectedCode && item.detectedCompanyCode !== expectedDetectedCode && !item.companyMismatchJustification.trim(),
-  ));
+  const currentAnalysis = current
+    ? analysisByEvidenceId[current.id]
+    : undefined;
+  const currentAnalysisDebug = current
+    ? analysisDebugByEvidenceId[current.id]
+    : undefined;
+  const currentAnalysisProgress = current
+    ? analysisProgressByEvidenceId[current.id]
+    : undefined;
+  const hasPendingAnalysis = items.some(
+    (item) =>
+      analysisByEvidenceId[item.id] === "loading" ||
+      !analysisByEvidenceId[item.id],
+  );
+  const detectedBarcode =
+    current?.detectedBarcode ??
+    (currentAnalysis !== "loading" ? currentAnalysis?.barcode : null) ??
+    null;
+  const detectedDtsCode =
+    current?.detectedCompanyCode ??
+    (currentAnalysis !== "loading"
+      ? currentAnalysis?.internalCompanyCode
+      : null) ??
+    null;
+  const expectedDetectedCode =
+    shipmentCompanyCode?.match(/^DTS(0\d{2})$/i)?.[1] ?? null;
+  const companyMismatch = Boolean(
+    detectedDtsCode &&
+    expectedDetectedCode &&
+    detectedDtsCode !== expectedDetectedCode,
+  );
+  const hasUnjustifiedCompanyMismatch = items.some((item) =>
+    Boolean(
+      item.detectedCompanyCode &&
+      expectedDetectedCode &&
+      item.detectedCompanyCode !== expectedDetectedCode &&
+      !item.companyMismatchJustification.trim(),
+    ),
+  );
 
   return (
     <div
@@ -398,9 +507,64 @@ export function ShipmentEvidenceEditor({
         bg-black
         flex
         flex-col
-        overscroll-none        
+        overscroll-none
       "
     >
+      {/* HUD temporal de diagnóstico: siempre visible en móvil */}
+      <div className="pointer-events-none absolute left-1/2 top-20 z-[80] w-[calc(100%-2rem)] max-w-md -translate-x-1/2">
+        <div className="rounded-xl border-2 border-yellow-300 bg-black/90 px-3 py-2 text-xs text-white shadow-2xl backdrop-blur">
+          <div className="mb-1 font-bold text-yellow-300">
+            🔍 DIAGNÓSTICO BARCODE / OCR
+          </div>
+
+          <div className="grid gap-1">
+            <div>
+              Etapa:{" "}
+              <span className="font-bold text-cyan-300">
+                {currentAnalysisProgress?.stage ?? "esperando"}
+              </span>
+            </div>
+
+            <div className="font-semibold">
+              {currentAnalysisProgress?.message ??
+                "Esperando inicio del análisis..."}
+            </div>
+
+            <div className="break-all font-mono">
+              Barcode:{" "}
+              {currentAnalysisProgress?.barcode ??
+                detectedBarcode ??
+                (currentAnalysis === "loading"
+                  ? "pendiente..."
+                  : "❌ NO DETECTADO")}
+            </div>
+
+            <div>
+              Transcurrido etapa:{" "}
+              {currentAnalysisProgress
+                ? `${(currentAnalysisProgress.elapsedMs / 1000).toFixed(2)} s`
+                : "—"}
+            </div>
+
+            {currentAnalysis && currentAnalysis !== "loading" && (
+              <>
+                <div>
+                  Barcode: {(currentAnalysis.barcodeMs / 1000).toFixed(2)} s
+                </div>
+                <div>OCR: {(currentAnalysis.ocrMs / 1000).toFixed(2)} s</div>
+                <div>
+                  Total: {(currentAnalysis.totalMs / 1000).toFixed(2)} s
+                </div>
+              </>
+            )}
+
+            <div className="truncate text-[10px] text-white/65">
+              {typeof navigator !== "undefined" ? navigator.userAgent : ""}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Overlay superior */}
 
       <div
@@ -516,7 +680,6 @@ export function ShipmentEvidenceEditor({
           <button
             type="button"
             onClick={openCropDialog}
-
             className="
     w-10
     h-10
@@ -541,7 +704,8 @@ export function ShipmentEvidenceEditor({
             title="Escanear código de barras con la cámara"
             className="flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-3 text-sm font-medium text-white"
           >
-            <ScanBarcode size={18} /> <span className="hidden sm:inline">Escanear</span>
+            <ScanBarcode size={18} />{" "}
+            <span className="hidden sm:inline">Escanear</span>
           </button>
         </div>
       </div>
@@ -685,21 +849,62 @@ export function ShipmentEvidenceEditor({
             <ScanLine size={17} /> Lectura de la imagen
           </div>
           {currentAnalysis === "loading" ? (
-            <p className="mt-1 text-xs text-white/75">Leyendo código de barras y texto…</p>
+            <p className="mt-1 text-xs text-white/75">
+              Leyendo código de barras y texto…
+            </p>
           ) : currentAnalysis ? (
             <div className="mt-2 grid gap-1.5 text-xs">
               <AnalysisValue label="Código de barras" value={detectedBarcode} />
-              <AnalysisValue label="Código DTS detectado" value={detectedDtsCode} />
-              <p className="text-white/70">Texto: {currentAnalysis.text ? currentAnalysis.text.slice(0, 180) : "No se detectó texto"}</p>
+              <AnalysisValue
+                label="Código DTS detectado"
+                value={detectedDtsCode}
+              />
+              <div className="mt-1 rounded-lg border border-cyan-300/40 bg-cyan-950/60 p-2 font-mono text-[11px] text-cyan-100">
+                <div>Motor: Html5Qrcode</div>
+                <div>
+                  Resultado barcode: {detectedBarcode ?? "NO DETECTADO"}
+                </div>
+                <div>
+                  Tiempo total análisis:{" "}
+                  {currentAnalysisDebug
+                    ? `${(currentAnalysisDebug.totalMs / 1000).toFixed(2)} s`
+                    : "—"}
+                </div>
+                <div>
+                  Dispositivo:{" "}
+                  {typeof navigator !== "undefined" ? navigator.userAgent : "—"}
+                </div>
+              </div>
+              <p className="text-white/70">
+                Texto:{" "}
+                {currentAnalysis.text
+                  ? currentAnalysis.text.slice(0, 180)
+                  : "No se detectó texto"}
+              </p>
               {companyMismatch && (
                 <div className="rounded-xl border-2 border-red-300 bg-red-700 p-3 text-sm font-bold text-white shadow-lg">
-                  ⚠️ POSIBLE ARTÍCULO DE OTRA EMPRESA: el código {detectedDtsCode} corresponde a DTS{detectedDtsCode}, pero el envío pertenece a {shipmentCompanyCode}. Verifique antes de entregar; los casos excepcionales quedarán auditados.
+                  ⚠️ POSIBLE ARTÍCULO DE OTRA EMPRESA: el código{" "}
+                  {detectedDtsCode} corresponde a DTS{detectedDtsCode}, pero el
+                  envío pertenece a {shipmentCompanyCode}. Verifique antes de
+                  entregar; los casos excepcionales quedarán auditados.
                   <label className="mt-3 grid gap-1 text-xs font-medium">
                     <span>Justificación obligatoria para continuar</span>
                     <textarea
                       value={current.companyMismatchJustification}
                       maxLength={500}
-                      onChange={(event) => setItems((currentItems) => currentItems.map((item) => item.id === current.id ? { ...item, companyMismatchJustification: event.target.value } : item))}
+                      onChange={(event) =>
+                        setItems((currentItems) =>
+                          currentItems.map((item) =>
+                            item.id === current.id
+                              ? {
+                                  ...item,
+                                  companyMismatchJustification:
+                                    event.target.value,
+                                }
+                              : item,
+                          ),
+                        )
+                      }
                       placeholder="Explique por qué se acepta este artículo de otra empresa"
                       className="min-h-18 rounded-lg border border-red-200 bg-white p-2 text-slate-900"
                     />
@@ -711,11 +916,26 @@ export function ShipmentEvidenceEditor({
                   <span>Artículo del envío</span>
                   <select
                     value={current.shipmentItemId ?? ""}
-                    onChange={(event) => setItems((currentItems) => currentItems.map((item) => item.id === current.id ? { ...item, shipmentItemId: event.target.value || null } : item))}
+                    onChange={(event) =>
+                      setItems((currentItems) =>
+                        currentItems.map((item) =>
+                          item.id === current.id
+                            ? {
+                                ...item,
+                                shipmentItemId: event.target.value || null,
+                              }
+                            : item,
+                        ),
+                      )
+                    }
                     className="rounded-lg border border-white/30 bg-black/50 px-2 py-1.5 text-white"
                   >
                     <option value="">Seleccione un artículo</option>
-                    {shipmentItems.map((item) => <option key={item.id} value={item.id}>{item.productName}</option>)}
+                    {shipmentItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.productName}
+                      </option>
+                    ))}
                   </select>
                 </label>
               )}
@@ -948,7 +1168,11 @@ export function ShipmentEvidenceEditor({
           <button
             type="button"
             onClick={async () => {
-              if (isUploading || hasPendingAnalysis || hasUnjustifiedCompanyMismatch) {
+              if (
+                isUploading ||
+                hasPendingAnalysis ||
+                hasUnjustifiedCompanyMismatch
+              ) {
                 return;
               }
 
@@ -961,8 +1185,16 @@ export function ShipmentEvidenceEditor({
                 setThumbnailGenerationPaused(false);
               }
             }}
-            disabled={isUploading || hasPendingAnalysis || hasUnjustifiedCompanyMismatch}
-            title={hasPendingAnalysis ? "Espere a que termine la lectura de las imágenes" : hasUnjustifiedCompanyMismatch ? "Indique la justificación de la excepción" : "Subir evidencias"}
+            disabled={
+              isUploading || hasPendingAnalysis || hasUnjustifiedCompanyMismatch
+            }
+            title={
+              hasPendingAnalysis
+                ? "Espere a que termine la lectura de las imágenes"
+                : hasUnjustifiedCompanyMismatch
+                  ? "Indique la justificación de la excepción"
+                  : "Subir evidencias"
+            }
             className="
     w-16
     h-16
@@ -1002,7 +1234,6 @@ export function ShipmentEvidenceEditor({
           height: current.cropHeight,
         }}
         onClose={closeCropDialog}
-
         onApply={(crop) => {
           const copy = [...items];
 
@@ -1025,7 +1256,13 @@ export function ShipmentEvidenceEditor({
         open={liveScannerOpen}
         onClose={() => setLiveScannerOpen(false)}
         onDetected={(barcode) => {
-          setItems((currentItems) => currentItems.map((item) => item.id === current.id ? { ...item, detectedBarcode: barcode } : item));
+          setItems((currentItems) =>
+            currentItems.map((item) =>
+              item.id === current.id
+                ? { ...item, detectedBarcode: barcode }
+                : item,
+            ),
+          );
           setLiveScannerOpen(false);
           toast.success("Código de barras leído");
         }}
@@ -1034,7 +1271,13 @@ export function ShipmentEvidenceEditor({
   );
 }
 
-function AnalysisValue({ label, value }: { label: string; value: string | null }) {
+function AnalysisValue({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-white/70">{label}:</span>
