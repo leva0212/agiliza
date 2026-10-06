@@ -149,7 +149,7 @@ export function TrackingFormDialog({
 
   const districtHasCoverage =
     form.district_id > 0 &&
-    (coverageQuery.data?.length ?? 0) > 0;
+    (coverageQuery.data ?? []).some((route) => route.hasCoverage);
 
   const districtWithoutCoverage =
     form.district_id > 0 &&
