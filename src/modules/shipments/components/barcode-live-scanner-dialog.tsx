@@ -12,7 +12,7 @@ type NativeBarcodeDetectorConstructor = new (options?: { formats?: string[] }) =
 type Props = {
   open: boolean;
   onClose: () => void;
-  onDetected: (barcode: string) => void;
+  onDetected: (barcodes: string[]) => void;
 };
 
 export function BarcodeLiveScannerDialog({ open, onClose, onDetected }: Props) {
@@ -33,11 +33,11 @@ export function BarcodeLiveScannerDialog({ open, onClose, onDetected }: Props) {
       stream?.getTracks().forEach((track) => track.stop());
     };
 
-    const finish = (barcode: string) => {
+    const finish = (barcodes: string[]) => {
       if (cancelled) return;
       cancelled = true;
       stop();
-      onDetected(barcode);
+      onDetected(barcodes);
     };
 
     async function startNativeScanner(Detector: NativeBarcodeDetectorConstructor) {
@@ -57,9 +57,11 @@ export function BarcodeLiveScannerDialog({ open, onClose, onDetected }: Props) {
           const bitmap = await createImageBitmap(videoRef.current);
           const results = await detector.detect(bitmap);
           bitmap.close();
-          const barcode = results[0]?.rawValue?.trim();
-          if (barcode) {
-            finish(barcode);
+          const barcodes = Array.from(
+            new Set(results.map((result) => result.rawValue?.trim()).filter(Boolean)),
+          ) as string[];
+          if (barcodes.length) {
+            finish(barcodes);
             return;
           }
         } catch {
@@ -79,7 +81,7 @@ export function BarcodeLiveScannerDialog({ open, onClose, onDetected }: Props) {
         videoRef.current,
         (result) => {
           const barcode = result?.getText().trim();
-          if (barcode) finish(barcode);
+          if (barcode) finish([barcode]);
         },
       );
       setMessage("Apunte al código de barras dentro del recuadro");

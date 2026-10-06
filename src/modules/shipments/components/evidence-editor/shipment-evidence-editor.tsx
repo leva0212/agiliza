@@ -97,6 +97,21 @@ export function ShipmentEvidenceEditor({
   const currentCropY = current?.cropY;
   const currentCropWidth = current?.cropWidth;
   const currentCropHeight = current?.cropHeight;
+
+  function normalizeBarcodeOptions(...groups: Array<Array<string | null | undefined>>) {
+    const candidates = groups
+      .flat()
+      .map((barcode) => barcode?.trim())
+      .filter((barcode): barcode is string => Boolean(barcode));
+
+    return Array.from(new Set(candidates)).sort(
+      (left, right) => right.length - left.length || left.localeCompare(right),
+    );
+  }
+
+  function preferredBarcode(options: string[]) {
+    return options[0] ?? null;
+  }
   useEffect(() => {
     if (!open || !currentOriginalFile) {
       return;
@@ -406,9 +421,18 @@ export function ShipmentEvidenceEditor({
               stage: "finished", message: metrics.error ?? "Lectura terminada",
               barcode: metrics.barcode, elapsedMs: analysis.totalMs,
             } }));
-            setItems(previous => previous.map(item => item.id === metrics.id
-              ? { ...item, detectedBarcode: item.detectedBarcode ?? metrics.barcode }
-              : item));
+            setItems(previous => previous.map(item => {
+              if (item.id !== metrics.id) return item;
+              const barcodeOptions = normalizeBarcodeOptions(
+                item.barcodeOptions,
+                [item.detectedBarcode, metrics.barcode],
+              );
+              return {
+                ...item,
+                barcodeOptions,
+                detectedBarcode: preferredBarcode(barcodeOptions),
+              };
+            }));
           },
         },
       );
@@ -687,15 +711,6 @@ export function ShipmentEvidenceEditor({
           >
             <Crop size={18} />
           </button>
-          <button
-            type="button"
-            onClick={() => setLiveScannerOpen(true)}
-            title="Escanear código de barras con la cámara"
-            className="flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-3 text-sm font-medium text-white"
-          >
-            <ScanBarcode size={18} />{" "}
-            <span className="hidden sm:inline">Escanear</span>
-          </button>
         </div>
       </div>
 
@@ -846,6 +861,44 @@ export function ShipmentEvidenceEditor({
             </button>
           </div>
           <p role="status" className="mt-1 text-xs">{batchMessage}{batchTotalMs !== null ? " · Total lote: " + (batchTotalMs / 1000).toFixed(2) + " s" : ""}</p>
+          <label className="mt-2 grid gap-1 text-xs font-semibold">
+            Código de barras
+            <div className="flex gap-2">
+              <input
+                list={`barcode-options-${current.id}`}
+                value={detectedBarcode ?? ""}
+                onChange={(event) => {
+                  const barcode = event.target.value;
+                  setItems((previous) => previous.map((item) => item.id === current.id
+                    ? {
+                        ...item,
+                        detectedBarcode: barcode || null,
+                        barcodeOptions: barcode
+                          ? normalizeBarcodeOptions(item.barcodeOptions, [barcode])
+                          : item.barcodeOptions,
+                      }
+                    : item));
+                }}
+                placeholder="Escriba o seleccione un código"
+                className="min-w-0 flex-1 rounded-lg border border-white/35 bg-white px-3 py-2 font-mono text-sm text-slate-900"
+              />
+              <datalist id={`barcode-options-${current.id}`}>
+                {current.barcodeOptions.map((barcode) => <option key={barcode} value={barcode} />)}
+              </datalist>
+              <button
+                type="button"
+                onClick={() => setLiveScannerOpen(true)}
+                title="Escanear código de barras con la cámara"
+                aria-label="Escanear código de barras con la cámara"
+                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white"
+              >
+                <ScanBarcode size={19} />
+              </button>
+            </div>
+            {current.barcodeOptions.length > 1 && (
+              <span className="font-normal text-white/70">{current.barcodeOptions.length} códigos detectados; se seleccionó el más largo.</span>
+            )}
+          </label>
           {barcodeMetrics[current.id] && <details className="mt-1 text-xs">
             <summary>Métricas de {barcodeMetrics[current.id].name}</summary>
             <p>Original: {barcodeMetrics[current.id].originalWidth} × {barcodeMetrics[current.id].originalHeight} · {barcodeMetrics[current.id].originalBytes} bytes</p>
@@ -1259,13 +1312,17 @@ export function ShipmentEvidenceEditor({
       <BarcodeLiveScannerDialog
         open={liveScannerOpen}
         onClose={() => setLiveScannerOpen(false)}
-        onDetected={(barcode) => {
+        onDetected={(barcodes) => {
           setItems((currentItems) =>
-            currentItems.map((item) =>
-              item.id === current.id
-                ? { ...item, detectedBarcode: barcode }
-                : item,
-            ),
+            currentItems.map((item) => {
+              if (item.id !== current.id) return item;
+              const barcodeOptions = normalizeBarcodeOptions(
+                item.barcodeOptions,
+                [item.detectedBarcode],
+                barcodes,
+              );
+              return { ...item, barcodeOptions, detectedBarcode: preferredBarcode(barcodeOptions) };
+            }),
           );
           setLiveScannerOpen(false);
           toast.success("Código de barras leído");

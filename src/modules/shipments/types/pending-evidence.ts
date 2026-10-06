@@ -16,6 +16,7 @@ export type PendingEvidence = {
   cropHeight: number;
   shipmentItemId: string | null;
   detectedBarcode: string | null;
+  barcodeOptions: string[];
   detectedText: string;
   detectedCompanyCode: string | null;
   companyMismatchJustification: string;
@@ -42,6 +43,7 @@ export function createPendingEvidence(file: File): PendingEvidence {
     cropHeight: 0,
     shipmentItemId: null,
     detectedBarcode: null,
+    barcodeOptions: [],
     detectedText: "",
     detectedCompanyCode: null,
     companyMismatchJustification: "",
