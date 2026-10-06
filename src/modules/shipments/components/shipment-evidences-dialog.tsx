@@ -120,11 +120,10 @@ export function ShipmentEvidencesDialog({
 
     const timer = window.setTimeout(() => {
       if (initialFiles.length > 30) {
-        toast.error("Máximo 30 imágenes");
-      } else {
-        setPendingEvidences(initialFiles.map(createPendingEvidence));
-        setEditorOpen(true);
+        toast.info("Solo las primeras 30 imágenes serán tomadas en cuenta");
       }
+      setPendingEvidences(initialFiles.slice(0, 30).map(createPendingEvidence));
+      setEditorOpen(true);
       onInitialFilesConsumed?.();
     }, 0);
 
@@ -474,12 +473,10 @@ export function ShipmentEvidencesDialog({
           }
 
           if (files.length > 30) {
-            toast.error("Máximo 30 imágenes");
-
-            return;
+            toast.info("Solo las primeras 30 imágenes serán tomadas en cuenta");
           }
 
-          setPendingEvidences(files.map(createPendingEvidence));
+          setPendingEvidences(files.slice(0, 30).map(createPendingEvidence));
           setEditorOpen(true);
 
           e.target.value = "";

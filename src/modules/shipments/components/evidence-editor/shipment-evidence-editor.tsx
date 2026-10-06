@@ -18,10 +18,10 @@ import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-can
 import { processImage } from "@/shared/utils/process-image";
 import { generateThumbnail } from "../../utils/generate-thumbnail";
 import {
-  analyzeEvidenceImage,
   type EvidenceImageAnalysis,
   type EvidenceAnalysisProgress,
 } from "../../utils/analyze-evidence-image";
+import { scanSimpleBarcodeBatch, type BarcodeMetrics } from "../../utils/simple-barcode-batch";
 import { toast } from "sonner";
 import { BarcodeLiveScannerDialog } from "../barcode-live-scanner-dialog";
 type AnalysisDebugInfo = {
@@ -64,6 +64,12 @@ export function ShipmentEvidenceEditor({
     Record<string, EvidenceImageAnalysis | "loading">
   >({});
   const [liveScannerOpen, setLiveScannerOpen] = useState(false);
+  const [batchHd, setBatchHd] = useState(false);
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchMessage, setBatchMessage] = useState("Selecciona Normal o HD e inicia la lectura");
+  const [batchTotalMs, setBatchTotalMs] = useState<number | null>(null);
+  const [barcodeMetrics, setBarcodeMetrics] = useState<Record<string, BarcodeMetrics>>({});
+  const batchControllerRef = useRef<AbortController | null>(null);
   const [analysisDebugByEvidenceId, setAnalysisDebugByEvidenceId] = useState<
     Record<string, AnalysisDebugInfo>
   >({});
@@ -355,103 +361,86 @@ export function ShipmentEvidenceEditor({
     };
   }, [open, evidences, shipmentItems]);
 
+  // Edits and thumbnail updates must not discard in-flight analysis results.
   useEffect(() => {
-    if (!open || items.length === 0) return;
+    return () => { batchControllerRef.current?.abort(); };
+  }, [open, evidences]);
 
-    let cancelled = false;
-
-    async function analyzePendingEvidences() {
-      for (const evidence of items) {
-        if (cancelled || analyzedEvidenceIdsRef.current.has(evidence.id))
-          continue;
-
-        analyzedEvidenceIdsRef.current.add(evidence.id);
-        setAnalysisByEvidenceId((current) => ({
-          ...current,
-          [evidence.id]: "loading",
-        }));
-
-        try {
-          const analysis = await analyzeEvidenceImage(
-            evidence.originalFile,
-            (progress) => {
-              if (!cancelled) {
-                setAnalysisProgressByEvidenceId((current) => ({
-                  ...current,
-                  [evidence.id]: progress,
-                }));
-              }
-            },
-          );
-
-          if (!cancelled) {
-            setAnalysisDebugByEvidenceId((current) => ({
-              ...current,
-              [evidence.id]: {
-                barcodeMs: analysis.barcodeMs,
-                totalMs: analysis.totalMs,
-              },
-            }));
-            setAnalysisByEvidenceId((current) => ({
-              ...current,
-              [evidence.id]: analysis,
-            }));
-            setItems((currentItems) =>
-              currentItems.map((item) =>
-                item.id === evidence.id
-                  ? {
-                      ...item,
-                      detectedBarcode: item.detectedBarcode ?? analysis.barcode,
-                      detectedText: analysis.text,
-                      detectedCompanyCode: analysis.internalCompanyCode,
-                    }
-                  : item,
-              ),
+  async function analyzeNewImages() {
+    if (batchControllerRef.current) return;
+    const pending = items.filter(item => !analyzedEvidenceIdsRef.current.has(item.id));
+    if (!pending.length) return;
+    const controller = new AbortController();
+    batchControllerRef.current = controller;
+    setBatchBusy(true);
+    setBatchTotalMs(null);
+    setAnalysisByEvidenceId(previous => ({
+      ...previous,
+      ...Object.fromEntries(pending.map(item => [item.id, "loading" as const])),
+    }));
+    try {
+      const result = await scanSimpleBarcodeBatch(
+        pending.map(item => ({ id: item.id, file: item.originalFile, hd: batchHd })),
+        {
+          signal: controller.signal,
+          onProgress: progress => {
+            if (!controller.signal.aborted) setBatchMessage(
+              (progress.phase === "optimizing" ? "Optimizando" : "Leyendo códigos") +
+              " " + progress.completed + "/" + progress.total,
             );
-          }
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-
-          if (!cancelled) {
-            setAnalysisProgressByEvidenceId((current) => ({
-              ...current,
-              [evidence.id]: {
-                stage: "finished",
-                message: `ERROR GENERAL: ${message}`,
-                elapsedMs: 0,
-                barcode: null,
-              },
-            }));
-            setAnalysisByEvidenceId((current) => ({
-              ...current,
-              [evidence.id]: {
-                barcode: null,
-                text: "",
-                internalCompanyCode: null,
-                barcodeMs: 0,
-                ocrMs: 0,
-                totalMs: 0,
-              },
-            }));
-          }
-        }
+          },
+          onResult: metrics => {
+            if (controller.signal.aborted) return;
+            analyzedEvidenceIdsRef.current.add(metrics.id);
+            setBarcodeMetrics(previous => ({ ...previous, [metrics.id]: metrics }));
+            const analysis: EvidenceImageAnalysis = {
+              barcode: metrics.barcode, text: "", internalCompanyCode: null,
+              barcodeMs: metrics.scanMs, ocrMs: 0,
+              totalMs: metrics.optimizationMs + metrics.scanMs,
+            };
+            setAnalysisByEvidenceId(previous => ({ ...previous, [metrics.id]: analysis }));
+            setAnalysisDebugByEvidenceId(previous => ({ ...previous, [metrics.id]: {
+              barcodeMs: metrics.scanMs, totalMs: analysis.totalMs,
+            } }));
+            setAnalysisProgressByEvidenceId(previous => ({ ...previous, [metrics.id]: {
+              stage: "finished", message: metrics.error ?? "Lectura terminada",
+              barcode: metrics.barcode, elapsedMs: analysis.totalMs,
+            } }));
+            setItems(previous => previous.map(item => item.id === metrics.id
+              ? { ...item, detectedBarcode: item.detectedBarcode ?? metrics.barcode }
+              : item));
+          },
+        },
+      );
+      if (!controller.signal.aborted) {
+        setBatchTotalMs(result.totalMs);
+        setBatchMessage("Lote terminado: " + result.rows.length + " imágenes");
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setBatchMessage("No fue posible completar el lote. Puedes reintentar las imágenes pendientes.");
+        console.error("[Barcode batch]", error);
+      }
+    } finally {
+      if (batchControllerRef.current === controller) {
+        batchControllerRef.current = null;
+        setBatchBusy(false);
       }
     }
-
-    void analyzePendingEvidences();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [items, open]);
+  }
 
   useEffect(() => {
     if (open) return;
-    analyzedEvidenceIdsRef.current.clear();
-    setAnalysisByEvidenceId({});
-    setAnalysisDebugByEvidenceId({});
-    setAnalysisProgressByEvidenceId({});
+    const timer = window.setTimeout(() => {
+      analyzedEvidenceIdsRef.current.clear();
+      setBarcodeMetrics({});
+      setBatchTotalMs(null);
+      setBatchMessage("Selecciona Normal o HD e inicia la lectura");
+      setAnalysisByEvidenceId({});
+      setAnalysisDebugByEvidenceId({});
+      setAnalysisProgressByEvidenceId({});
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   if (!open || items.length === 0) {
@@ -514,7 +503,7 @@ export function ShipmentEvidenceEditor({
       <div className="pointer-events-none absolute left-1/2 top-20 z-[80] w-[calc(100%-2rem)] max-w-md -translate-x-1/2">
         <div className="rounded-xl border-2 border-yellow-300 bg-black/90 px-3 py-2 text-xs text-white shadow-2xl backdrop-blur">
           <div className="mb-1 font-bold text-yellow-300">
-            🔍 DIAGNÓSTICO BARCODE / OCR
+            LECTURA DIRECTA — HTML5-QRCODE
           </div>
 
           <div className="grid gap-1">
@@ -551,7 +540,7 @@ export function ShipmentEvidenceEditor({
                 <div>
                   Barcode: {(currentAnalysis.barcodeMs / 1000).toFixed(2)} s
                 </div>
-                <div>OCR: {(currentAnalysis.ocrMs / 1000).toFixed(2)} s</div>
+                <div>Sin OCR ni fallbacks</div>
                 <div>
                   Total: {(currentAnalysis.totalMs / 1000).toFixed(2)} s
                 </div>
@@ -848,9 +837,24 @@ export function ShipmentEvidenceEditor({
           <div className="flex items-center gap-2 text-sm font-semibold">
             <ScanLine size={17} /> Lectura de la imagen
           </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <label>Optimización del lote: <select aria-label="Optimización del lote" className="bg-slate-800 p-1" value={batchHd ? "hd" : "normal"} disabled={batchBusy} onChange={event => setBatchHd(event.target.value === "hd")}>
+              <option value="normal">Normal</option><option value="hd">HD</option>
+            </select></label>
+            <button type="button" className="rounded bg-emerald-700 px-3 py-2 disabled:opacity-50" disabled={batchBusy || !hasPendingAnalysis} onClick={() => void analyzeNewImages()}>
+              {batchBusy ? "Procesando…" : "Leer imágenes nuevas"}
+            </button>
+          </div>
+          <p role="status" className="mt-1 text-xs">{batchMessage}{batchTotalMs !== null ? " · Total lote: " + (batchTotalMs / 1000).toFixed(2) + " s" : ""}</p>
+          {barcodeMetrics[current.id] && <details className="mt-1 text-xs">
+            <summary>Métricas de {barcodeMetrics[current.id].name}</summary>
+            <p>Original: {barcodeMetrics[current.id].originalWidth} × {barcodeMetrics[current.id].originalHeight} · {barcodeMetrics[current.id].originalBytes} bytes</p>
+            <p>JPEG ({barcodeMetrics[current.id].hd ? "HD" : "Normal"}): {barcodeMetrics[current.id].optimizedWidth} × {barcodeMetrics[current.id].optimizedHeight} · {barcodeMetrics[current.id].optimizedBytes} bytes</p>
+            <p>Optimización: {barcodeMetrics[current.id].optimizationMs.toFixed(0)} ms · scanFile: {barcodeMetrics[current.id].scanMs.toFixed(0)} ms</p>
+          </details>}
           {currentAnalysis === "loading" ? (
             <p className="mt-1 text-xs text-white/75">
-              Leyendo código de barras y texto…
+              {batchMessage}
             </p>
           ) : currentAnalysis ? (
             <div className="mt-2 grid gap-1.5 text-xs">
@@ -879,7 +883,7 @@ export function ShipmentEvidenceEditor({
                 Texto:{" "}
                 {currentAnalysis.text
                   ? currentAnalysis.text.slice(0, 180)
-                  : "No se detectó texto"}
+                  : "OCR desactivado en esta prueba"}
               </p>
               {companyMismatch && (
                 <div className="rounded-xl border-2 border-red-300 bg-red-700 p-3 text-sm font-bold text-white shadow-lg">
