@@ -54,6 +54,7 @@ export function ShipmentEvidenceEditor({
   const [items, setItems] = useState<PendingEvidence[]>([]);
   const [activePreviewUrl, setActivePreviewUrl] = useState("");
   const [activePreviewLoading, setActivePreviewLoading] = useState(false);
+  const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = useState(false);
   const [cropImageUrl, setCropImageUrl] = useState("");
   const [thumbnailGenerationPaused, setThumbnailGenerationPaused] =
     useState(false);
@@ -658,8 +659,8 @@ export function ShipmentEvidenceEditor({
               setItems(copy);
             }}
             className={`
-        px-3
-        h-10
+        px-4
+        h-11
 
         rounded-full
 
@@ -717,8 +718,8 @@ export function ShipmentEvidenceEditor({
             type="button"
             onClick={openCropDialog}
             className="
-    w-10
-    h-10
+    w-11
+    h-11
 
     rounded-full
 
@@ -732,7 +733,7 @@ export function ShipmentEvidenceEditor({
     justify-center
   "
           >
-            <Crop size={18} />
+            <Crop size={20} />
           </button>
         </div>
       </div>
@@ -743,6 +744,8 @@ export function ShipmentEvidenceEditor({
         className="
     absolute
     inset-0
+
+    lg:right-[22rem]
 
     bg-black
     overflow-hidden
@@ -815,7 +818,12 @@ export function ShipmentEvidenceEditor({
                   key={activePreviewUrl}
                   src={activePreviewUrl}
                   alt="Vista previa de evidencia"
-                  className="block max-h-full max-w-full object-contain"
+                  className="block max-h-full max-w-full cursor-zoom-in object-contain md:cursor-default"
+                  onClick={() => {
+                    if (window.matchMedia("(max-width: 767px)").matches) {
+                      setFullscreenPreviewOpen(true);
+                    }
+                  }}
                 />
               ) : (
                 <div className="flex flex-col items-center gap-3 text-sm text-white/75">
@@ -833,7 +841,7 @@ export function ShipmentEvidenceEditor({
       </div>
 
       {items.length > 1 && (
-        <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-20 hidden items-center justify-between md:flex">
+        <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-20 hidden items-center justify-between md:flex lg:right-[23rem]">
           <button
             type="button"
             aria-label="Imagen anterior"
@@ -869,9 +877,18 @@ export function ShipmentEvidenceEditor({
     bottom-4
 
     z-20
+
+    lg:top-20
+    lg:right-6
+    lg:bottom-6
+    lg:left-auto
+    lg:flex
+    lg:w-80
+    lg:flex-col
+    lg:overflow-y-auto
   "
       >
-        <div className="mb-2 rounded-xl bg-black/70 p-2 text-white backdrop-blur">
+        <div className="mb-2 text-white">
           <div className="flex gap-2">
             {current.barcodeOptions.length > 1 ? (
               <select
@@ -1273,6 +1290,31 @@ export function ShipmentEvidenceEditor({
           </button>
         </div>
       </div>
+
+      {fullscreenPreviewOpen && activePreviewUrl && (
+        <div
+          className="fixed inset-0 z-[270] flex items-center justify-center bg-black p-3 md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vista de imagen a pantalla completa"
+          onClick={() => setFullscreenPreviewOpen(false)}
+        >
+          <button
+            type="button"
+            className="absolute left-4 top-4 z-10 flex size-11 items-center justify-center rounded-full bg-black/70 text-white shadow-lg"
+            onClick={() => setFullscreenPreviewOpen(false)}
+            aria-label="Volver al editor"
+            title="Volver al editor"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <img
+            src={activePreviewUrl}
+            alt="Vista de evidencia a pantalla completa"
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
+      )}
 
       <EvidenceCropDialogCanvas
         open={cropOpen}
