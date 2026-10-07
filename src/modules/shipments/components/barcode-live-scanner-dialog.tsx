@@ -112,7 +112,7 @@ export function BarcodeLiveScannerDialog({ open, onClose, onDetected }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/85 p-4" role="dialog" aria-modal="true" aria-label="Escanear código de barras">
+    <div className="fixed inset-0 z-[1800] flex items-center justify-center bg-black/85 p-4" role="dialog" aria-modal="true" aria-label="Escanear código de barras">
       <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-black shadow-2xl">
         <video ref={videoRef} muted playsInline className="aspect-3/4 w-full object-cover" />
         <div className="pointer-events-none absolute inset-[17%_10%_25%] rounded-2xl border-4 border-emerald-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.2)]" />

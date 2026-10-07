@@ -81,7 +81,7 @@ export function CourierSearchDialog({
         flex
         items-center
         justify-center
-        z-50
+        z-[1700]
         p-4
       "
       onClick={onClose}

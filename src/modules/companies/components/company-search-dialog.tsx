@@ -154,7 +154,7 @@ export function CompanySearchDialog({
         flex
         items-center
         justify-center
-        z-50
+        z-[1700]
         p-4
       "
 

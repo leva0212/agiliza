@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, ScanBarcode } from "lucide-react";
 
 import { InventoryTable } from "@/modules/inventory/components/inventory-table";
 
@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { assignInventory } from "@/modules/inventory/api/assign-inventory";
 import { InventoryImageImportDialog } from "@/modules/inventory/components/inventory-image-import-dialog";
+import { BarcodeLiveScannerDialog } from "@/modules/shipments/components/barcode-live-scanner-dialog";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -65,6 +66,7 @@ export default function InventoryListPage() {
   const [barcodeQuery, setBarcodeQuery] = useState("");
   const [barcodeResult, setBarcodeResult] = useState<SerializedItemLookup | null>(null);
   const [barcodeSearching, setBarcodeSearching] = useState(false);
+  const [barcodeScannerOpen, setBarcodeScannerOpen] = useState(false);
   const [movementInventory, setMovementInventory] = useState<Inventory | null>(null);
   const [warningOpen, setWarningOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -406,10 +408,12 @@ export default function InventoryListPage() {
       </section>
       <div
         className="
-    flex
-    justify-end
+    grid
+    grid-cols-3
     gap-2
     mb-4
+    sm:flex
+    sm:justify-end
   "
       >
         <button
@@ -418,14 +422,20 @@ export default function InventoryListPage() {
           className="
       bg-emerald-600
       text-white
-      px-4
+      min-h-20
+      px-2
       py-2
       rounded-lg
+      text-sm
+      font-medium
+      sm:min-h-0
+      sm:px-4
+      sm:text-base
     "
         >
-          📷 Importar SIM desde imágenes
+          📷 <span className="sm:hidden">Importar SIM</span><span className="hidden sm:inline">Importar SIM desde imágenes</span>
         </button>
-        <button type="button" onClick={() => { setBarcodeLookupOpen(true); setBarcodeResult(null); }} className="rounded-lg border border-slate-300 px-4 py-2 dark:border-slate-600">
+        <button type="button" onClick={() => { setBarcodeLookupOpen(true); setBarcodeResult(null); }} className="min-h-20 rounded-lg border border-slate-300 px-2 py-2 text-sm font-medium dark:border-slate-600 sm:min-h-0 sm:px-4 sm:text-base">
           Buscar código
         </button>
         <button
@@ -434,9 +444,15 @@ export default function InventoryListPage() {
           className="
       bg-blue-600
       text-white
-      px-4
+      min-h-20
+      px-2
       py-2
       rounded-lg
+      text-sm
+      font-medium
+      sm:min-h-0
+      sm:px-4
+      sm:text-base
     "
         >
           ➕ Registrar movimiento
@@ -548,7 +564,8 @@ export default function InventoryListPage() {
         initialCompany={companyId && companyName ? { id: companyId, name: companyName } : undefined}
         initialProduct={productId && productName ? { id: productId, name: productName } : undefined}
       />
-      {barcodeLookupOpen && <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900"><h2 className="text-lg font-semibold">Trazabilidad de SIM</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Consulte dónde se importó o utilizó un código de barras.</p><form className="mt-4 flex gap-2" onSubmit={async (event) => { event.preventDefault(); const barcode = barcodeQuery.trim(); if (!barcode) return; setBarcodeSearching(true); setBarcodeResult(null); try { const { data, error } = await createClient().rpc("find_inventory_serialized_item", { p_barcode: barcode }); if (error) throw error; setBarcodeResult(((data ?? [])[0] ?? null) as SerializedItemLookup | null); } catch (error) { console.error("[Inventory] Error buscando SIM", error); } finally { setBarcodeSearching(false); } }}><input value={barcodeQuery} onChange={(event) => setBarcodeQuery(event.target.value)} placeholder="Código de barras" className="min-w-0 flex-1 rounded-lg border p-3 dark:bg-slate-950" autoFocus /><button className="rounded-lg bg-blue-600 px-4 text-white" disabled={barcodeSearching}>{barcodeSearching ? "Buscando…" : "Buscar"}</button></form>{barcodeResult ? <div className="mt-4 space-y-1 rounded-xl bg-slate-100 p-4 text-sm dark:bg-slate-800"><p><strong>Código:</strong> {barcodeResult.barcode}</p><p><strong>Estado:</strong> {barcodeResult.status === "delivered" ? "Usado en entrega" : "Disponible"}</p><p><strong>Importado por:</strong> {barcodeResult.imported_by_name ?? "Sin dato"}</p>{barcodeResult.tracking_number && <p><strong>Envío:</strong> {barcodeResult.tracking_number}</p>}{barcodeResult.delivered_by_name && <p><strong>Entregado por:</strong> {barcodeResult.delivered_by_name}</p>}{barcodeResult.image_url && <a className="inline-block pt-2 text-blue-600 underline" href={barcodeResult.image_url} target="_blank" rel="noreferrer">Ver foto importada</a>}</div> : !barcodeSearching && barcodeQuery.trim() && <p className="mt-3 text-sm text-slate-500">No se encontró ese código en la empresa actual.</p>}<button type="button" onClick={() => setBarcodeLookupOpen(false)} className="mt-5 w-full rounded-lg border py-2 dark:border-slate-600">Cerrar</button></div></div>}
+      {barcodeLookupOpen && <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900"><h2 className="text-lg font-semibold">Trazabilidad de SIM</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Consulte dónde se importó o utilizó un código de barras.</p><form className="mt-4 flex gap-2" onSubmit={async (event) => { event.preventDefault(); const barcode = barcodeQuery.trim(); if (!barcode) return; setBarcodeSearching(true); setBarcodeResult(null); try { const { data, error } = await createClient().rpc("find_inventory_serialized_item", { p_barcode: barcode }); if (error) throw error; setBarcodeResult(((data ?? [])[0] ?? null) as SerializedItemLookup | null); } catch (error) { console.error("[Inventory] Error buscando SIM", error); } finally { setBarcodeSearching(false); } }}><input value={barcodeQuery} onChange={(event) => setBarcodeQuery(event.target.value)} placeholder="Código de barras" className="min-w-0 flex-1 rounded-lg border p-3 dark:bg-slate-950" autoFocus /><button type="button" title="Escanear código con cámara" aria-label="Escanear código con cámara" onClick={() => setBarcodeScannerOpen(true)} className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white"><ScanBarcode size={21} /></button><button className="rounded-lg bg-blue-600 px-4 text-white" disabled={barcodeSearching}>{barcodeSearching ? "Buscando…" : "Buscar"}</button></form>{barcodeResult ? <div className="mt-4 space-y-1 rounded-xl bg-slate-100 p-4 text-sm dark:bg-slate-800"><p><strong>Código:</strong> {barcodeResult.barcode}</p><p><strong>Estado:</strong> {barcodeResult.status === "delivered" ? "Usado en entrega" : "Disponible"}</p><p><strong>Importado por:</strong> {barcodeResult.imported_by_name ?? "Sin dato"}</p>{barcodeResult.tracking_number && <p><strong>Envío:</strong> {barcodeResult.tracking_number}</p>}{barcodeResult.delivered_by_name && <p><strong>Entregado por:</strong> {barcodeResult.delivered_by_name}</p>}{barcodeResult.image_url && <a className="inline-block pt-2 text-blue-600 underline" href={barcodeResult.image_url} target="_blank" rel="noreferrer">Ver foto importada</a>}</div> : !barcodeSearching && barcodeQuery.trim() && <p className="mt-3 text-sm text-slate-500">No se encontró ese código en la empresa actual.</p>}<button type="button" onClick={() => setBarcodeLookupOpen(false)} className="mt-5 w-full rounded-lg border py-2 dark:border-slate-600">Cerrar</button></div></div>}
+      <BarcodeLiveScannerDialog open={barcodeScannerOpen} onClose={() => setBarcodeScannerOpen(false)} onDetected={(barcodes) => { setBarcodeQuery(barcodes[0] ?? ""); setBarcodeResult(null); setBarcodeScannerOpen(false); }} />
     </div>
   );
 }
