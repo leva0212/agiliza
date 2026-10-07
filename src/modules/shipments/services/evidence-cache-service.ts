@@ -10,16 +10,33 @@ export type CachedEvidence = {
   uploadedByThisDevice: boolean;
 };
 
+export type PendingEvidenceRecord = {
+  id: string;
+  shipmentId: string;
+  blob: Blob;
+  fileName: string;
+  mimeType: string;
+  lastModified: number;
+  createdAt: string;
+};
+
 const MAX_CACHE_ENTRIES = 100;
 const MAX_CACHE_BYTES = 150 * 1024 * 1024;
 
 class EvidenceDatabase extends Dexie {
   evidences!: Table<CachedEvidence>;
+  pendingEvidences!: Table<PendingEvidenceRecord>;
 
   constructor() {
     super("syslogistics_evidences");
+
     this.version(1).stores({
       evidences: "evidenceId, shipmentId, downloadedAt",
+    });
+
+    this.version(2).stores({
+      evidences: "evidenceId, shipmentId, downloadedAt",
+      pendingEvidences: "id, shipmentId, createdAt",
     });
   }
 }

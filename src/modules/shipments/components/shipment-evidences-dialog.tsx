@@ -39,6 +39,10 @@ import {
   createPendingEvidence,
   type PendingEvidence,
 } from "../types/pending-evidence";
+import {
+  deletePendingEvidenceFile,
+  savePendingEvidenceFile,
+} from "../services/pending-evidence-storage";
 type Props = {
   open: boolean;
 
@@ -88,6 +92,7 @@ export function ShipmentEvidencesDialog({
   const [viewerOpen, setViewerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadAbortControllerRef = useRef<AbortController | null>(null);
+  const consumingInitialFilesRef = useRef(false);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [shareSelectionMode, setShareSelectionMode] = useState(false);
@@ -115,20 +120,91 @@ export function ShipmentEvidencesDialog({
   const [pendingEvidences, setPendingEvidences] = useState<PendingEvidence[]>(
     [],
   );
+
+  async function createAndStorePendingEvidences(
+    files: File[],
+  ): Promise<PendingEvidence[]> {
+    const pending = files.map(createPendingEvidence);
+
+    try {
+      await Promise.all(
+        pending.map((item) =>
+          savePendingEvidenceFile(
+            item.id,
+            shipmentId,
+            item.originalFile,
+          ),
+        ),
+      );
+    } catch (error) {
+      console.error(
+        "[PendingEvidence] No fue posible guardar las imágenes en IndexedDB:",
+        error,
+      );
+
+      throw error;
+    }
+
+    return pending;
+  }
   useEffect(() => {
-    if (!open || initialFiles.length === 0) return;
+    if (
+      !open ||
+      initialFiles.length === 0 ||
+      consumingInitialFilesRef.current
+    ) {
+      return;
+    }
+
+    consumingInitialFilesRef.current = true;
 
     const timer = window.setTimeout(() => {
-      if (initialFiles.length > 30) {
-        toast.info("Solo las primeras 30 imágenes serán tomadas en cuenta");
-      }
-      setPendingEvidences(initialFiles.slice(0, 30).map(createPendingEvidence));
-      setEditorOpen(true);
-      onInitialFilesConsumed?.();
+      void (async () => {
+        const availableSlots = Math.max(0, 30 - pendingEvidences.length);
+        const acceptedFiles = initialFiles.slice(0, availableSlots);
+
+        if (initialFiles.length > availableSlots) {
+          toast.info(
+            `Solo las primeras ${availableSlots} imágenes serán tomadas en cuenta`,
+          );
+        }
+
+        if (acceptedFiles.length === 0) {
+          onInitialFilesConsumed?.();
+          return;
+        }
+
+        try {
+          const newPending =
+            await createAndStorePendingEvidences(acceptedFiles);
+
+          setPendingEvidences((current) => [
+            ...current,
+            ...newPending,
+          ]);
+
+          setEditorOpen(true);
+          onInitialFilesConsumed?.();
+        } catch {
+          toast.error(
+            "No fue posible guardar las imágenes seleccionadas",
+          );
+        } finally {
+          consumingInitialFilesRef.current = false;
+        }
+      })();
     }, 0);
 
-    return () => window.clearTimeout(timer);
-  }, [initialFiles, onInitialFilesConsumed, open]);
+    return () => {
+      window.clearTimeout(timer);
+      consumingInitialFilesRef.current = false;
+    };
+  }, [
+    initialFiles,
+    onInitialFilesConsumed,
+    open,
+    pendingEvidences.length,
+  ]);
   const validateAllMutation = useMutation({
     mutationFn: validateAllShipmentEvidences,
 
@@ -411,6 +487,15 @@ export function ShipmentEvidencesDialog({
         });
 
         completedEvidenceIds.push(item.id);
+
+        try {
+          await deletePendingEvidenceFile(item.id);
+        } catch (error) {
+          console.error(
+            "[PendingEvidence] No fue posible eliminar de IndexedDB una evidencia ya subida:",
+            error,
+          );
+        }
       }
 
       await queryClient.invalidateQueries({
@@ -467,22 +552,49 @@ export function ShipmentEvidencesDialog({
         className="hidden"
         onChange={(e) => {
           const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
 
           if (files.length === 0) {
             return;
           }
 
-          if (files.length > 30) {
-            toast.info("Solo las primeras 30 imágenes serán tomadas en cuenta");
+          const availableSlots = Math.max(
+            0,
+            30 - pendingEvidences.length,
+          );
+
+          if (availableSlots === 0) {
+            toast.info("Ya alcanzó el máximo de 30 imágenes");
+            return;
           }
 
-          setPendingEvidences(files.slice(0, 30).map(createPendingEvidence));
-          setEditorOpen(true);
+          const acceptedFiles = files.slice(0, availableSlots);
 
-          e.target.value = "";
+          if (files.length > availableSlots) {
+            toast.info(
+              `Solo las primeras ${acceptedFiles.length} imágenes serán tomadas en cuenta`,
+            );
+          }
+
+          void (async () => {
+            try {
+              const newPending =
+                await createAndStorePendingEvidences(acceptedFiles);
+
+              setPendingEvidences((current) => [
+                ...current,
+                ...newPending,
+              ]);
+
+              setEditorOpen(true);
+            } catch {
+              toast.error(
+                "No fue posible guardar las imágenes seleccionadas",
+              );
+            }
+          })();
         }}
       />
-      ;
       <input
         ref={cameraInputRef}
         type="file"
@@ -491,15 +603,40 @@ export function ShipmentEvidencesDialog({
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
+          e.target.value = "";
 
           if (!file) {
             return;
           }
 
-          setPendingEvidences([createPendingEvidence(file)]);
-          setEditorOpen(true);
+          if (pendingEvidences.length >= 30) {
+            toast.info("Ya alcanzó el máximo de 30 imágenes");
+            return;
+          }
 
-          e.target.value = "";
+          void (async () => {
+            try {
+              const newPending =
+                await createAndStorePendingEvidences([file]);
+
+              setPendingEvidences((current) => {
+                if (current.length >= 30) {
+                  return current;
+                }
+
+                return [
+                  ...current,
+                  ...newPending.slice(0, 30 - current.length),
+                ];
+              });
+
+              setEditorOpen(true);
+            } catch {
+              toast.error(
+                "No fue posible guardar la imagen capturada",
+              );
+            }
+          })();
         }}
       />
       <div className="fixed inset-0 z-50 bg-white flex flex-col">
@@ -1310,11 +1447,36 @@ Ingrese un comentario...
           open={editorOpen}
           evidences={pendingEvidences}
           onClose={() => {
-            setEditorOpen(false);
+            const evidenceIdsToDiscard =
+              pendingEvidences.map((item) => item.id);
 
+            setEditorOpen(false);
             setPendingEvidences([]);
+
+            void Promise.all(
+              evidenceIdsToDiscard.map((evidenceId) =>
+                deletePendingEvidenceFile(evidenceId),
+              ),
+            ).catch((error) => {
+              console.error(
+                "[PendingEvidence] No fue posible limpiar IndexedDB al cerrar el editor:",
+                error,
+              );
+            });
           }}
           onUpload={handleUpload}
+          onRemoveEvidence={(evidenceId) => {
+            setPendingEvidences((current) =>
+              current.filter((item) => item.id !== evidenceId),
+            );
+
+            void deletePendingEvidenceFile(evidenceId).catch((error) => {
+              console.error(
+                "[PendingEvidence] No fue posible eliminar el original de IndexedDB:",
+                error,
+              );
+            });
+          }}
           isUploading={uploadProgress !== null}
           shipmentItems={shipmentItems}
           shipmentCompanyCode={shipmentCompanyCode}

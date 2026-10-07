@@ -1,3 +1,5 @@
+import { generateId } from "@/shared/utils/generate-id";
+
 /** Browser-only reproduction of the Flutter Web photo pipeline. */
 export type BarcodeInput = { id: string; file: File; hd?: boolean };
 export type BarcodeMetrics = {
@@ -70,7 +72,7 @@ async function optimize(input: BarcodeInput, metrics: BarcodeMetrics): Promise<F
 export async function scanJpegDirect(file: File): Promise<{ barcode: string | null; scanMs: number; error?: string }> {
   const { Html5Qrcode } = await import('html5-qrcode');
   const container = document.createElement('div');
-  container.id = `barcode-simple-${crypto.randomUUID()}`;
+  container.id = `barcode-simple-${generateId()}`;
   container.style.display = 'none';
   document.body.appendChild(container);
   let scanner: InstanceType<typeof Html5Qrcode> | undefined;

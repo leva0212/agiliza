@@ -48,7 +48,19 @@ export default async function DashboardHomePage() {
     profile?.role === "company_admin" &&
     systemSettings?.restricted_supervisor_mode === true;
 
-  const quickLinks: QuickLink[] = [
+  const quickLinks: QuickLink[] = [];
+
+  if (isInternalAdmin && !isRestrictedOperational) {
+    quickLinks.push({
+      href: "/dashboard/shipments/list",
+      label: "Envíos",
+      description: "Administra los envíos y sus evidencias.",
+      icon: Package,
+      iconClass: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+    });
+  }
+
+  quickLinks.push(
     {
       href: "/dashboard/tracking",
       label: "Tracking",
@@ -63,17 +75,7 @@ export default async function DashboardHomePage() {
       icon: Map,
       iconClass: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300",
     },
-  ];
-
-  if (isInternalAdmin && !isRestrictedOperational) {
-    quickLinks.push({
-      href: "/dashboard/shipments/list",
-      label: "Envíos",
-      description: "Administra los envíos y sus evidencias.",
-      icon: Package,
-      iconClass: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-    });
-  }
+  );
 
   if (profile?.role === "super_admin") {
     quickLinks.push(

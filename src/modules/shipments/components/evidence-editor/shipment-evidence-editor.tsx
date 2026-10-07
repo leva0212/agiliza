@@ -8,8 +8,6 @@ import {
   ChevronRight,
   Crop,
   RefreshCcw,
-  Copy,
-  ScanLine,
   ScanBarcode,
 } from "lucide-react";
 
@@ -17,17 +15,13 @@ import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
 import { processImage } from "@/shared/utils/process-image";
 import { generateThumbnail } from "../../utils/generate-thumbnail";
+import { type EvidenceImageAnalysis } from "../../utils/analyze-evidence-image";
 import {
-  type EvidenceImageAnalysis,
-  type EvidenceAnalysisProgress,
-} from "../../utils/analyze-evidence-image";
-import { scanSimpleBarcodeBatch, type BarcodeMetrics } from "../../utils/simple-barcode-batch";
+  scanSimpleBarcodeBatch,
+  type BarcodeMetrics,
+} from "../../utils/simple-barcode-batch";
 import { toast } from "sonner";
 import { BarcodeLiveScannerDialog } from "../barcode-live-scanner-dialog";
-type AnalysisDebugInfo = {
-  barcodeMs: number | null;
-  totalMs: number;
-};
 
 type Props = {
   open: boolean;
@@ -37,6 +31,8 @@ type Props = {
   onClose: () => void;
 
   onUpload: (evidences: PendingEvidence[]) => Promise<void>;
+
+  onRemoveEvidence?: (evidenceId: string) => void;
 
   isUploading?: boolean;
   shipmentItems?: Array<{ id: string; productName: string }>;
@@ -48,6 +44,7 @@ export function ShipmentEvidenceEditor({
   evidences,
   onClose,
   onUpload,
+  onRemoveEvidence,
   isUploading = false,
   shipmentItems = [],
   shipmentCompanyCode,
@@ -64,17 +61,8 @@ export function ShipmentEvidenceEditor({
     Record<string, EvidenceImageAnalysis | "loading">
   >({});
   const [liveScannerOpen, setLiveScannerOpen] = useState(false);
-  const [batchHd, setBatchHd] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
-  const [batchMessage, setBatchMessage] = useState("Selecciona Normal o HD e inicia la lectura");
-  const [batchTotalMs, setBatchTotalMs] = useState<number | null>(null);
-  const [barcodeMetrics, setBarcodeMetrics] = useState<Record<string, BarcodeMetrics>>({});
   const batchControllerRef = useRef<AbortController | null>(null);
-  const [analysisDebugByEvidenceId, setAnalysisDebugByEvidenceId] = useState<
-    Record<string, AnalysisDebugInfo>
-  >({});
-  const [analysisProgressByEvidenceId, setAnalysisProgressByEvidenceId] =
-    useState<Record<string, EvidenceAnalysisProgress>>({});
 
   const touchStartX = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,6 +72,7 @@ export function ShipmentEvidenceEditor({
   const thumbnailEvidenceIdsRef = useRef(new Set<string>());
   const imageWorkQueueRef = useRef<Promise<void>>(Promise.resolve());
   const analyzedEvidenceIdsRef = useRef(new Set<string>());
+  const analysisRerunRequestedRef = useRef(false);
   const cleanupTimerRef = useRef<number | null>(null);
 
   const current = items[index];
@@ -111,6 +100,43 @@ export function ShipmentEvidenceEditor({
 
   function preferredBarcode(options: string[]) {
     return options[0] ?? null;
+  }
+
+  function applyBarcodeResult(
+    metrics: BarcodeMetrics,
+    preferNewResult = false,
+  ) {
+    analyzedEvidenceIdsRef.current.add(metrics.id);
+    const analysis: EvidenceImageAnalysis = {
+      barcode: metrics.barcode,
+      text: "",
+      internalCompanyCode: null,
+      barcodeMs: metrics.scanMs,
+      ocrMs: 0,
+      totalMs: metrics.optimizationMs + metrics.scanMs,
+    };
+
+    setAnalysisByEvidenceId((previous) => ({
+      ...previous,
+      [metrics.id]: analysis,
+    }));
+    setItems((previous) =>
+      previous.map((item) => {
+        if (item.id !== metrics.id) return item;
+        const barcodeOptions = normalizeBarcodeOptions(
+          item.barcodeOptions,
+          [item.detectedBarcode, metrics.barcode],
+        );
+        return {
+          ...item,
+          barcodeOptions,
+          detectedBarcode:
+            preferNewResult && metrics.barcode
+              ? metrics.barcode
+              : preferredBarcode(barcodeOptions),
+        };
+      }),
+    );
   }
   useEffect(() => {
     if (!open || !currentOriginalFile) {
@@ -351,99 +377,143 @@ export function ShipmentEvidenceEditor({
   useEffect(() => {
     if (!open) return;
 
-    let cancelled = false;
+    // The parent owns the evidence collection; merge its new entries into local edits.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setItems((currentItems) => {
+      const currentById = new Map(
+        currentItems.map((item) => [item.id, item]),
+      );
 
-    async function initializeEditor() {
-      await Promise.resolve();
+      return evidences.map((evidence) => {
+        const existing = currentById.get(evidence.id);
 
-      if (!cancelled) {
-        setItems(
-          evidences.map((evidence) => ({
-            ...evidence,
-            shipmentItemId:
-              evidence.shipmentItemId ??
-              (shipmentItems.length === 1 ? shipmentItems[0].id : null),
-          })),
-        );
-        setIndex(0);
+        if (existing) {
+          return existing;
+        }
+
+        return {
+          ...evidence,
+          shipmentItemId:
+            evidence.shipmentItemId ??
+            (shipmentItems.length === 1
+              ? shipmentItems[0].id
+              : null),
+        };
+      });
+    });
+
+    setIndex((currentIndex) => {
+      if (evidences.length === 0) {
+        return 0;
       }
-    }
 
-    void initializeEditor();
-
-    return () => {
-      cancelled = true;
-    };
+      return Math.min(
+        currentIndex,
+        evidences.length - 1,
+      );
+    });
   }, [open, evidences, shipmentItems]);
 
-  // Edits and thumbnail updates must not discard in-flight analysis results.
   useEffect(() => {
+    if (!open) return;
+
     return () => { batchControllerRef.current?.abort(); };
-  }, [open, evidences]);
+  }, [open]);
 
   async function analyzeNewImages() {
-    if (batchControllerRef.current) return;
-    const pending = items.filter(item => !analyzedEvidenceIdsRef.current.has(item.id));
+    if (batchControllerRef.current) {
+      analysisRerunRequestedRef.current = true;
+      return;
+    }
+
+    const pending = items.filter(
+      (item) => !analyzedEvidenceIdsRef.current.has(item.id),
+    );
     if (!pending.length) return;
     const controller = new AbortController();
     batchControllerRef.current = controller;
     setBatchBusy(true);
-    setBatchTotalMs(null);
     setAnalysisByEvidenceId(previous => ({
       ...previous,
       ...Object.fromEntries(pending.map(item => [item.id, "loading" as const])),
     }));
     try {
-      const result = await scanSimpleBarcodeBatch(
-        pending.map(item => ({ id: item.id, file: item.originalFile, hd: batchHd })),
+      await scanSimpleBarcodeBatch(
+        pending.map(item => ({ id: item.id, file: item.originalFile, hd: item.hd })),
         {
           signal: controller.signal,
-          onProgress: progress => {
-            if (!controller.signal.aborted) setBatchMessage(
-              (progress.phase === "optimizing" ? "Optimizando" : "Leyendo códigos") +
-              " " + progress.completed + "/" + progress.total,
-            );
-          },
           onResult: metrics => {
             if (controller.signal.aborted) return;
-            analyzedEvidenceIdsRef.current.add(metrics.id);
-            setBarcodeMetrics(previous => ({ ...previous, [metrics.id]: metrics }));
-            const analysis: EvidenceImageAnalysis = {
-              barcode: metrics.barcode, text: "", internalCompanyCode: null,
-              barcodeMs: metrics.scanMs, ocrMs: 0,
-              totalMs: metrics.optimizationMs + metrics.scanMs,
-            };
-            setAnalysisByEvidenceId(previous => ({ ...previous, [metrics.id]: analysis }));
-            setAnalysisDebugByEvidenceId(previous => ({ ...previous, [metrics.id]: {
-              barcodeMs: metrics.scanMs, totalMs: analysis.totalMs,
-            } }));
-            setAnalysisProgressByEvidenceId(previous => ({ ...previous, [metrics.id]: {
-              stage: "finished", message: metrics.error ?? "Lectura terminada",
-              barcode: metrics.barcode, elapsedMs: analysis.totalMs,
-            } }));
-            setItems(previous => previous.map(item => {
-              if (item.id !== metrics.id) return item;
-              const barcodeOptions = normalizeBarcodeOptions(
-                item.barcodeOptions,
-                [item.detectedBarcode, metrics.barcode],
-              );
-              return {
-                ...item,
-                barcodeOptions,
-                detectedBarcode: preferredBarcode(barcodeOptions),
-              };
-            }));
+            applyBarcodeResult(metrics);
           },
         },
       );
-      if (!controller.signal.aborted) {
-        setBatchTotalMs(result.totalMs);
-        setBatchMessage("Lote terminado: " + result.rows.length + " imágenes");
-      }
     } catch (error) {
       if (!controller.signal.aborted) {
-        setBatchMessage("No fue posible completar el lote. Puedes reintentar las imágenes pendientes.");
         console.error("[Barcode batch]", error);
+      }
+    } finally {
+      if (batchControllerRef.current === controller) {
+        batchControllerRef.current = null;
+        setBatchBusy(false);
+
+        if (analysisRerunRequestedRef.current) {
+          analysisRerunRequestedRef.current = false;
+        }
+      }
+    }
+  }
+
+  async function retryBarcodeForImage(item: PendingEvidence) {
+    if (batchControllerRef.current) return;
+
+    const controller = new AbortController();
+    batchControllerRef.current = controller;
+    setBatchBusy(true);
+    setAnalysisByEvidenceId((previous) => ({
+      ...previous,
+      [item.id]: "loading",
+    }));
+
+    try {
+      const transformedFile = await processImage(item.originalFile, {
+        hd: item.hd,
+        rotation: item.rotation,
+        flipX: item.flipX,
+        flipY: item.flipY,
+        cropX: item.cropX,
+        cropY: item.cropY,
+        cropWidth: item.cropWidth || 1,
+        cropHeight: item.cropHeight || 1,
+      });
+      controller.signal.throwIfAborted();
+
+      await scanSimpleBarcodeBatch(
+        [{ id: item.id, file: transformedFile, hd: item.hd }],
+        {
+          signal: controller.signal,
+          onResult: (metrics) => {
+            if (!controller.signal.aborted) {
+              applyBarcodeResult(metrics, true);
+            }
+          },
+        },
+      );
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.error("[Barcode retry]", error);
+        analyzedEvidenceIdsRef.current.add(item.id);
+        setAnalysisByEvidenceId((previous) => ({
+          ...previous,
+          [item.id]: {
+            barcode: item.detectedBarcode,
+            text: "",
+            internalCompanyCode: null,
+            barcodeMs: 0,
+            ocrMs: 0,
+            totalMs: 0,
+          },
+        }));
       }
     } finally {
       if (batchControllerRef.current === controller) {
@@ -454,15 +524,29 @@ export function ShipmentEvidenceEditor({
   }
 
   useEffect(() => {
+    if (!open || items.length === 0 || batchBusy) {
+      return;
+    }
+
+    const hasUnanalyzedImages = items.some(
+      (item) => !analyzedEvidenceIdsRef.current.has(item.id),
+    );
+
+    if (!hasUnanalyzedImages) {
+      return;
+    }
+
+    void analyzeNewImages();
+    // The batch reads the current item snapshot; recreating the function is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, items, batchBusy]);
+
+  useEffect(() => {
     if (open) return;
     const timer = window.setTimeout(() => {
       analyzedEvidenceIdsRef.current.clear();
-      setBarcodeMetrics({});
-      setBatchTotalMs(null);
-      setBatchMessage("Selecciona Normal o HD e inicia la lectura");
+      analysisRerunRequestedRef.current = false;
       setAnalysisByEvidenceId({});
-      setAnalysisDebugByEvidenceId({});
-      setAnalysisProgressByEvidenceId({});
     }, 0);
     return () => window.clearTimeout(timer);
   }, [open]);
@@ -473,12 +557,6 @@ export function ShipmentEvidenceEditor({
 
   const currentAnalysis = current
     ? analysisByEvidenceId[current.id]
-    : undefined;
-  const currentAnalysisDebug = current
-    ? analysisDebugByEvidenceId[current.id]
-    : undefined;
-  const currentAnalysisProgress = current
-    ? analysisProgressByEvidenceId[current.id]
     : undefined;
   const hasPendingAnalysis = items.some(
     (item) =>
@@ -523,61 +601,6 @@ export function ShipmentEvidenceEditor({
         overscroll-none
       "
     >
-      {/* HUD temporal de diagnóstico: siempre visible en móvil */}
-      <div className="pointer-events-none absolute left-1/2 top-20 z-[80] w-[calc(100%-2rem)] max-w-md -translate-x-1/2">
-        <div className="rounded-xl border-2 border-yellow-300 bg-black/90 px-3 py-2 text-xs text-white shadow-2xl backdrop-blur">
-          <div className="mb-1 font-bold text-yellow-300">
-            LECTURA DIRECTA — HTML5-QRCODE
-          </div>
-
-          <div className="grid gap-1">
-            <div>
-              Etapa:{" "}
-              <span className="font-bold text-cyan-300">
-                {currentAnalysisProgress?.stage ?? "esperando"}
-              </span>
-            </div>
-
-            <div className="font-semibold">
-              {currentAnalysisProgress?.message ??
-                "Esperando inicio del análisis..."}
-            </div>
-
-            <div className="break-all font-mono">
-              Barcode:{" "}
-              {currentAnalysisProgress?.barcode ??
-                detectedBarcode ??
-                (currentAnalysis === "loading"
-                  ? "pendiente..."
-                  : "❌ NO DETECTADO")}
-            </div>
-
-            <div>
-              Transcurrido etapa:{" "}
-              {currentAnalysisProgress
-                ? `${(currentAnalysisProgress.elapsedMs / 1000).toFixed(2)} s`
-                : "—"}
-            </div>
-
-            {currentAnalysis && currentAnalysis !== "loading" && (
-              <>
-                <div>
-                  Barcode: {(currentAnalysis.barcodeMs / 1000).toFixed(2)} s
-                </div>
-                <div>Sin OCR ni fallbacks</div>
-                <div>
-                  Total: {(currentAnalysis.totalMs / 1000).toFixed(2)} s
-                </div>
-              </>
-            )}
-
-            <div className="truncate text-[10px] text-white/65">
-              {typeof navigator !== "undefined" ? navigator.userAgent : ""}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Overlay superior */}
 
       <div
@@ -587,7 +610,7 @@ export function ShipmentEvidenceEditor({
     left-4
     right-4
 
-    z-20
+    z-40
 
     flex
     items-center
@@ -848,24 +871,28 @@ export function ShipmentEvidenceEditor({
     z-20
   "
       >
-        <div className="mb-2 rounded-2xl bg-black/70 p-3 text-white backdrop-blur">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <ScanLine size={17} /> Lectura de la imagen
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            <label>Optimización del lote: <select aria-label="Optimización del lote" className="bg-slate-800 p-1" value={batchHd ? "hd" : "normal"} disabled={batchBusy} onChange={event => setBatchHd(event.target.value === "hd")}>
-              <option value="normal">Normal</option><option value="hd">HD</option>
-            </select></label>
-            <button type="button" className="rounded bg-emerald-700 px-3 py-2 disabled:opacity-50" disabled={batchBusy || !hasPendingAnalysis} onClick={() => void analyzeNewImages()}>
-              {batchBusy ? "Procesando…" : "Leer imágenes nuevas"}
-            </button>
-          </div>
-          <p role="status" className="mt-1 text-xs">{batchMessage}{batchTotalMs !== null ? " · Total lote: " + (batchTotalMs / 1000).toFixed(2) + " s" : ""}</p>
-          <label className="mt-2 grid gap-1 text-xs font-semibold">
-            Código de barras
-            <div className="flex gap-2">
+        <div className="mb-2 rounded-xl bg-black/70 p-2 text-white backdrop-blur">
+          <div className="flex gap-2">
+            {current.barcodeOptions.length > 1 ? (
+              <select
+                aria-label="Código de barras detectado"
+                value={detectedBarcode ?? current.barcodeOptions[0]}
+                onChange={(event) =>
+                  setItems((previous) => previous.map((item) =>
+                    item.id === current.id
+                      ? { ...item, detectedBarcode: event.target.value || null }
+                      : item,
+                  ))
+                }
+                className="min-w-0 flex-1 rounded-lg border border-white/35 bg-white px-3 py-2 font-mono text-sm text-slate-900"
+              >
+                {current.barcodeOptions.map((barcode) => (
+                  <option key={barcode} value={barcode}>{barcode}</option>
+                ))}
+              </select>
+            ) : (
               <input
-                list={`barcode-options-${current.id}`}
+                aria-label="Código de barras"
                 value={detectedBarcode ?? ""}
                 onChange={(event) => {
                   const barcode = event.target.value;
@@ -879,65 +906,32 @@ export function ShipmentEvidenceEditor({
                       }
                     : item));
                 }}
-                placeholder="Escriba o seleccione un código"
+                placeholder="Código de barras"
                 className="min-w-0 flex-1 rounded-lg border border-white/35 bg-white px-3 py-2 font-mono text-sm text-slate-900"
               />
-              <datalist id={`barcode-options-${current.id}`}>
-                {current.barcodeOptions.map((barcode) => <option key={barcode} value={barcode} />)}
-              </datalist>
-              <button
-                type="button"
-                onClick={() => setLiveScannerOpen(true)}
-                title="Escanear código de barras con la cámara"
-                aria-label="Escanear código de barras con la cámara"
-                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white"
-              >
-                <ScanBarcode size={19} />
-              </button>
-            </div>
-            {current.barcodeOptions.length > 1 && (
-              <span className="font-normal text-white/70">{current.barcodeOptions.length} códigos detectados; se seleccionó el más largo.</span>
             )}
-          </label>
-          {barcodeMetrics[current.id] && <details className="mt-1 text-xs">
-            <summary>Métricas de {barcodeMetrics[current.id].name}</summary>
-            <p>Original: {barcodeMetrics[current.id].originalWidth} × {barcodeMetrics[current.id].originalHeight} · {barcodeMetrics[current.id].originalBytes} bytes</p>
-            <p>JPEG ({barcodeMetrics[current.id].hd ? "HD" : "Normal"}): {barcodeMetrics[current.id].optimizedWidth} × {barcodeMetrics[current.id].optimizedHeight} · {barcodeMetrics[current.id].optimizedBytes} bytes</p>
-            <p>Optimización: {barcodeMetrics[current.id].optimizationMs.toFixed(0)} ms · scanFile: {barcodeMetrics[current.id].scanMs.toFixed(0)} ms</p>
-          </details>}
-          {currentAnalysis === "loading" ? (
-            <p className="mt-1 text-xs text-white/75">
-              {batchMessage}
-            </p>
-          ) : currentAnalysis ? (
+            <button
+              type="button"
+              onClick={() => void retryBarcodeForImage(current)}
+              title="Volver a buscar el código en esta imagen"
+              aria-label="Volver a buscar el código en esta imagen"
+              disabled={batchBusy}
+              className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCcw size={17} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setLiveScannerOpen(true)}
+              title="Escanear código de barras con la cámara"
+              aria-label="Escanear código de barras con la cámara"
+              className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white"
+            >
+              <ScanBarcode size={18} />
+            </button>
+          </div>
+          {currentAnalysis !== "loading" && (
             <div className="mt-2 grid gap-1.5 text-xs">
-              <AnalysisValue label="Código de barras" value={detectedBarcode} />
-              <AnalysisValue
-                label="Código DTS detectado"
-                value={detectedDtsCode}
-              />
-              <div className="mt-1 rounded-lg border border-cyan-300/40 bg-cyan-950/60 p-2 font-mono text-[11px] text-cyan-100">
-                <div>Motor: Html5Qrcode</div>
-                <div>
-                  Resultado barcode: {detectedBarcode ?? "NO DETECTADO"}
-                </div>
-                <div>
-                  Tiempo total análisis:{" "}
-                  {currentAnalysisDebug
-                    ? `${(currentAnalysisDebug.totalMs / 1000).toFixed(2)} s`
-                    : "—"}
-                </div>
-                <div>
-                  Dispositivo:{" "}
-                  {typeof navigator !== "undefined" ? navigator.userAgent : "—"}
-                </div>
-              </div>
-              <p className="text-white/70">
-                Texto:{" "}
-                {currentAnalysis.text
-                  ? currentAnalysis.text.slice(0, 180)
-                  : "OCR desactivado en esta prueba"}
-              </p>
               {companyMismatch && (
                 <div className="rounded-xl border-2 border-red-300 bg-red-700 p-3 text-sm font-bold text-white shadow-lg">
                   ⚠️ POSIBLE ARTÍCULO DE OTRA EMPRESA: el código{" "}
@@ -968,7 +962,7 @@ export function ShipmentEvidenceEditor({
                   </label>
                 </div>
               )}
-              {shipmentItems.length > 0 && (
+              {shipmentItems.length > 1 && (
                 <label className="mt-1 grid gap-1 text-white/80">
                   <span>Artículo del envío</span>
                   <select
@@ -997,7 +991,7 @@ export function ShipmentEvidenceEditor({
                 </label>
               )}
             </div>
-          ) : null}
+          )}
         </div>
         {/* Miniaturas */}
 
@@ -1025,6 +1019,8 @@ export function ShipmentEvidenceEditor({
                   e.stopPropagation();
 
                   const nextItems = items.filter((x) => x.id !== evidence.id);
+
+                  onRemoveEvidence?.(evidence.id);
 
                   if (evidence.thumbnailUrl) {
                     URL.revokeObjectURL(evidence.thumbnailUrl);
@@ -1321,42 +1317,17 @@ export function ShipmentEvidenceEditor({
                 [item.detectedBarcode],
                 barcodes,
               );
-              return { ...item, barcodeOptions, detectedBarcode: preferredBarcode(barcodeOptions) };
+              return {
+                ...item,
+                barcodeOptions,
+                detectedBarcode: barcodes[0]?.trim() || item.detectedBarcode,
+              };
             }),
           );
           setLiveScannerOpen(false);
           toast.success("Código de barras leído");
         }}
       />
-    </div>
-  );
-}
-
-function AnalysisValue({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-white/70">{label}:</span>
-      <span className="font-mono font-semibold">{value ?? "No detectado"}</span>
-      {value && (
-        <button
-          type="button"
-          title={`Copiar ${label.toLowerCase()}`}
-          aria-label={`Copiar ${label.toLowerCase()}`}
-          onClick={async () => {
-            await navigator.clipboard.writeText(value);
-            toast.success(`${label} copiado`);
-          }}
-          className="rounded p-1 text-white hover:bg-white/15"
-        >
-          <Copy size={14} />
-        </button>
-      )}
     </div>
   );
 }
