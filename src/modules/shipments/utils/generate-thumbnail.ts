@@ -1,7 +1,19 @@
+import { processImageOffThread } from "@/shared/utils/image-processing-worker-client";
+
 export async function generateThumbnail(
   file: File,
   size = 300,
 ): Promise<File> {
+  const workerResult = processImageOffThread({ kind: "thumbnail", file, size, quality: 0.72 });
+  if (workerResult) {
+    try {
+      const { blob } = await workerResult;
+      return new File([blob], file.name, { type: "image/jpeg" });
+    } catch (error) {
+      console.warn("[Images] No se pudo generar la miniatura en el worker", error);
+    }
+  }
+
   const image = await createImageBitmap(file);
   const canvas = document.createElement("canvas");
 

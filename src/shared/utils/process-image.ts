@@ -1,3 +1,5 @@
+import { processImageOffThread } from "./image-processing-worker-client";
+
 export type ProcessImageOptions = {
   hd: boolean;
   rotation: number;
@@ -13,6 +15,28 @@ export async function processImage(
   file: File,
   options: ProcessImageOptions,
 ): Promise<File> {
+  const workerResult = processImageOffThread({
+    kind: "transform",
+    file,
+    maxSize: options.hd ? 2560 : 1600,
+    quality: options.hd ? 0.82 : 0.70,
+    preserveSmallJpeg: true,
+    ...options,
+  });
+
+  if (workerResult) {
+    try {
+      const { blob, preserved } = await workerResult;
+      if (preserved) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+        type: "image/jpeg",
+        lastModified: Date.now(),
+      });
+    } catch (error) {
+      console.warn("[Images] Worker no disponible; se usará el procesador compatible", error);
+    }
+  }
+
   const image = await createImageBitmap(file);
   const transformCanvas = document.createElement("canvas");
   const cropCanvas = document.createElement("canvas");

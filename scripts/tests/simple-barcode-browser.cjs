@@ -18,6 +18,10 @@ const { Code128Reader } = require('@zxing/library');
   const server = http.createServer(async (req, res) => {
     try {
       if (req.url === '/bundle.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundle.outputFiles[0].contents); return; }
+      if (req.url === '/workers/image-processing-worker.js') {
+        res.setHeader('Content-Type', 'text/javascript');
+        res.end(await fs.readFile(path.join('public', 'workers', 'image-processing-worker.js'))); return;
+      }
       const match = /^\/image\/(\d+)$/.exec(req.url);
       if (match && files[Number(match[1])]) {
         const file = files[Number(match[1])];
@@ -34,6 +38,11 @@ const { Code128Reader } = require('@zxing/library');
     const page = await browser.newPage();
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     const contract = await page.evaluate(async () => {
+      const NativeWorker = window.Worker;
+      window.__imageWorkerCount = 0;
+      window.Worker = class extends NativeWorker {
+        constructor(...args) { super(...args); window.__imageWorkerCount += 1; }
+      };
       const canvas = document.createElement('canvas'); canvas.width = 100; canvas.height = 80;
       const ctx = canvas.getContext('2d'); ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 100, 80);
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -46,17 +55,19 @@ const { Code128Reader } = require('@zxing/library');
         atLimit: simpleBarcode.barcodeImageSettings(1024 * 1024, false, 1200, 800),
         above: simpleBarcode.barcodeImageSettings(1024 * 1024 + 1, false, 4000, 3000),
         hd: simpleBarcode.barcodeImageSettings(1024 * 1024 + 1, true, 4000, 3000),
-        leftover: document.querySelectorAll('[id^="barcode-simple-"]').length };
+        leftover: document.querySelectorAll('[id^="barcode-simple-"]').length,
+        imageWorkerCount: window.__imageWorkerCount };
     });
     assert.equal(contract.count, 30);
     assert.deepEqual(contract.atLimit, { scale: 1, quality: 1 });
     assert.deepEqual(contract.above, { scale: 0.4, quality: 0.7 });
     assert.deepEqual(contract.hd, { scale: 0.64, quality: 0.82 });
     assert.equal(contract.leftover, 0);
+    assert.equal(contract.imageWorkerCount, 1);
     assert.deepEqual(contract.phases.slice(0, 30), Array(30).fill('optimizing'));
     assert(contract.phases.slice(30).every(phase => phase === 'scanning'));
     assert(contract.rows.every(row => row.barcode === null && row.originalWidth === 100 && row.optimizedWidth === 100 && row.optimizedHeight === 80 && row.optimizedBytes > 0));
-    console.log('PASS: threshold, dimensions, two phases, 30 limit, failed-read continuation, container cleanup');
+    console.log('PASS: worker, threshold, dimensions, two phases, 30 limit, failed-read continuation, container cleanup');
     const control = await page.evaluate(async patterns => {
       const value = '895000000000000000';
       const pairs = value.match(/../g).map(Number);

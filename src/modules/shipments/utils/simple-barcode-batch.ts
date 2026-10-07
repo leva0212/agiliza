@@ -1,6 +1,7 @@
 import { evidenceDb } from "../services/evidence-cache-service";
 import { editorAssetKey } from "../services/editor-image-assets";
 import { generateId } from "@/shared/utils/generate-id";
+import { processImageOffThread } from "@/shared/utils/image-processing-worker-client";
 
 /** Browser-only reproduction of the Flutter Web photo pipeline. */
 export type BarcodeInput = { id: string; file: File; loadFile?: () => Promise<File>; hd?: boolean };
@@ -35,6 +36,32 @@ async function optimize(input: BarcodeInput, metrics: BarcodeMetrics): Promise<F
   let bitmap: ImageBitmap | undefined;
   let canvas: HTMLCanvasElement | undefined;
   try {
+    const workerResult = processImageOffThread({
+      kind: "transform",
+      file: input.file,
+      maxSize: input.hd ? 2560 : 1600,
+      quality: input.hd ? 0.82 : 0.70,
+      preserveSmallJpeg: true,
+      rotation: 0,
+      flipX: false,
+      flipY: false,
+    });
+    if (workerResult) {
+      try {
+        const result = await workerResult;
+        metrics.originalWidth = result.originalWidth;
+        metrics.originalHeight = result.originalHeight;
+        metrics.optimizedWidth = result.outputWidth;
+        metrics.optimizedHeight = result.outputHeight;
+        const output = result.preserved ? input.file : result.blob;
+        const file = new File([output], `${input.file.name.replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg' });
+        metrics.optimizedBytes = file.size;
+        return file;
+      } catch (error) {
+        console.warn('[Barcode] Worker no disponible; se usará el procesador compatible', error);
+      }
+    }
+
     bitmap = await createImageBitmap(input.file);
     const { scale, quality } = barcodeImageSettings(input.file.size, input.hd, bitmap.width, bitmap.height);
     metrics.originalWidth = bitmap.width;
