@@ -37,6 +37,7 @@ type Props = {
   isUploading?: boolean;
   shipmentItems?: Array<{ id: string; productName: string }>;
   shipmentCompanyCode?: string | null;
+  submitLabel?: string;
 };
 
 export function ShipmentEvidenceEditor({
@@ -48,6 +49,7 @@ export function ShipmentEvidenceEditor({
   isUploading = false,
   shipmentItems = [],
   shipmentCompanyCode,
+  submitLabel = "Subir evidencias",
 }: Props) {
   const [cropOpen, setCropOpen] = useState(false);
   const [index, setIndex] = useState(0);
@@ -1263,7 +1265,7 @@ export function ShipmentEvidenceEditor({
                 ? "Espere a que termine la lectura de las imágenes"
                 : hasUnjustifiedCompanyMismatch
                   ? "Indique la justificación de la excepción"
-                  : "Subir evidencias"
+                  : submitLabel
             }
             className="
     w-16

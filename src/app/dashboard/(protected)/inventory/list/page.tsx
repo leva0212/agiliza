@@ -15,14 +15,27 @@ import { UiMessage } from "@/shared/components/ui-message";
 import { AppBarActionButton, AppBarActions } from "@/shared/components/app-bar-actions";
 import { InventoryMovementsDialog } from "@/modules/inventory/components/inventory-movements-dialog";
 import { InventoryAssignDialog } from "@/modules/inventory/components/inventory-assign-dialog";
-import { AssignInventoryInput } from "@/modules/inventory/types/assign-inventory";
-import type { Inventory } from "@/modules/inventory/types/inventory";
+import type { Inventory, InventoryFilters } from "@/modules/inventory/types/inventory";
 import { updateInventoryAlertLevels } from "@/modules/inventory/api/update-inventory-alert-levels";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { assignInventory } from "@/modules/inventory/api/assign-inventory";
+import { InventoryImageImportDialog } from "@/modules/inventory/components/inventory-image-import-dialog";
 
 import { createClient } from "@/lib/supabase/client";
+
+type SerializedItemLookup = {
+  barcode: string;
+  status: string;
+  imported_at: string | null;
+  imported_by_name: string | null;
+  image_url: string | null;
+  delivered_at: string | null;
+  shipment_id: string | null;
+  tracking_number: string | null;
+  delivered_by_name: string | null;
+};
+
 export default function InventoryListPage() {
   const queryClient = useQueryClient();
   const [pagination, setPagination] = useState({
@@ -47,6 +60,11 @@ export default function InventoryListPage() {
 
   const [movementsOpen, setMovementsOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [imageImportOpen, setImageImportOpen] = useState(false);
+  const [barcodeLookupOpen, setBarcodeLookupOpen] = useState(false);
+  const [barcodeQuery, setBarcodeQuery] = useState("");
+  const [barcodeResult, setBarcodeResult] = useState<SerializedItemLookup | null>(null);
+  const [barcodeSearching, setBarcodeSearching] = useState(false);
   const [movementInventory, setMovementInventory] = useState<Inventory | null>(null);
   const [warningOpen, setWarningOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -82,7 +100,7 @@ export default function InventoryListPage() {
 
     productId: useProductFilter ? productId : undefined,
 
-    quantityOperator: quantityOperator as any,
+    quantityOperator: quantityOperator as InventoryFilters["quantityOperator"],
 
     quantityValue: quantityValue ? Number(quantityValue) : undefined,
 
@@ -390,9 +408,26 @@ export default function InventoryListPage() {
         className="
     flex
     justify-end
+    gap-2
     mb-4
   "
       >
+        <button
+          type="button"
+          onClick={() => setImageImportOpen(true)}
+          className="
+      bg-emerald-600
+      text-white
+      px-4
+      py-2
+      rounded-lg
+    "
+        >
+          📷 Importar SIM desde imágenes
+        </button>
+        <button type="button" onClick={() => { setBarcodeLookupOpen(true); setBarcodeResult(null); }} className="rounded-lg border border-slate-300 px-4 py-2 dark:border-slate-600">
+          Buscar código
+        </button>
         <button
           type="button"
           onClick={() => setAssignOpen(true)}
@@ -505,6 +540,15 @@ export default function InventoryListPage() {
           });
         }}
       />
+      <InventoryImageImportDialog
+        open={imageImportOpen}
+        onClose={() => setImageImportOpen(false)}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ["inventory"] })}
+        initialCourier={courierId && courierName ? { id: courierId, name: courierName } : undefined}
+        initialCompany={companyId && companyName ? { id: companyId, name: companyName } : undefined}
+        initialProduct={productId && productName ? { id: productId, name: productName } : undefined}
+      />
+      {barcodeLookupOpen && <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900"><h2 className="text-lg font-semibold">Trazabilidad de SIM</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Consulte dónde se importó o utilizó un código de barras.</p><form className="mt-4 flex gap-2" onSubmit={async (event) => { event.preventDefault(); const barcode = barcodeQuery.trim(); if (!barcode) return; setBarcodeSearching(true); setBarcodeResult(null); try { const { data, error } = await createClient().rpc("find_inventory_serialized_item", { p_barcode: barcode }); if (error) throw error; setBarcodeResult(((data ?? [])[0] ?? null) as SerializedItemLookup | null); } catch (error) { console.error("[Inventory] Error buscando SIM", error); } finally { setBarcodeSearching(false); } }}><input value={barcodeQuery} onChange={(event) => setBarcodeQuery(event.target.value)} placeholder="Código de barras" className="min-w-0 flex-1 rounded-lg border p-3 dark:bg-slate-950" autoFocus /><button className="rounded-lg bg-blue-600 px-4 text-white" disabled={barcodeSearching}>{barcodeSearching ? "Buscando…" : "Buscar"}</button></form>{barcodeResult ? <div className="mt-4 space-y-1 rounded-xl bg-slate-100 p-4 text-sm dark:bg-slate-800"><p><strong>Código:</strong> {barcodeResult.barcode}</p><p><strong>Estado:</strong> {barcodeResult.status === "delivered" ? "Usado en entrega" : "Disponible"}</p><p><strong>Importado por:</strong> {barcodeResult.imported_by_name ?? "Sin dato"}</p>{barcodeResult.tracking_number && <p><strong>Envío:</strong> {barcodeResult.tracking_number}</p>}{barcodeResult.delivered_by_name && <p><strong>Entregado por:</strong> {barcodeResult.delivered_by_name}</p>}{barcodeResult.image_url && <a className="inline-block pt-2 text-blue-600 underline" href={barcodeResult.image_url} target="_blank" rel="noreferrer">Ver foto importada</a>}</div> : !barcodeSearching && barcodeQuery.trim() && <p className="mt-3 text-sm text-slate-500">No se encontró ese código en la empresa actual.</p>}<button type="button" onClick={() => setBarcodeLookupOpen(false)} className="mt-5 w-full rounded-lg border py-2 dark:border-slate-600">Cerrar</button></div></div>}
     </div>
   );
 }
