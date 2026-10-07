@@ -59,13 +59,16 @@ export function CompanySearchDialog({
     setLoading,
   ] = useState(false);
 
+  function handleClose() {
+    setSearch("");
+    onClose();
+  }
+
   useEffect(() => {
 
     if (!open) {
       return;
     }
-
-    setSearch("");
 
     async function load() {
 
@@ -159,7 +162,7 @@ export function CompanySearchDialog({
       "
 
       onClick={
-        onClose
+        handleClose
       }
 
     >
@@ -214,7 +217,7 @@ export function CompanySearchDialog({
           <button
 
             onClick={
-              onClose
+              handleClose
             }
 
             className="
@@ -331,7 +334,7 @@ export function CompanySearchDialog({
                         company,
                       );
 
-                      onClose();
+                      handleClose();
 
                     }}
 

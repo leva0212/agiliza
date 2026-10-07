@@ -18,6 +18,7 @@ import { generateThumbnail } from "../../utils/generate-thumbnail";
 import { type EvidenceImageAnalysis } from "../../utils/analyze-evidence-image";
 import {
   scanSimpleBarcodeBatch,
+  type BatchProgress,
   type BarcodeMetrics,
 } from "../../utils/simple-barcode-batch";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ export function ShipmentEvidenceEditor({
   >({});
   const [liveScannerOpen, setLiveScannerOpen] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
   const batchControllerRef = useRef<AbortController | null>(null);
 
   const touchStartX = useRef<number | null>(null);
@@ -160,27 +162,26 @@ export function ShipmentEvidenceEditor({
       setActivePreviewLoading(true);
 
       try {
-        const previewTask = imageWorkQueueRef.current.then(() => {
-          if (cancelled) return null;
-
-          return processImage(currentOriginalFile, {
-            hd: currentHd ?? false,
-            rotation: currentRotation ?? 0,
-            flipX: currentFlipX ?? false,
-            flipY: currentFlipY ?? false,
-            cropX: currentCropX,
-            cropY: currentCropY,
-            cropWidth: currentCropWidth || 1,
-            cropHeight: currentCropHeight || 1,
-          });
-        });
-
-        imageWorkQueueRef.current = previewTask.then(
-          () => undefined,
-          () => undefined,
-        );
-
-        const processedFile = await previewTask;
+        const needsTransform =
+          (currentRotation ?? 0) !== 0 ||
+          Boolean(currentFlipX) ||
+          Boolean(currentFlipY) ||
+          currentCropX !== 0 ||
+          currentCropY !== 0 ||
+          currentCropWidth !== 0 ||
+          currentCropHeight !== 0;
+        const processedFile = needsTransform
+          ? await processImage(currentOriginalFile, {
+              hd: currentHd ?? false,
+              rotation: currentRotation ?? 0,
+              flipX: currentFlipX ?? false,
+              flipY: currentFlipY ?? false,
+              cropX: currentCropX,
+              cropY: currentCropY,
+              cropWidth: currentCropWidth || 1,
+              cropHeight: currentCropHeight || 1,
+            })
+          : currentOriginalFile;
 
         if (!processedFile) return;
 
@@ -362,11 +363,10 @@ export function ShipmentEvidenceEditor({
     setCropImageUrl("");
   }
 
-  async function openCropDialog() {
+  function openCropDialog() {
     if (!current) return;
 
     setThumbnailGenerationPaused(true);
-    await imageWorkQueueRef.current;
 
     if (cropImageUrlRef.current) {
       URL.revokeObjectURL(cropImageUrlRef.current);
@@ -436,6 +436,7 @@ export function ShipmentEvidenceEditor({
     const controller = new AbortController();
     batchControllerRef.current = controller;
     setBatchBusy(true);
+    setBatchProgress({ phase: "optimizing", completed: 0, total: pending.length });
     setAnalysisByEvidenceId(previous => ({
       ...previous,
       ...Object.fromEntries(pending.map(item => [item.id, "loading" as const])),
@@ -445,6 +446,7 @@ export function ShipmentEvidenceEditor({
         pending.map(item => ({ id: item.id, file: item.originalFile, hd: item.hd })),
         {
           signal: controller.signal,
+          onProgress: (progress) => setBatchProgress(progress),
           onResult: metrics => {
             if (controller.signal.aborted) return;
             applyBarcodeResult(metrics);
@@ -459,6 +461,7 @@ export function ShipmentEvidenceEditor({
       if (batchControllerRef.current === controller) {
         batchControllerRef.current = null;
         setBatchBusy(false);
+        setBatchProgress(null);
 
         if (analysisRerunRequestedRef.current) {
           analysisRerunRequestedRef.current = false;
@@ -473,6 +476,7 @@ export function ShipmentEvidenceEditor({
     const controller = new AbortController();
     batchControllerRef.current = controller;
     setBatchBusy(true);
+    setBatchProgress({ phase: "optimizing", completed: 0, total: 1 });
     setAnalysisByEvidenceId((previous) => ({
       ...previous,
       [item.id]: "loading",
@@ -495,6 +499,7 @@ export function ShipmentEvidenceEditor({
         [{ id: item.id, file: transformedFile, hd: item.hd }],
         {
           signal: controller.signal,
+          onProgress: (progress) => setBatchProgress(progress),
           onResult: (metrics) => {
             if (!controller.signal.aborted) {
               applyBarcodeResult(metrics, true);
@@ -522,6 +527,7 @@ export function ShipmentEvidenceEditor({
       if (batchControllerRef.current === controller) {
         batchControllerRef.current = null;
         setBatchBusy(false);
+        setBatchProgress(null);
       }
     }
   }
@@ -557,6 +563,15 @@ export function ShipmentEvidenceEditor({
   if (!open || items.length === 0) {
     return null;
   }
+
+  const progressTotal = batchProgress?.total ?? 0;
+  const progressCompleted = batchProgress?.completed ?? 0;
+  const progressPercent = progressTotal > 0
+    ? Math.round((progressCompleted / progressTotal) * 100)
+    : 0;
+  const progressImage = progressTotal > 0
+    ? Math.min(progressCompleted + 1, progressTotal)
+    : 0;
 
   const currentAnalysis = current
     ? analysisByEvidenceId[current.id]
@@ -1315,6 +1330,23 @@ export function ShipmentEvidenceEditor({
             alt="Vista de evidencia a pantalla completa"
             className="max-h-full max-w-full object-contain"
           />
+        </div>
+      )}
+
+      {batchProgress && (
+        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/70 p-6" role="status" aria-live="polite">
+          <div className="w-full max-w-xs overflow-hidden rounded-3xl bg-zinc-800 shadow-2xl">
+            <div className="bg-fuchsia-700 px-5 py-4 text-lg font-bold text-white">
+              {batchProgress.phase === "optimizing" ? "Optimizando imágenes" : "Buscando códigos de barras"}
+            </div>
+            <div className="px-5 py-5 text-center">
+              <p className="text-lg font-medium text-white/75">Imagen {progressImage} de {progressTotal}</p>
+              <div className="mt-5 h-3 overflow-hidden rounded-full bg-zinc-600">
+                <div className="h-full bg-fuchsia-700 transition-[width] duration-200" style={{ width: `${progressPercent}%` }} />
+              </div>
+              <p className="mt-4 text-lg font-medium text-fuchsia-500">{progressPercent}%</p>
+            </div>
+          </div>
         </div>
       )}
 

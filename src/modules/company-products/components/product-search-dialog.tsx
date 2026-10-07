@@ -61,6 +61,11 @@ export function ProductSearchDialog({
     setLoading,
   ] = useState(false);
 
+  function handleClose() {
+    setSearch("");
+    onClose();
+  }
+
   useEffect(() => {
 
     if (
@@ -69,8 +74,6 @@ export function ProductSearchDialog({
     ) {
       return;
     }
-
-    setSearch("");
 
     async function load() {
 
@@ -172,7 +175,7 @@ export function ProductSearchDialog({
       "
 
       onClick={
-        onClose
+        handleClose
       }
 
     >
@@ -227,7 +230,7 @@ export function ProductSearchDialog({
           <button
 
             onClick={
-              onClose
+              handleClose
             }
 
             className="
@@ -344,7 +347,7 @@ export function ProductSearchDialog({
                         product,
                       );
 
-                      onClose();
+                      handleClose();
 
                     }}
 

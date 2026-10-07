@@ -31,12 +31,15 @@ export function CourierSearchDialog({
 
   const [loading, setLoading] = useState(false);
 
+  function handleClose() {
+    setSearch("");
+    onClose();
+  }
+
   useEffect(() => {
     if (!open) {
       return;
     }
-    setSearch("");
-
     async function load() {
       try {
         setLoading(true);
@@ -84,7 +87,7 @@ export function CourierSearchDialog({
         z-[1700]
         p-4
       "
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="
@@ -119,7 +122,7 @@ export function CourierSearchDialog({
           </h2>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="
               text-xl
               px-2
@@ -181,7 +184,7 @@ export function CourierSearchDialog({
                   onClick={() => {
                     onSelect(courier);
 
-                    onClose();
+                    handleClose();
                   }}
                   className="
           w-full
