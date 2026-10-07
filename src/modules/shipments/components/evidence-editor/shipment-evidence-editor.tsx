@@ -14,7 +14,7 @@ import {
 import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
 import { processImage } from "@/shared/utils/process-image";
-import { generateThumbnail } from "../../utils/generate-thumbnail";
+import { editorAsset, originalFor } from "../../services/editor-image-assets";
 import { type EvidenceImageAnalysis } from "../../utils/analyze-evidence-image";
 import {
   scanSimpleBarcodeBatch,
@@ -39,6 +39,7 @@ type Props = {
   shipmentItems?: Array<{ id: string; productName: string }>;
   shipmentCompanyCode?: string | null;
   submitLabel?: string;
+  onItemsChange?: (items: PendingEvidence[]) => void;
 };
 
 export function ShipmentEvidenceEditor({
@@ -51,6 +52,7 @@ export function ShipmentEvidenceEditor({
   shipmentItems = [],
   shipmentCompanyCode,
   submitLabel = "Subir evidencias",
+  onItemsChange,
 }: Props) {
   const [cropOpen, setCropOpen] = useState(false);
   const [index, setIndex] = useState(0);
@@ -80,9 +82,14 @@ export function ShipmentEvidenceEditor({
   const analysisRerunRequestedRef = useRef(false);
   const cleanupTimerRef = useRef<number | null>(null);
 
+  useEffect(() => {
+    if (open && items.length) onItemsChange?.(items);
+  }, [items, open, onItemsChange]);
+
   const current = items[index];
   const currentId = current?.id;
   const currentOriginalFile = current?.originalFile;
+  const currentStoredLocally = current?.storedLocally;
   const currentHd = current?.hd;
   const currentRotation = current?.rotation;
   const currentFlipX = current?.flipX;
@@ -134,6 +141,7 @@ export function ShipmentEvidenceEditor({
         );
         return {
           ...item,
+          scanCompleted: true,
           barcodeOptions,
           detectedBarcode:
             preferNewResult && metrics.barcode
@@ -162,26 +170,13 @@ export function ShipmentEvidenceEditor({
       setActivePreviewLoading(true);
 
       try {
-        const needsTransform =
-          (currentRotation ?? 0) !== 0 ||
-          Boolean(currentFlipX) ||
-          Boolean(currentFlipY) ||
-          currentCropX !== 0 ||
-          currentCropY !== 0 ||
-          currentCropWidth !== 0 ||
-          currentCropHeight !== 0;
-        const processedFile = needsTransform
-          ? await processImage(currentOriginalFile, {
-              hd: currentHd ?? false,
-              rotation: currentRotation ?? 0,
-              flipX: currentFlipX ?? false,
-              flipY: currentFlipY ?? false,
-              cropX: currentCropX,
-              cropY: currentCropY,
-              cropWidth: currentCropWidth || 1,
-              cropHeight: currentCropHeight || 1,
-            })
-          : currentOriginalFile;
+        const processedFile = await editorAsset({
+          id: currentId!, originalFile: currentOriginalFile, storedLocally: currentStoredLocally,
+          hd: currentHd ?? false, rotation: currentRotation ?? 0,
+          flipX: currentFlipX ?? false, flipY: currentFlipY ?? false,
+          cropX: currentCropX ?? 0, cropY: currentCropY ?? 0,
+          cropWidth: currentCropWidth ?? 0, cropHeight: currentCropHeight ?? 0,
+        } as PendingEvidence);
 
         if (!processedFile) return;
 
@@ -212,6 +207,7 @@ export function ShipmentEvidenceEditor({
     open,
     currentId,
     currentOriginalFile,
+    currentStoredLocally,
     currentHd,
     currentRotation,
     currentFlipX,
@@ -238,7 +234,7 @@ export function ShipmentEvidenceEditor({
 
           const thumbnailTask = imageWorkQueueRef.current.then(() => {
             if (cancelled) return null;
-            return generateThumbnail(evidence.originalFile, 160);
+            return editorAsset(evidence, true);
           });
 
           imageWorkQueueRef.current = thumbnailTask.then(
@@ -363,7 +359,7 @@ export function ShipmentEvidenceEditor({
     setCropImageUrl("");
   }
 
-  function openCropDialog() {
+  async function openCropDialog() {
     if (!current) return;
 
     setThumbnailGenerationPaused(true);
@@ -372,7 +368,13 @@ export function ShipmentEvidenceEditor({
       URL.revokeObjectURL(cropImageUrlRef.current);
     }
 
-    const nextUrl = URL.createObjectURL(current.originalFile);
+    let source: File;
+    try { source = await originalFor(current); } catch {
+      setThumbnailGenerationPaused(false);
+      toast.error("No fue posible cargar la imagen para recortar");
+      return;
+    }
+    const nextUrl = URL.createObjectURL(source);
     cropImageUrlRef.current = nextUrl;
     setCropImageUrl(nextUrl);
     setCropOpen(true);
@@ -430,7 +432,7 @@ export function ShipmentEvidenceEditor({
     }
 
     const pending = items.filter(
-      (item) => !analyzedEvidenceIdsRef.current.has(item.id),
+      (item) => !item.scanCompleted && !analyzedEvidenceIdsRef.current.has(item.id),
     );
     if (!pending.length) return;
     const controller = new AbortController();
@@ -443,7 +445,7 @@ export function ShipmentEvidenceEditor({
     }));
     try {
       await scanSimpleBarcodeBatch(
-        pending.map(item => ({ id: item.id, file: item.originalFile, hd: item.hd })),
+        pending.map(item => ({ id: item.id, file: item.originalFile, loadFile: () => originalFor(item), hd: item.hd })),
         {
           signal: controller.signal,
           onProgress: (progress) => setBatchProgress(progress),
@@ -483,7 +485,7 @@ export function ShipmentEvidenceEditor({
     }));
 
     try {
-      const transformedFile = await processImage(item.originalFile, {
+      const transformedFile = await processImage(await originalFor(item), {
         hd: item.hd,
         rotation: item.rotation,
         flipX: item.flipX,
@@ -538,7 +540,7 @@ export function ShipmentEvidenceEditor({
     }
 
     const hasUnanalyzedImages = items.some(
-      (item) => !analyzedEvidenceIdsRef.current.has(item.id),
+      (item) => !item.scanCompleted && !analyzedEvidenceIdsRef.current.has(item.id),
     );
 
     if (!hasUnanalyzedImages) {
@@ -579,7 +581,7 @@ export function ShipmentEvidenceEditor({
   const hasPendingAnalysis = items.some(
     (item) =>
       analysisByEvidenceId[item.id] === "loading" ||
-      !analysisByEvidenceId[item.id],
+      (!item.scanCompleted && !analysisByEvidenceId[item.id]),
   );
   const detectedBarcode =
     current?.detectedBarcode ??

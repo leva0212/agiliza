@@ -1,7 +1,9 @@
+import { evidenceDb } from "../services/evidence-cache-service";
+import { editorAssetKey } from "../services/editor-image-assets";
 import { generateId } from "@/shared/utils/generate-id";
 
 /** Browser-only reproduction of the Flutter Web photo pipeline. */
-export type BarcodeInput = { id: string; file: File; hd?: boolean };
+export type BarcodeInput = { id: string; file: File; loadFile?: () => Promise<File>; hd?: boolean };
 export type BarcodeMetrics = {
   id: string;
   name: string;
@@ -22,10 +24,10 @@ export type BatchProgress = { phase: 'optimizing' | 'scanning'; completed: numbe
 export const MAX_BARCODE_IMAGES = 30;
 export const BARCODE_LIMIT_MESSAGE = 'Solo las primeras 30 imágenes serán tomadas en cuenta';
 
-export function barcodeImageSettings(bytes: number, hd = false) {
-  return bytes <= 1024 * 1024
-    ? { scale: 1, quality: 1 }
-    : { scale: hd ? 0.9 : 0.5, quality: hd ? 0.75 : 0.6 };
+export function barcodeImageSettings(bytes: number, hd = false, width = 0, height = 0) {
+  const maxSide = hd ? 2560 : 1600;
+  const scale = Math.min(1, maxSide / Math.max(width, height, 1));
+  return { scale, quality: bytes <= 1024 * 1024 && scale === 1 ? 1 : hd ? 0.82 : 0.70 };
 }
 
 async function optimize(input: BarcodeInput, metrics: BarcodeMetrics): Promise<File> {
@@ -34,7 +36,7 @@ async function optimize(input: BarcodeInput, metrics: BarcodeMetrics): Promise<F
   let canvas: HTMLCanvasElement | undefined;
   try {
     bitmap = await createImageBitmap(input.file);
-    const { scale, quality } = barcodeImageSettings(input.file.size, input.hd);
+    const { scale, quality } = barcodeImageSettings(input.file.size, input.hd, bitmap.width, bitmap.height);
     metrics.originalWidth = bitmap.width;
     metrics.originalHeight = bitmap.height;
     const width = Math.max(1, Math.round(bitmap.width * scale));
@@ -45,7 +47,7 @@ async function optimize(input: BarcodeInput, metrics: BarcodeMetrics): Promise<F
     let blob: Blob = input.file;
     const header = new Uint8Array(await input.file.slice(0, 3).arrayBuffer());
     const isJpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
-    if (scale !== 1 || !isJpeg) {
+    if (scale !== 1 || quality !== 1 || !isJpeg) {
       canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -103,7 +105,9 @@ export async function scanSimpleBarcodeBatch(
 ) {
   const started = performance.now();
   const batch = inputs.slice(0, MAX_BARCODE_IMAGES);
-  const prepared: Array<{ file: File | null; metrics: BarcodeMetrics }> = [];
+  const prepared: Array<{ key: string | null; metrics: BarcodeMetrics }> = [];
+  const batchId = `scan:${generateId()}`;
+  try {
   // Phase 1 must complete for the entire batch before any scanFile call.
   for (const input of batch) {
     options.signal?.throwIfAborted();
@@ -115,9 +119,31 @@ export async function scanSimpleBarcodeBatch(
       optimizationMs: 0, scanMs: 0, barcode: null,
     };
     let file: File | null = null;
-    try { file = await optimize(input, metrics); }
+    try {
+      const source = input.loadFile ? await input.loadFile() : input.file;
+      metrics.originalBytes = source.size;
+      file = await optimize({ ...input, file: source }, metrics);
+    }
     catch (error) { metrics.error = `Optimización: ${String(error)}`; }
-    prepared.push({ file, metrics });
+    const key = file ? `${batchId}:${input.id}` : null;
+    if (key && file) {
+      const previewKey = editorAssetKey({
+        id: input.id,
+        hd: input.hd ?? false,
+        rotation: 0,
+        flipX: false,
+        flipY: false,
+        cropX: 0,
+        cropY: 0,
+        cropWidth: 0,
+        cropHeight: 0,
+      });
+      await evidenceDb.imageAssets.bulkPut([
+        { key, ownerId: batchId, blob: file },
+        { key: previewKey, ownerId: input.id, blob: file },
+      ]);
+    }
+    prepared.push({ key, metrics });
   }
   const optimizationMs = performance.now() - started;
   const rows: BarcodeMetrics[] = [];
@@ -125,11 +151,15 @@ export async function scanSimpleBarcodeBatch(
   for (const entry of prepared) {
     options.signal?.throwIfAborted();
     options.onProgress?.({ phase: 'scanning', completed: rows.length, total: batch.length });
-    if (entry.file) {
-      try { Object.assign(entry.metrics, await scanJpegDirect(entry.file)); }
+    if (entry.key) {
+      try {
+        const asset = await evidenceDb.imageAssets.get(entry.key);
+        if (!asset) throw new Error("Imagen optimizada no disponible");
+        Object.assign(entry.metrics, await scanJpegDirect(new File([asset.blob], "scan.jpg", { type: "image/jpeg" })));
+      }
       catch (error) { entry.metrics.error = String(error); }
     }
-    entry.file = null;
+    if (entry.key) await evidenceDb.imageAssets.delete(entry.key);
     options.signal?.throwIfAborted();
     rows.push(entry.metrics);
     console.info('[Barcode][Flutter Web]', { ...entry.metrics, result: entry.metrics.barcode ?? 'NO DETECTADO' });
@@ -139,4 +169,7 @@ export async function scanSimpleBarcodeBatch(
   const result = { rows, optimizationMs, totalMs: performance.now() - started };
   console.info('[Barcode][Flutter Web] Lote terminado', result);
   return result;
+  } finally {
+    await evidenceDb.imageAssets.where("ownerId").equals(batchId).delete();
+  }
 }

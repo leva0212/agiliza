@@ -2,6 +2,8 @@ import { generateId } from "@/shared/utils/generate-id";
 
 export type PendingEvidence = {
   id: string;
+  storedLocally?: boolean;
+  scanCompleted?: boolean;
   file: File;
   originalFile: File;
   thumbnailUrl: string;

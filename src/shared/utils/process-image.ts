@@ -21,6 +21,26 @@ export async function processImage(
   try {
     const angle = ((options.rotation % 360) + 360) % 360;
     const rotated = angle === 90 || angle === 270;
+    const maxSize = options.hd ? 2560 : 1600;
+    const hasCrop =
+      (options.cropX ?? 0) !== 0 ||
+      (options.cropY ?? 0) !== 0 ||
+      (options.cropWidth ?? 0) !== 0 ||
+      (options.cropHeight ?? 0) !== 0;
+
+    if (
+      angle === 0 &&
+      !options.flipX &&
+      !options.flipY &&
+      !hasCrop &&
+      file.type === "image/jpeg" &&
+      file.size <= 1024 * 1024 &&
+      image.width <= maxSize &&
+      image.height <= maxSize
+    ) {
+      return file;
+    }
+
     const transformCtx = transformCanvas.getContext("2d");
 
     if (!transformCtx) {
@@ -84,8 +104,8 @@ export async function processImage(
       cropHeight,
     );
 
-    resizedCanvas = resizeCanvas(cropCanvas, options.hd ? 2400 : 1600);
-    const blob = await canvasToBlob(resizedCanvas, options.hd ? 0.92 : 0.75);
+    resizedCanvas = resizeCanvas(cropCanvas, maxSize);
+    const blob = await canvasToBlob(resizedCanvas, options.hd ? 0.82 : 0.70);
 
     return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
       type: "image/jpeg",

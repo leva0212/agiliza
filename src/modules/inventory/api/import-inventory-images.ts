@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { PendingEvidence } from "@/modules/shipments/types/pending-evidence";
 import { getPendingEvidenceFile } from "@/modules/shipments/services/pending-evidence-storage";
-import { processImage } from "@/shared/utils/process-image";
-import { generateThumbnail } from "@/modules/shipments/utils/generate-thumbnail";
+import { editorAsset } from "@/modules/shipments/services/editor-image-assets";
 import { generateId } from "@/shared/utils/generate-id";
 
 type Input = {
@@ -60,17 +59,8 @@ export async function importInventoryImages({
         throw new Error(`No se encontró la imagen original de ${item.file.name}.`);
       }
 
-      const processedFile = await processImage(originalFile, {
-        hd: item.hd,
-        rotation: item.rotation,
-        flipX: item.flipX,
-        flipY: item.flipY,
-        cropX: item.cropX,
-        cropY: item.cropY,
-        cropWidth: item.cropWidth,
-        cropHeight: item.cropHeight,
-      });
-      const thumbnailFile = await generateThumbnail(processedFile);
+      const processedFile = await editorAsset(item);
+      const thumbnailFile = await editorAsset(item, true);
       const fileId = generateId();
       const storagePath = `inventory-imports/${userId}/${fileId}.jpg`;
       const thumbnailPath = `inventory-imports/${userId}/thumbnails/${fileId}.jpg`;

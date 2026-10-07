@@ -26,6 +26,8 @@ const MAX_CACHE_BYTES = 150 * 1024 * 1024;
 class EvidenceDatabase extends Dexie {
   evidences!: Table<CachedEvidence>;
   pendingEvidences!: Table<PendingEvidenceRecord>;
+  importSessions!: Table<{ id: string; metadata: string }>;
+  imageAssets!: Table<{ key: string; ownerId: string; blob: Blob }>;
 
   constructor() {
     super("syslogistics_evidences");
@@ -37,6 +39,12 @@ class EvidenceDatabase extends Dexie {
     this.version(2).stores({
       evidences: "evidenceId, shipmentId, downloadedAt",
       pendingEvidences: "id, shipmentId, createdAt",
+    });
+    this.version(3).stores({
+      evidences: "evidenceId, shipmentId, downloadedAt",
+      pendingEvidences: "id, shipmentId, createdAt",
+      importSessions: "id",
+      imageAssets: "key, ownerId",
     });
   }
 }

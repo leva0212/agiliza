@@ -54,7 +54,15 @@ export async function hasPendingEvidenceFile(
 export async function deletePendingEvidenceFile(
   id: string,
 ) {
-  await evidenceDb.pendingEvidences.delete(id);
+  await evidenceDb.transaction(
+    "rw",
+    evidenceDb.pendingEvidences,
+    evidenceDb.imageAssets,
+    async () => {
+      await evidenceDb.pendingEvidences.delete(id);
+      await evidenceDb.imageAssets.where("ownerId").equals(id).delete();
+    },
+  );
 }
 
 export async function deletePendingEvidenceFiles(
@@ -62,7 +70,15 @@ export async function deletePendingEvidenceFiles(
 ) {
   if (ids.length === 0) return;
 
-  await evidenceDb.pendingEvidences.bulkDelete(ids);
+  await evidenceDb.transaction(
+    "rw",
+    evidenceDb.pendingEvidences,
+    evidenceDb.imageAssets,
+    async () => {
+      await evidenceDb.pendingEvidences.bulkDelete(ids);
+      await evidenceDb.imageAssets.where("ownerId").anyOf(ids).delete();
+    },
+  );
 }
 
 /**

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* Run with NODE_PATH pointing to the bundled Playwright runtime, if needed. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -42,15 +43,15 @@ const { Code128Reader } = require('@zxing/library');
         onProgress: progress => phases.push(progress.phase),
       });
       return { count: batch.rows.length, rows: batch.rows, phases,
-        atLimit: simpleBarcode.barcodeImageSettings(1024 * 1024),
-        above: simpleBarcode.barcodeImageSettings(1024 * 1024 + 1),
-        hd: simpleBarcode.barcodeImageSettings(1024 * 1024 + 1, true),
+        atLimit: simpleBarcode.barcodeImageSettings(1024 * 1024, false, 1200, 800),
+        above: simpleBarcode.barcodeImageSettings(1024 * 1024 + 1, false, 4000, 3000),
+        hd: simpleBarcode.barcodeImageSettings(1024 * 1024 + 1, true, 4000, 3000),
         leftover: document.querySelectorAll('[id^="barcode-simple-"]').length };
     });
     assert.equal(contract.count, 30);
     assert.deepEqual(contract.atLimit, { scale: 1, quality: 1 });
-    assert.deepEqual(contract.above, { scale: 0.5, quality: 0.6 });
-    assert.deepEqual(contract.hd, { scale: 0.9, quality: 0.75 });
+    assert.deepEqual(contract.above, { scale: 0.4, quality: 0.7 });
+    assert.deepEqual(contract.hd, { scale: 0.64, quality: 0.82 });
     assert.equal(contract.leftover, 0);
     assert.deepEqual(contract.phases.slice(0, 30), Array(30).fill('optimizing'));
     assert(contract.phases.slice(30).every(phase => phase === 'scanning'));
@@ -95,10 +96,13 @@ const { Code128Reader } = require('@zxing/library');
         return simpleBarcode.scanSimpleBarcodeBatch(inputs);
       }, { files, hd });
       for (const row of result.rows) {
-        const scale = row.originalBytes <= 1024 * 1024 ? 1 : hd ? 0.9 : 0.5;
+        const maxSide = hd ? 2560 : 1600;
+        const scale = Math.min(1, maxSide / Math.max(row.originalWidth, row.originalHeight));
         assert.equal(row.optimizedWidth, Math.max(1, Math.round(row.originalWidth * scale)));
         assert.equal(row.optimizedHeight, Math.max(1, Math.round(row.originalHeight * scale)));
-        if (scale === 1) assert.equal(row.originalBytes, row.optimizedBytes);
+        if (scale === 1 && row.originalBytes <= 1024 * 1024) {
+          assert.equal(row.originalBytes, row.optimizedBytes);
+        }
       }
       console.log(JSON.stringify({ mode: hd ? 'HD' : 'Normal', count: result.rows.length, detected: result.rows.filter(row => row.barcode).length, totalMs: result.totalMs }));
       results.push({ hd, ...result });

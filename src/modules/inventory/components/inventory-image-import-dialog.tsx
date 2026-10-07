@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,9 +12,11 @@ import { ShipmentEvidenceEditor } from "@/modules/shipments/components/evidence-
 import { createPendingEvidence, type PendingEvidence } from "@/modules/shipments/types/pending-evidence";
 import {
   deletePendingEvidenceFile,
-  deletePendingEvidenceFiles,
   savePendingEvidenceFile,
 } from "@/modules/shipments/services/pending-evidence-storage";
+import { createClient } from "@/lib/supabase/client";
+import { evidenceDb } from "@/modules/shipments/services/evidence-cache-service";
+import { clearDraft, readDraft, serializeDraft } from "../services/import-draft";
 import { importInventoryImages } from "../api/import-inventory-images";
 
 const MAX_IMAGES = 30;
@@ -50,10 +52,64 @@ export function InventoryImageImportDialog({
   const [companyOpen, setCompanyOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(false);
 
+  const [draftId, setDraftId] = useState("");
+  const [restoring, setRestoring] = useState(true);
+  const [savingFiles, setSavingFiles] = useState(false);
+  const latestItems = useRef<PendingEvidence[]>([]);
+  const writes = useRef<Promise<unknown>>(Promise.resolve());
+  const savingEnabled = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    savingEnabled.current = false;
+    void (async () => {
+      setRestoring(true);
+      try {
+        await writes.current;
+        const { data } = await createClient().auth.getUser();
+        if (!data.user) throw new Error("Debe iniciar sesión para recuperar el borrador");
+        const id = `inventory-import:${data.user.id}`;
+        const draft = await readDraft(id);
+        if (cancelled) return;
+        setDraftId(id);
+        latestItems.current = draft?.items ?? [];
+        setItems(draft?.items ?? []);
+        if (draft) {
+          setCourier(draft.courier); setCompany(draft.company); setProduct(draft.product);
+          if (draft.items.length > 0) {
+            setEditorOpen(true);
+            toast.info(`Borrador recuperado: ${draft.items.length} imagen${draft.items.length === 1 ? "" : "es"}`);
+          }
+        }
+        savingEnabled.current = true;
+        if (navigator.storage?.persist) void navigator.storage.persist().catch(() => false);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo recuperar el borrador");
+      } finally { if (!cancelled) setRestoring(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+
+  const saveChanges = useCallback((next: PendingEvidence[]) => {
+    latestItems.current = next;
+    if (!draftId || !savingEnabled.current) return;
+    const metadata = serializeDraft({ courier, company, product, items: next });
+    writes.current = writes.current.catch(() => undefined).then(() =>
+      evidenceDb.importSessions.put({ id: draftId, metadata }),
+    );
+    void writes.current.catch(() => toast.error("No se pudo guardar el borrador local. No cierre la página."));
+  }, [draftId, courier, company, product]);
+
+  useEffect(() => {
+    if (open && !restoring) saveChanges(latestItems.current);
+  }, [open, restoring, saveChanges]);
+
   if (!open) return null;
 
   async function addFiles(files: File[]) {
-    const available = MAX_IMAGES - items.length;
+    if (savingFiles || restoring || !savingEnabled.current) return;
+    const available = MAX_IMAGES - latestItems.current.length;
     if (available <= 0) {
       toast.info("Ya alcanzó el máximo de 30 imágenes");
       return;
@@ -64,18 +120,24 @@ export function InventoryImageImportDialog({
       toast.info(`Solo las primeras ${accepted.length} imágenes serán tomadas en cuenta`);
     }
 
-    const newItems = accepted.map(createPendingEvidence);
+    setSavingFiles(true);
+    const newItems: PendingEvidence[] = [];
     try {
-      await Promise.all(newItems.map((item) =>
-        savePendingEvidenceFile(item.id, "inventory-image-import", item.originalFile),
-      ));
-      setItems((current) => [...current, ...newItems]);
+      for (const file of accepted) {
+        const item = createPendingEvidence(file);
+        await savePendingEvidenceFile(item.id, draftId, file);
+        const placeholder = new File([], file.name, { type: file.type });
+        newItems.push({ ...item, file: placeholder, originalFile: placeholder, storedLocally: true });
+        const savedSoFar = [...latestItems.current, newItems.at(-1)!];
+        saveChanges(savedSoFar);
+        await writes.current;
+        setItems(savedSoFar);
+      }
       setEditorOpen(true);
     } catch (error) {
-      await deletePendingEvidenceFiles(newItems.map((item) => item.id));
       console.error("[InventoryImport] No se guardaron las imágenes en IndexedDB", error);
-      toast.error("No fue posible guardar las imágenes en el dispositivo");
-    }
+      toast.error("No fue posible guardar todas las imágenes. Se conservaron las guardadas.");
+    } finally { setSavingFiles(false); }
   }
 
   function validateDestination() {
@@ -87,7 +149,11 @@ export function InventoryImageImportDialog({
   }
 
   async function discardAndClose() {
-    await deletePendingEvidenceFiles(items.map((item) => item.id));
+    if (!window.confirm("¿Descartar todas las fotos y ediciones de este borrador?")) return;
+    savingEnabled.current = false;
+    await writes.current;
+    await clearDraft(draftId, latestItems.current);
+    latestItems.current = [];
     setItems([]);
     setEditorOpen(false);
     onClose();
@@ -106,7 +172,10 @@ export function InventoryImageImportDialog({
         mediumStock: 50,
         items: pendingItems,
       });
-      await deletePendingEvidenceFiles(pendingItems.map((item) => item.id));
+      savingEnabled.current = false;
+      await writes.current;
+      await clearDraft(draftId, pendingItems);
+      latestItems.current = [];
       setItems([]);
       setEditorOpen(false);
       await onImported();
@@ -125,7 +194,7 @@ export function InventoryImageImportDialog({
       <input
         ref={filesInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         multiple
         className="hidden"
         onChange={(event) => {
@@ -137,7 +206,7 @@ export function InventoryImageImportDialog({
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         capture="environment"
         className="hidden"
         onChange={(event) => {
@@ -156,12 +225,14 @@ export function InventoryImageImportDialog({
                 Las fotos se guardan primero en este dispositivo, se leen automáticamente y se importan solo al confirmar.
               </p>
             </div>
-            <button type="button" onClick={() => void discardAndClose()} disabled={importing} aria-label="Cerrar" className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <button type="button" onClick={async () => { await writes.current; onClose(); }} disabled={importing || savingFiles || restoring} aria-label="Cerrar" className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
               <X size={20} />
             </button>
           </div>
 
-          <div className="space-y-4 p-5">
+          <fieldset disabled={restoring || savingFiles || importing || !draftId} className="space-y-4 p-5 disabled:opacity-60">
+            {restoring && <p role="status">Recuperando borrador…</p>}
+            {savingFiles && <p role="status">Guardando fotos en este dispositivo…</p>}
             <SearchSelector label="Mensajero" valueName={courier?.name ?? ""} placeholder="Seleccione un mensajero" onSearch={() => setCourierOpen(true)} />
             <SearchSelector label="Empresa" valueName={company?.name ?? ""} placeholder="Seleccione una empresa" onSearch={() => setCompanyOpen(true)} />
             <SearchSelector label="Producto" valueName={product?.name ?? ""} placeholder={company ? "Seleccione un producto" : "Seleccione una empresa primero"} disabled={!company} onSearch={() => setProductOpen(true)} />
@@ -184,7 +255,8 @@ export function InventoryImageImportDialog({
                 Revisar {items.length} imagen{items.length === 1 ? "" : "es"} y leer códigos
               </button>
             )}
-          </div>
+            {items.length > 0 && <button type="button" onClick={() => void discardAndClose()} className="text-sm text-red-500 underline">Descartar borrador</button>}
+          </fieldset>
         </div>
       </div>}
 
@@ -195,11 +267,18 @@ export function InventoryImageImportDialog({
       <ShipmentEvidenceEditor
         open={editorOpen}
         evidences={items}
-        onClose={() => setEditorOpen(false)}
+        onClose={async () => {
+          await writes.current;
+          setItems(latestItems.current);
+          setEditorOpen(false);
+        }}
+        onItemsChange={saveChanges}
         onUpload={handleImport}
         onRemoveEvidence={(id) => {
-          setItems((current) => current.filter((item) => item.id !== id));
-          void deletePendingEvidenceFile(id);
+          const next = latestItems.current.filter((item) => item.id !== id);
+          saveChanges(next);
+          setItems(next);
+          void writes.current.then(() => deletePendingEvidenceFile(id));
         }}
         isUploading={importing}
         submitLabel="Importar inventario"
