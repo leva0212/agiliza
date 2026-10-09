@@ -6,7 +6,7 @@ import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw } from "lucide-reac
 type Props = {
   open: boolean;
 
-  imageUrl: string;
+  imageFile: File | null;
 
   initialRotation?: number;
 
@@ -39,7 +39,7 @@ type Props = {
 
 export function EvidenceCropDialogCanvas({
   open,
-  imageUrl,
+  imageFile,
 
   initialRotation = 0,
   initialFlipX = false,
@@ -137,6 +137,12 @@ export function EvidenceCropDialogCanvas({
   const [flipX, setFlipX] = useState(initialFlipX);
 
   const [flipY, setFlipY] = useState(initialFlipY);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState("");
+  const initialCropX = initialCrop?.x ?? 0;
+  const initialCropY = initialCrop?.y ?? 0;
+  const initialCropWidth = initialCrop?.width ?? 0;
+  const initialCropHeight = initialCrop?.height ?? 0;
 
   function calculateCanvasSize(
     imageWidth: number,
@@ -191,82 +197,75 @@ export function EvidenceCropDialogCanvas({
     if (!open) {
       return;
     }
-    setRotation(initialRotation);
-
-    setFlipX(initialFlipX);
-
-    setFlipY(initialFlipY);
-
+    if (!imageFile) {
+      return;
+    }
+    let cancelled = false;
     const image = new Image();
+    const imageUrl = URL.createObjectURL(imageFile);
+    const canvas = canvasRef.current;
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled || imageRef.current === image) return;
+      cancelled = true;
+      console.error("[Evidence crop] La imagen tardó demasiado en cargar");
+      setImageLoading(false);
+      setImageError("No fue posible mostrar esta imagen. Cierre y vuelva a intentar.");
+    }, 10000);
 
+    image.decoding = "async";
     image.onload = () => {
-   
-
+      if (cancelled) return;
+      window.clearTimeout(timeoutId);
       imageRef.current = image;
-
       const size = calculateCanvasSize(
-        image.width,
-        image.height,
+        image.naturalWidth || image.width,
+        image.naturalHeight || image.height,
         initialRotation,
       );
-
-      setCanvasSize({
-        width: size.width,
-
-        height: size.height,
-      });
-
-     
-
-      if (initialCrop && initialCrop.width > 0 && initialCrop.height > 0) {
-        const restoredCrop = {
-          x: initialCrop.x * size.width,
-
-          y: initialCrop.y * size.height,
-
-          width: initialCrop.width * size.width,
-
-          height: initialCrop.height * size.height,
-        };
-
-
-
-        setCropBox(restoredCrop);
-
-      } else {
+      setCanvasSize({ width: size.width, height: size.height });
+      if (initialCropWidth > 0 && initialCropHeight > 0) {
         setCropBox({
-          x: 0,
-
-          y: 0,
-
-          width: size.imageWidth,
-
-          height: size.imageHeight,
+          x: initialCropX * size.width,
+          y: initialCropY * size.height,
+          width: initialCropWidth * size.width,
+          height: initialCropHeight * size.height,
         });
+      } else {
+        setCropBox({ x: 0, y: 0, width: size.imageWidth, height: size.imageHeight });
       }
+      setImageLoading(false);
     };
-
+    image.onerror = () => {
+      if (cancelled) return;
+      window.clearTimeout(timeoutId);
+      console.error("[Evidence crop] El navegador no pudo cargar la vista JPEG");
+      setImageLoading(false);
+      setImageError("No fue posible mostrar esta imagen. Cierre y vuelva a intentar.");
+    };
     image.src = imageUrl;
-    const canvas = canvasRef.current;
 
     return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
       image.onload = null;
       image.onerror = null;
       image.src = "";
+      URL.revokeObjectURL(imageUrl);
       if (imageRef.current === image) imageRef.current = null;
 
       if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
+        canvas.setAttribute("width", "0");
+        canvas.setAttribute("height", "0");
       }
     };
   }, [
     open,
-    imageUrl,
-    initialCrop,
+    imageFile,
+    initialCropX,
+    initialCropY,
+    initialCropWidth,
+    initialCropHeight,
     initialRotation,
-    initialFlipX,
-    initialFlipY,
   ]);
 
   useEffect(() => {
@@ -314,9 +313,9 @@ export function EvidenceCropDialogCanvas({
       return;
     }
 
-    canvas.width = canvasSize.width;
+    canvas.setAttribute("width", String(Math.round(canvasSize.width)));
 
-    canvas.height = canvasSize.height;
+    canvas.setAttribute("height", String(Math.round(canvasSize.height)));
 
     const ctx = canvas.getContext("2d");
 
@@ -484,7 +483,8 @@ export function EvidenceCropDialogCanvas({
       justify-center
     "
     >
-      <div
+      <fieldset
+        disabled={imageLoading || Boolean(imageError)}
         className="
     absolute
     top-4
@@ -612,7 +612,7 @@ export function EvidenceCropDialogCanvas({
         >
           <FlipVertical2 className="size-7 sm:size-6" aria-hidden="true" />
         </button>
-      </div>
+      </fieldset>
       <canvas
         ref={canvasRef}
         className="
@@ -802,6 +802,20 @@ export function EvidenceCropDialogCanvas({
         }}
       />
 
+      {imageLoading && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="rounded-xl bg-slate-900/85 px-5 py-3 text-sm font-medium text-white shadow-xl">
+            Preparando imagen…
+          </div>
+        </div>
+      )}
+
+      {imageError && (
+        <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-xl border border-red-400/60 bg-red-950/90 p-4 text-center text-sm text-red-100 shadow-xl">
+          {imageError}
+        </div>
+      )}
+
       <div
         className="
         absolute
@@ -829,6 +843,7 @@ export function EvidenceCropDialogCanvas({
         </button>
 
         <button
+          disabled={imageLoading || Boolean(imageError)}
           onClick={() => {
             const imageArea = visibleImageRef.current;
           
@@ -860,6 +875,9 @@ export function EvidenceCropDialogCanvas({
           bg-green-600
 
           text-white
+
+          disabled:cursor-not-allowed
+          disabled:opacity-40
         "
         >
           ✓

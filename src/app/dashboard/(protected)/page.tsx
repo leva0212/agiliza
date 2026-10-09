@@ -114,7 +114,6 @@ export default async function DashboardHomePage() {
                 src="/images/agiliza-logo-corporate.jpg"
                 alt="Agiliza Logística y Mensajería Empresarial"
                 fill
-                priority
                 sizes="160px"
                 className="object-cover"
               />

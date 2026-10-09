@@ -5,6 +5,7 @@ import { Camera, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { SearchSelector } from "@/shared/components/search-selector";
+import { UiMessage } from "@/shared/components/ui-message";
 import { CourierSearchDialog } from "@/modules/couriers/components/courier-search-dialog";
 import { CompanySearchDialog } from "@/modules/companies/components/company-search-dialog";
 import { ProductSearchDialog } from "@/modules/company-products/components/product-search-dialog";
@@ -51,6 +52,7 @@ export function InventoryImageImportDialog({
   const [courierOpen, setCourierOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(false);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
 
   const [draftId, setDraftId] = useState("");
   const [restoring, setRestoring] = useState(true);
@@ -58,6 +60,27 @@ export function InventoryImageImportDialog({
   const latestItems = useRef<PendingEvidence[]>([]);
   const writes = useRef<Promise<unknown>>(Promise.resolve());
   const savingEnabled = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const bodyOverflow = document.body.style.overflow;
+    const bodyOverscroll = document.body.style.overscrollBehavior;
+    const htmlOverflow = document.documentElement.style.overflow;
+    const htmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.body.style.overscrollBehavior = bodyOverscroll;
+      document.documentElement.style.overflow = htmlOverflow;
+      document.documentElement.style.overscrollBehavior = htmlOverscroll;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -149,7 +172,7 @@ export function InventoryImageImportDialog({
   }
 
   async function discardAndClose() {
-    if (!window.confirm("¿Descartar todas las fotos y ediciones de este borrador?")) return;
+    setDiscardConfirmOpen(false);
     savingEnabled.current = false;
     await writes.current;
     await clearDraft(draftId, latestItems.current);
@@ -217,7 +240,7 @@ export function InventoryImageImportDialog({
       />
 
       {!editorOpen && <div className="fixed inset-0 z-[1500] flex items-center justify-center bg-black/60 p-4">
-        <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
+        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
           <div className="flex items-start justify-between border-b border-slate-200 p-5 dark:border-slate-700">
             <div>
               <h2 className="text-lg font-semibold">Importar inventario desde imágenes</h2>
@@ -225,7 +248,7 @@ export function InventoryImageImportDialog({
                 Las fotos se guardan primero en este dispositivo, se leen automáticamente y se importan solo al confirmar.
               </p>
             </div>
-            <button type="button" onClick={async () => { await writes.current; onClose(); }} disabled={importing || savingFiles || restoring} aria-label="Cerrar" className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => { onClose(); void writes.current.catch(() => toast.error("No se pudo terminar de guardar el borrador local")); }} disabled={importing || savingFiles || restoring} aria-label="Cerrar" className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
               <X size={20} />
             </button>
           </div>
@@ -255,7 +278,7 @@ export function InventoryImageImportDialog({
                 Revisar {items.length} imagen{items.length === 1 ? "" : "es"} y leer códigos
               </button>
             )}
-            {items.length > 0 && <button type="button" onClick={() => void discardAndClose()} className="text-sm text-red-500 underline">Descartar borrador</button>}
+            {items.length > 0 && <button type="button" onClick={() => setDiscardConfirmOpen(true)} className="text-sm text-red-500 underline">Descartar borrador</button>}
           </fieldset>
         </div>
       </div>}
@@ -267,10 +290,10 @@ export function InventoryImageImportDialog({
       <ShipmentEvidenceEditor
         open={editorOpen}
         evidences={items}
-        onClose={async () => {
-          await writes.current;
+        onClose={() => {
           setItems(latestItems.current);
           setEditorOpen(false);
+          void writes.current.catch(() => toast.error("No se pudo terminar de guardar el borrador local"));
         }}
         onItemsChange={saveChanges}
         onUpload={handleImport}
@@ -282,6 +305,17 @@ export function InventoryImageImportDialog({
         }}
         isUploading={importing}
         submitLabel="Importar inventario"
+      />
+
+      <UiMessage
+        open={discardConfirmOpen}
+        type="danger"
+        title="Descartar borrador"
+        message="¿Descartar todas las fotos y ediciones de este borrador?"
+        cancelText="Conservar borrador"
+        confirmText="Descartar"
+        onClose={() => setDiscardConfirmOpen(false)}
+        onConfirm={() => void discardAndClose()}
       />
     </>
   );

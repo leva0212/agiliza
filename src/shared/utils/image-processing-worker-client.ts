@@ -34,7 +34,20 @@ type WorkerResponse = ({ id: number; ok: true } & WorkerImageResult) | { id: num
 
 let worker: Worker | null = null;
 let nextId = 1;
+let idleTerminationTimer: ReturnType<typeof setTimeout> | null = null;
 const pending = new Map<number, Pending>();
+
+function scheduleIdleTermination() {
+  if (pending.size > 0 || !worker) return;
+  if (idleTerminationTimer) clearTimeout(idleTerminationTimer);
+  idleTerminationTimer = setTimeout(() => {
+    if (pending.size === 0) {
+      worker?.terminate();
+      worker = null;
+    }
+    idleTerminationTimer = null;
+  }, 1500);
+}
 
 function supportsWorkerImageProcessing() {
   return typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined" && typeof createImageBitmap !== "undefined";
@@ -42,6 +55,10 @@ function supportsWorkerImageProcessing() {
 
 function getWorker() {
   if (!supportsWorkerImageProcessing()) return null;
+  if (idleTerminationTimer) {
+    clearTimeout(idleTerminationTimer);
+    idleTerminationTimer = null;
+  }
   if (worker) return worker;
 
   worker = new Worker("/workers/image-processing-worker.js");
@@ -51,11 +68,14 @@ function getWorker() {
     pending.delete(data.id);
     if (data.ok) operation.resolve(data);
     else operation.reject(new Error(data.error));
+    scheduleIdleTermination();
   };
   worker.onerror = (event) => {
     const error = new Error(event.message || "Falló el procesador de imágenes");
     for (const operation of pending.values()) operation.reject(error);
     pending.clear();
+    if (idleTerminationTimer) clearTimeout(idleTerminationTimer);
+    idleTerminationTimer = null;
     worker?.terminate();
     worker = null;
   };

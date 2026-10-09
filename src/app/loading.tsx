@@ -10,7 +10,6 @@ export default function Loading() {
             alt="Agiliza"
             width={144}
             height={144}
-            priority
             className="h-full w-full rounded-full object-contain"
           />
         </div>

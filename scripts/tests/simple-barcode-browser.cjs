@@ -14,7 +14,7 @@ const { Code128Reader } = require('@zxing/library');
     const names = (await fs.readdir(path.join('test-images', folder))).filter(name => /\.jpe?g$/i.test(name)).sort().slice(0, 15);
     for (const name of names) files.push({ name, folder });
   }
-  const bundle = await build({ stdin: { contents: 'export * from "./src/modules/shipments/utils/simple-barcode-batch";', resolveDir: process.cwd() }, bundle: true, write: false, format: 'iife', globalName: 'simpleBarcode', platform: 'browser' });
+  const bundle = await build({ stdin: { contents: 'export * from "./src/modules/shipments/utils/simple-barcode-batch"; export { BrowserMultiFormatReader } from "@zxing/browser"; export { DecodeHintType } from "@zxing/library";', resolveDir: process.cwd() }, bundle: true, write: false, format: 'iife', globalName: 'simpleBarcode', platform: 'browser' });
   const server = http.createServer(async (req, res) => {
     try {
       if (req.url === '/bundle.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundle.outputFiles[0].contents); return; }
@@ -96,6 +96,43 @@ const { Code128Reader } = require('@zxing/library');
     assert.equal(control.aborted, true);
     console.log('PASS: exact CODE_128 result, corrupt-file continuation, cancellation; native detector available:', control.nativeDetectorAvailable);
     if (process.env.BARCODE_CONTRACT_ONLY) return;
+    if (process.env.BARCODE_COMPARE_ORIGINAL) {
+      const originalRows = await page.evaluate(async files => {
+        const rows = [];
+        const hints = new Map([[simpleBarcode.DecodeHintType.TRY_HARDER, true]]);
+        const zxingReader = new simpleBarcode.BrowserMultiFormatReader(hints);
+        for (const [i, info] of files.entries()) {
+          const blob = await (await fetch(`/image/${i}`)).blob();
+          const original = new File([blob], info.name, { type: 'image/jpeg' });
+          const result = await simpleBarcode.scanJpegDirect(original);
+          let lowerHalfBarcode = null;
+          let zxingTryHarderBarcode = null;
+          const originalUrl = URL.createObjectURL(original);
+          try { zxingTryHarderBarcode = (await zxingReader.decodeFromImageUrl(originalUrl)).getText(); }
+          catch { /* Diagnostic comparison. */ }
+          finally { URL.revokeObjectURL(originalUrl); }
+          if (!result.barcode) {
+            const bitmap = await createImageBitmap(blob);
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width; canvas.height = Math.ceil(bitmap.height * 0.55);
+            canvas.getContext('2d').drawImage(bitmap, 0, bitmap.height - canvas.height,
+              bitmap.width, canvas.height, 0, 0, canvas.width, canvas.height);
+            const croppedBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+            lowerHalfBarcode = (await simpleBarcode.scanJpegDirect(
+              new File([croppedBlob], `lower-${info.name}`, { type: 'image/jpeg' }),
+            )).barcode;
+            bitmap.close(); canvas.width = canvas.height = 1;
+          }
+          rows.push({ name: info.name, ...result, lowerHalfBarcode, zxingTryHarderBarcode });
+        }
+        return rows;
+      }, files);
+      console.log(JSON.stringify({ mode: 'Original', count: originalRows.length,
+        detected: originalRows.filter(row => row.barcode).length,
+        lowerHalfDetected: originalRows.filter(row => row.lowerHalfBarcode).length,
+        zxingTryHarderDetected: originalRows.filter(row => row.zxingTryHarderBarcode).length,
+        detectedRows: originalRows.filter(row => row.barcode || row.lowerHalfBarcode || row.zxingTryHarderBarcode) }));
+    }
     const results = [];
     for (const hd of [false, true]) {
       const result = await page.evaluate(async ({ files, hd }) => {

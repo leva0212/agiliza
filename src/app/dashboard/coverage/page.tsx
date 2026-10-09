@@ -219,7 +219,6 @@ export default function CoveragePage() {
                 src="/images/agiliza-logo-corporate.jpg"
                 alt="Agiliza"
                 loading="eager"
-                priority
                 width={54}
                 height={54}
                 className="shrink-0 object-contain"

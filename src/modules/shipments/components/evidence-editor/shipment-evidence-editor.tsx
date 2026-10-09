@@ -14,7 +14,7 @@ import {
 import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
 import { processImage } from "@/shared/utils/process-image";
-import { editorAsset, originalFor } from "../../services/editor-image-assets";
+import { editorAsset, editorCropSource, originalFor } from "../../services/editor-image-assets";
 import { type EvidenceImageAnalysis } from "../../utils/analyze-evidence-image";
 import {
   scanSimpleBarcodeBatch,
@@ -42,6 +42,8 @@ type Props = {
   onItemsChange?: (items: PendingEvidence[]) => void;
 };
 
+const EMPTY_SHIPMENT_ITEMS: Array<{ id: string; productName: string }> = [];
+
 export function ShipmentEvidenceEditor({
   open,
   evidences,
@@ -49,7 +51,7 @@ export function ShipmentEvidenceEditor({
   onUpload,
   onRemoveEvidence,
   isUploading = false,
-  shipmentItems = [],
+  shipmentItems = EMPTY_SHIPMENT_ITEMS,
   shipmentCompanyCode,
   submitLabel = "Subir evidencias",
   onItemsChange,
@@ -60,7 +62,8 @@ export function ShipmentEvidenceEditor({
   const [activePreviewUrl, setActivePreviewUrl] = useState("");
   const [activePreviewLoading, setActivePreviewLoading] = useState(false);
   const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = useState(false);
-  const [cropImageUrl, setCropImageUrl] = useState("");
+  const [cropImageFile, setCropImageFile] = useState<File | null>(null);
+  const [cropPreparing, setCropPreparing] = useState(false);
   const [thumbnailGenerationPaused, setThumbnailGenerationPaused] =
     useState(false);
   const [analysisByEvidenceId, setAnalysisByEvidenceId] = useState<
@@ -74,16 +77,34 @@ export function ShipmentEvidenceEditor({
   const touchStartX = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activePreviewUrlRef = useRef("");
-  const cropImageUrlRef = useRef("");
   const thumbnailUrlsRef = useRef(new Set<string>());
   const thumbnailEvidenceIdsRef = useRef(new Set<string>());
+  const removedEvidenceIdsRef = useRef(new Set<string>());
+  const itemsRef = useRef<PendingEvidence[]>([]);
   const imageWorkQueueRef = useRef<Promise<void>>(Promise.resolve());
   const analyzedEvidenceIdsRef = useRef(new Set<string>());
   const analysisRerunRequestedRef = useRef(false);
   const cleanupTimerRef = useRef<number | null>(null);
+  const insecureBarcodeWarningShownRef = useRef(false);
+
+  function revokeObjectUrlAfterRender(url: string) {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => URL.revokeObjectURL(url));
+    });
+  }
 
   useEffect(() => {
-    if (open && items.length) onItemsChange?.(items);
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    if (open && items.length) {
+      // Object URLs only belong to this mounted editor. Passing them to the
+      // parent allows a revoked URL to return after close/reopen or Fast Refresh.
+      onItemsChange?.(items.map((item) =>
+        item.thumbnailUrl ? { ...item, thumbnailUrl: "" } : item,
+      ));
+    }
   }, [items, open, onItemsChange]);
 
   const current = items[index];
@@ -98,6 +119,7 @@ export function ShipmentEvidenceEditor({
   const currentCropY = current?.cropY;
   const currentCropWidth = current?.cropWidth;
   const currentCropHeight = current?.cropHeight;
+  const itemIdsKey = items.map((item) => item.id).join("|");
 
   function normalizeBarcodeOptions(...groups: Array<Array<string | null | undefined>>) {
     const candidates = groups
@@ -159,14 +181,6 @@ export function ShipmentEvidenceEditor({
     let cancelled = false;
 
     async function loadActivePreview() {
-      await Promise.resolve();
-
-      if (activePreviewUrlRef.current) {
-        URL.revokeObjectURL(activePreviewUrlRef.current);
-        activePreviewUrlRef.current = "";
-      }
-
-      setActivePreviewUrl("");
       setActivePreviewLoading(true);
 
       try {
@@ -182,15 +196,22 @@ export function ShipmentEvidenceEditor({
 
         const nextUrl = URL.createObjectURL(processedFile);
 
-        if (cancelled) {
+        if (cancelled || removedEvidenceIdsRef.current.has(currentId!)) {
           URL.revokeObjectURL(nextUrl);
           return;
         }
 
+        const previousUrl = activePreviewUrlRef.current;
         activePreviewUrlRef.current = nextUrl;
         setActivePreviewUrl(nextUrl);
+
+        if (previousUrl && previousUrl !== nextUrl) {
+          revokeObjectUrlAfterRender(previousUrl);
+        }
       } catch (error) {
-        console.error("[Evidence lazy preview]", error);
+        if (!cancelled && !removedEvidenceIdsRef.current.has(currentId!)) {
+          console.error("[Evidence lazy preview]", error);
+        }
       } finally {
         if (!cancelled) {
           setActivePreviewLoading(false);
@@ -230,10 +251,18 @@ export function ShipmentEvidenceEditor({
         if (cancelled || thumbnailGenerationPaused) break;
 
         try {
-          if (thumbnailEvidenceIdsRef.current.has(evidence.id)) continue;
+          if (
+            thumbnailEvidenceIdsRef.current.has(evidence.id) ||
+            removedEvidenceIdsRef.current.has(evidence.id) ||
+            !itemsRef.current.some((item) => item.id === evidence.id)
+          ) continue;
 
           const thumbnailTask = imageWorkQueueRef.current.then(() => {
-            if (cancelled) return null;
+            if (
+              cancelled ||
+              removedEvidenceIdsRef.current.has(evidence.id) ||
+              !itemsRef.current.some((item) => item.id === evidence.id)
+            ) return null;
             return editorAsset(evidence, true);
           });
 
@@ -244,13 +273,23 @@ export function ShipmentEvidenceEditor({
 
           const thumbnail = await thumbnailTask;
 
-          if (!thumbnail) break;
+          if (!thumbnail) continue;
+
+          if (
+            cancelled ||
+            removedEvidenceIdsRef.current.has(evidence.id) ||
+            !itemsRef.current.some((item) => item.id === evidence.id)
+          ) continue;
 
           const thumbnailUrl = URL.createObjectURL(thumbnail);
 
-          if (cancelled) {
+          if (
+            cancelled ||
+            removedEvidenceIdsRef.current.has(evidence.id) ||
+            !itemsRef.current.some((item) => item.id === evidence.id)
+          ) {
             URL.revokeObjectURL(thumbnailUrl);
-            break;
+            continue;
           }
 
           thumbnailUrlsRef.current.add(thumbnailUrl);
@@ -267,7 +306,13 @@ export function ShipmentEvidenceEditor({
             window.requestAnimationFrame(() => resolve());
           });
         } catch (error) {
-          console.error("[Evidence thumbnail]", error);
+          if (
+            !cancelled &&
+            !removedEvidenceIdsRef.current.has(evidence.id) &&
+            itemsRef.current.some((item) => item.id === evidence.id)
+          ) {
+            console.error("[Evidence thumbnail]", error);
+          }
         }
       }
     }
@@ -277,7 +322,7 @@ export function ShipmentEvidenceEditor({
     return () => {
       cancelled = true;
     };
-  }, [evidences, open, thumbnailGenerationPaused]);
+  }, [evidences, itemIdsKey, open, thumbnailGenerationPaused]);
 
   useEffect(() => {
     if (!open) return;
@@ -294,19 +339,22 @@ export function ShipmentEvidenceEditor({
 
     return () => {
       cleanupTimerRef.current = window.setTimeout(() => {
-        if (activePreviewUrlRef.current) {
-          URL.revokeObjectURL(activePreviewUrlRef.current);
+        const activeUrl = activePreviewUrlRef.current;
+        if (activeUrl) {
+          setActivePreviewUrl((currentUrl) => currentUrl === activeUrl ? "" : currentUrl);
+          URL.revokeObjectURL(activeUrl);
           activePreviewUrlRef.current = "";
-        }
-
-        if (cropImageUrlRef.current) {
-          URL.revokeObjectURL(cropImageUrlRef.current);
-          cropImageUrlRef.current = "";
         }
 
         for (const thumbnailUrl of thumbnailUrls) {
           URL.revokeObjectURL(thumbnailUrl);
         }
+
+        setItems((currentItems) => currentItems.map((item) =>
+          item.thumbnailUrl && thumbnailUrls.has(item.thumbnailUrl)
+            ? { ...item, thumbnailUrl: "" }
+            : item,
+        ));
 
         thumbnailUrls.clear();
         thumbnailEvidenceIds.clear();
@@ -351,33 +399,28 @@ export function ShipmentEvidenceEditor({
     setCropOpen(false);
     setThumbnailGenerationPaused(false);
 
-    if (cropImageUrlRef.current) {
-      URL.revokeObjectURL(cropImageUrlRef.current);
-      cropImageUrlRef.current = "";
-    }
-
-    setCropImageUrl("");
+    setCropImageFile(null);
   }
 
   async function openCropDialog() {
-    if (!current) return;
+    if (!current || cropPreparing) return;
 
+    setCropPreparing(true);
     setThumbnailGenerationPaused(true);
 
-    if (cropImageUrlRef.current) {
-      URL.revokeObjectURL(cropImageUrlRef.current);
-    }
-
     let source: File;
-    try { source = await originalFor(current); } catch {
+    try {
+      source = await editorCropSource(current);
+    } catch (error) {
+      console.error("[Evidence crop] No fue posible preparar la imagen", error);
       setThumbnailGenerationPaused(false);
       toast.error("No fue posible cargar la imagen para recortar");
+      setCropPreparing(false);
       return;
     }
-    const nextUrl = URL.createObjectURL(source);
-    cropImageUrlRef.current = nextUrl;
-    setCropImageUrl(nextUrl);
+    setCropImageFile(source);
     setCropOpen(true);
+    setCropPreparing(false);
   }
   useEffect(() => {
     if (!open) return;
@@ -389,7 +432,7 @@ export function ShipmentEvidenceEditor({
         currentItems.map((item) => [item.id, item]),
       );
 
-      return evidences.map((evidence) => {
+      const mergedItems = evidences.map((evidence) => {
         const existing = currentById.get(evidence.id);
 
         if (existing) {
@@ -405,6 +448,12 @@ export function ShipmentEvidenceEditor({
               : null),
         };
       });
+
+      const unchanged =
+        mergedItems.length === currentItems.length &&
+        mergedItems.every((item, itemIndex) => item === currentItems[itemIndex]);
+
+      return unchanged ? currentItems : mergedItems;
     });
 
     setIndex((currentIndex) => {
@@ -444,7 +493,7 @@ export function ShipmentEvidenceEditor({
       ...Object.fromEntries(pending.map(item => [item.id, "loading" as const])),
     }));
     try {
-      await scanSimpleBarcodeBatch(
+      const result = await scanSimpleBarcodeBatch(
         pending.map(item => ({ id: item.id, file: item.originalFile, loadFile: () => originalFor(item), hd: item.hd })),
         {
           signal: controller.signal,
@@ -455,6 +504,17 @@ export function ShipmentEvidenceEditor({
           },
         },
       );
+      if (
+        result.rows.every((row) => !row.barcode) &&
+        !window.isSecureContext &&
+        !insecureBarcodeWarningShownRef.current
+      ) {
+        insecureBarcodeWarningShownRef.current = true;
+        toast.warning(
+          "La conexión HTTP por IP desactiva el lector nativo de códigos de Chrome Android. Use HTTPS o localhost para probar la detección móvil.",
+          { duration: 9000 },
+        );
+      }
     } catch (error) {
       if (!controller.signal.aborted) {
         console.error("[Barcode batch]", error);
@@ -736,6 +796,7 @@ export function ShipmentEvidenceEditor({
           <button
             type="button"
             onClick={openCropDialog}
+            disabled={cropPreparing}
             className="
     w-11
     h-11
@@ -750,9 +811,14 @@ export function ShipmentEvidenceEditor({
     flex
     items-center
     justify-center
+
+    disabled:cursor-wait
+    disabled:opacity-60
   "
+            aria-label={cropPreparing ? "Preparando imagen para recortar" : "Recortar imagen"}
+            title={cropPreparing ? "Preparando imagen…" : "Recortar imagen"}
           >
-            <Crop size={20} />
+            <Crop size={20} className={cropPreparing ? "animate-pulse" : ""} />
           </button>
         </div>
       </div>
@@ -1056,12 +1122,15 @@ export function ShipmentEvidenceEditor({
 
                   const nextItems = items.filter((x) => x.id !== evidence.id);
 
+                  removedEvidenceIdsRef.current.add(evidence.id);
+                  itemsRef.current = nextItems;
+                  setItems(nextItems);
                   onRemoveEvidence?.(evidence.id);
 
                   if (evidence.thumbnailUrl) {
-                    URL.revokeObjectURL(evidence.thumbnailUrl);
                     thumbnailUrlsRef.current.delete(evidence.thumbnailUrl);
                     thumbnailEvidenceIdsRef.current.delete(evidence.id);
+                    revokeObjectUrlAfterRender(evidence.thumbnailUrl);
                   }
 
                   if (nextItems.length === 0) {
@@ -1069,8 +1138,6 @@ export function ShipmentEvidenceEditor({
 
                     return;
                   }
-
-                  setItems(nextItems);
 
                   if (index >= nextItems.length) {
                     setIndex(nextItems.length - 1);
@@ -1168,6 +1235,16 @@ export function ShipmentEvidenceEditor({
                   <img
                     src={evidence.thumbnailUrl}
                     alt=""
+                    onError={() => {
+                      const failedUrl = evidence.thumbnailUrl;
+                      thumbnailEvidenceIdsRef.current.delete(evidence.id);
+                      thumbnailUrlsRef.current.delete(failedUrl);
+                      setItems((currentItems) => currentItems.map((item) =>
+                        item.id === evidence.id
+                          ? { ...item, thumbnailUrl: "" }
+                          : item,
+                      ));
+                    }}
                     className={`
               h-17
               w-17
@@ -1336,25 +1413,26 @@ export function ShipmentEvidenceEditor({
       )}
 
       {batchProgress && (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/70 p-6" role="status" aria-live="polite">
-          <div className="w-full max-w-xs overflow-hidden rounded-3xl bg-zinc-800 shadow-2xl">
-            <div className="bg-fuchsia-700 px-5 py-4 text-lg font-bold text-white">
+        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-slate-950/75 p-6 backdrop-blur-[2px]" role="status" aria-live="polite">
+          <div className="w-full max-w-xs overflow-hidden rounded-3xl border border-cyan-400/35 bg-white shadow-2xl shadow-blue-950/40 dark:bg-slate-900">
+            <div className="bg-gradient-to-r from-blue-950 via-blue-700 to-cyan-500 px-5 py-4 text-lg font-bold text-white">
               {batchProgress.phase === "optimizing" ? "Optimizando imágenes" : "Buscando códigos de barras"}
             </div>
             <div className="px-5 py-5 text-center">
-              <p className="text-lg font-medium text-white/75">Imagen {progressImage} de {progressTotal}</p>
-              <div className="mt-5 h-3 overflow-hidden rounded-full bg-zinc-600">
-                <div className="h-full bg-fuchsia-700 transition-[width] duration-200" style={{ width: `${progressPercent}%` }} />
+              <p className="text-lg font-medium text-slate-600 dark:text-slate-200">Imagen {progressImage} de {progressTotal}</p>
+              <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                <div className="h-full bg-gradient-to-r from-blue-700 to-cyan-400 transition-[width] duration-200" style={{ width: `${progressPercent}%` }} />
               </div>
-              <p className="mt-4 text-lg font-medium text-fuchsia-500">{progressPercent}%</p>
+              <p className="mt-4 text-lg font-semibold text-blue-700 dark:text-cyan-300">{progressPercent}%</p>
             </div>
           </div>
         </div>
       )}
 
       <EvidenceCropDialogCanvas
+        key={cropImageFile ? `${current.id}:${cropImageFile.lastModified}` : "crop-dialog"}
         open={cropOpen}
-        imageUrl={cropImageUrl}
+        imageFile={cropImageFile}
         initialRotation={current.rotation}
         initialFlipX={current.flipX}
         initialFlipY={current.flipY}

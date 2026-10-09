@@ -285,7 +285,7 @@ export default function TrackingPage() {
         <section className="relative overflow-hidden rounded-2xl border border-sky-600 bg-gradient-to-r from-white to-sky-50 px-4 py-3 shadow-sm dark:from-slate-900 dark:to-blue-950/40">
           <div className="relative flex items-center gap-3">
             <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-sky-200/80 bg-white p-1 shadow-sm dark:border-slate-700">
-              <Image src="/images/agiliza-logo-corporate.jpg" alt="Agiliza" width={52} height={52} priority className="h-full w-full object-contain" />
+              <Image src="/images/agiliza-logo-corporate.jpg" alt="Agiliza" width={52} height={52} className="h-full w-full object-contain" />
             </div>
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">Gestión de entregas</div>
