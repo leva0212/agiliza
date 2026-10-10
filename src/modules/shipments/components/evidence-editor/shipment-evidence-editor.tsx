@@ -61,6 +61,7 @@ export function ShipmentEvidenceEditor({
   const [items, setItems] = useState<PendingEvidence[]>([]);
   const [activePreviewUrl, setActivePreviewUrl] = useState("");
   const [activePreviewLoading, setActivePreviewLoading] = useState(false);
+  const [previewRevision, setPreviewRevision] = useState(0);
   const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = useState(false);
   const [cropImageFile, setCropImageFile] = useState<File | null>(null);
   const [cropSession, setCropSession] = useState(0);
@@ -238,6 +239,7 @@ export function ShipmentEvidenceEditor({
     currentCropY,
     currentCropWidth,
     currentCropHeight,
+    previewRevision,
   ]);
 
   useEffect(() => {
@@ -761,22 +763,26 @@ export function ShipmentEvidenceEditor({
           <button
             type="button"
             onClick={() => {
-              const copy = [...items];
-
-              copy[index] = {
-                ...copy[index],
-                file: copy[index].originalFile,
-                hd: false,
-                rotation: 0,
-                flipX: false,
-                flipY: false,
-                cropX: 0,
-                cropY: 0,
-                cropWidth: 0,
-                cropHeight: 0,
-              };
-
-              setItems(copy);
+              const evidenceId = current.id;
+              setItems((currentItems) => currentItems.map((item) =>
+                item.id === evidenceId
+                  ? {
+                      ...item,
+                      file: item.originalFile,
+                      hd: false,
+                      rotation: 0,
+                      flipX: false,
+                      flipY: false,
+                      cropX: 0,
+                      cropY: 0,
+                      cropWidth: 0,
+                      cropHeight: 0,
+                    }
+                  : item,
+              ));
+              // Force a fresh preview even when the original/base asset was
+              // already cached before the crop was applied.
+              setPreviewRevision((revision) => revision + 1);
             }}
             className="
     w-10
@@ -1462,7 +1468,6 @@ export function ShipmentEvidenceEditor({
           };
 
           setItems(copy);
-          closeCropDialog();
         }}
       />
       <BarcodeLiveScannerDialog

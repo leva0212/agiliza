@@ -247,6 +247,15 @@ export function InventoryImageImportDialog({
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 Las fotos se guardan primero en este dispositivo, se leen automáticamente y se importan solo al confirmar.
               </p>
+              {items.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setDiscardConfirmOpen(true)}
+                  className="mt-3 inline-flex rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
+                >
+                  Descartar borrador
+                </button>
+              )}
             </div>
             <button type="button" onClick={() => { onClose(); void writes.current.catch(() => toast.error("No se pudo terminar de guardar el borrador local")); }} disabled={importing || savingFiles || restoring} aria-label="Cerrar" className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
               <X size={20} />
@@ -278,7 +287,6 @@ export function InventoryImageImportDialog({
                 Revisar {items.length} imagen{items.length === 1 ? "" : "es"} y leer códigos
               </button>
             )}
-            {items.length > 0 && <button type="button" onClick={() => setDiscardConfirmOpen(true)} className="text-sm text-red-500 underline">Descartar borrador</button>}
           </fieldset>
         </div>
       </div>}

@@ -43,6 +43,16 @@ function describeImportError(error: unknown) {
   return String(error || "Error desconocido");
 }
 
+function barcodeForItem(item: PendingEvidence) {
+  const selected = item.detectedBarcode?.trim();
+  if (selected) return selected;
+
+  return [...(item.barcodeOptions ?? [])]
+    .map((barcode) => barcode.trim())
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length || left.localeCompare(right))[0] ?? "";
+}
+
 export async function importInventoryImages({
   courierId,
   companyId,
@@ -57,9 +67,17 @@ export async function importInventoryImages({
 
   if (!userId) throw new Error("Debe iniciar sesión para importar inventario.");
 
-  const barcodes = items.map((item) => item.detectedBarcode?.trim() ?? "");
-  if (barcodes.some((barcode) => !barcode)) {
-    throw new Error("Cada imagen debe tener un código de barras antes de importar.");
+  const barcodes = items.map(barcodeForItem);
+  const missingBarcodeItems = items.filter((_, index) => !barcodes[index]);
+  if (missingBarcodeItems.length > 0) {
+    const names = missingBarcodeItems
+      .slice(0, 3)
+      .map((item) => item.originalFile.name || item.file.name || item.id)
+      .join(", ");
+    const remaining = missingBarcodeItems.length - 3;
+    throw new Error(
+      `Falta el código de barras en: ${names}${remaining > 0 ? ` y ${remaining} imagen(es) más` : ""}.`,
+    );
   }
 
   if (new Set(barcodes).size !== barcodes.length) {
@@ -70,7 +88,7 @@ export async function importInventoryImages({
   const rows: ImportedFile[] = [];
 
   try {
-    for (const item of items) {
+    for (const [itemIndex, item] of items.entries()) {
       const originalFile = await getPendingEvidenceFile(item.id);
       if (!originalFile) {
         throw new Error(`No se encontró la imagen original de ${item.file.name}.`);
@@ -112,7 +130,7 @@ export async function importInventoryImages({
 
       const storage = supabase.storage.from(INVENTORY_IMAGE_BUCKET);
       rows.push({
-        barcode: item.detectedBarcode!.trim(),
+        barcode: barcodes[itemIndex],
         storage_path: storagePath,
         file_url: storage.getPublicUrl(storagePath).data.publicUrl,
         thumbnail_url: storage.getPublicUrl(thumbnailPath).data.publicUrl,

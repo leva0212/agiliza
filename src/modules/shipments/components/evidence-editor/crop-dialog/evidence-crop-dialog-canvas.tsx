@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw } from "lucide-react";
+import { useDialogBrowserBack } from "@/shared/hooks/use-dialog-browser-back";
 
 type Props = {
   open: boolean;
@@ -50,6 +51,14 @@ export function EvidenceCropDialogCanvas({
   onClose,
   onApply,
 }: Props) {
+  const requestClose = useDialogBrowserBack({
+    open,
+    blocked: false,
+    historyKey: "evidence-crop-editor",
+    onClose,
+    onBlocked: () => undefined,
+  });
+
   const draggingRef = useRef(false);
 
   const dragOffsetRef = useRef({
@@ -217,6 +226,13 @@ export function EvidenceCropDialogCanvas({
       if (cancelled) return;
       window.clearTimeout(timeoutId);
       imageRef.current = image;
+      // Restore the exact persisted editing state on every crop session.
+      // This was part of the original crop behavior and is required when an
+      // already cropped/rotated image is opened again.
+      setRotation(initialRotation);
+      setFlipX(initialFlipX);
+      setFlipY(initialFlipY);
+      setImageError("");
       const size = calculateCanvasSize(
         image.naturalWidth || image.width,
         image.naturalHeight || image.height,
@@ -266,6 +282,8 @@ export function EvidenceCropDialogCanvas({
     initialCropWidth,
     initialCropHeight,
     initialRotation,
+    initialFlipX,
+    initialFlipY,
   ]);
 
   useEffect(() => {
@@ -827,7 +845,7 @@ export function EvidenceCropDialogCanvas({
       "
       >
         <button
-          onClick={onClose}
+          onClick={requestClose}
           className="
           size-14
           sm:size-12
@@ -864,7 +882,7 @@ export function EvidenceCropDialogCanvas({
               flipY,
             });
 
-            onClose();
+            requestClose();
           }}
           className="
           size-14
