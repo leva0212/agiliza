@@ -14,7 +14,7 @@ import {
 import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
 import { processImage } from "@/shared/utils/process-image";
-import { editorAsset, editorCropSource, originalFor } from "../../services/editor-image-assets";
+import { editorAsset, originalFor } from "../../services/editor-image-assets";
 import { type EvidenceImageAnalysis } from "../../utils/analyze-evidence-image";
 import {
   scanSimpleBarcodeBatch,
@@ -63,6 +63,7 @@ export function ShipmentEvidenceEditor({
   const [activePreviewLoading, setActivePreviewLoading] = useState(false);
   const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = useState(false);
   const [cropImageFile, setCropImageFile] = useState<File | null>(null);
+  const [cropSession, setCropSession] = useState(0);
   const [cropPreparing, setCropPreparing] = useState(false);
   const [thumbnailGenerationPaused, setThumbnailGenerationPaused] =
     useState(false);
@@ -410,7 +411,9 @@ export function ShipmentEvidenceEditor({
 
     let source: File;
     try {
-      source = await editorCropSource(current);
+      // Crop coordinates are later applied to the original file, so the dialog
+      // must display that same source (including its browser-decoded orientation).
+      source = await originalFor(current);
     } catch (error) {
       console.error("[Evidence crop] No fue posible preparar la imagen", error);
       setThumbnailGenerationPaused(false);
@@ -419,6 +422,7 @@ export function ShipmentEvidenceEditor({
       return;
     }
     setCropImageFile(source);
+    setCropSession((session) => session + 1);
     setCropOpen(true);
     setCropPreparing(false);
   }
@@ -1430,7 +1434,7 @@ export function ShipmentEvidenceEditor({
       )}
 
       <EvidenceCropDialogCanvas
-        key={cropImageFile ? `${current.id}:${cropImageFile.lastModified}` : "crop-dialog"}
+        key={cropImageFile ? `${current.id}:${cropSession}` : "crop-dialog"}
         open={cropOpen}
         imageFile={cropImageFile}
         initialRotation={current.rotation}
