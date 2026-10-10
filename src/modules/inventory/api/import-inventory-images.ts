@@ -26,6 +26,23 @@ type ImportedFile = {
 
 const INVENTORY_IMAGE_BUCKET = "shipment-evidences";
 
+function describeImportError(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === "object") {
+    const value = error as {
+      message?: unknown;
+      details?: unknown;
+      hint?: unknown;
+      code?: unknown;
+    };
+    const parts = [value.message, value.details, value.hint]
+      .filter((part): part is string => typeof part === "string" && part.trim().length > 0);
+    const code = typeof value.code === "string" && value.code ? ` (${value.code})` : "";
+    if (parts.length > 0) return `${Array.from(new Set(parts)).join(" — ")}${code}`;
+  }
+  return String(error || "Error desconocido");
+}
+
 export async function importInventoryImages({
   courierId,
   companyId,
@@ -72,7 +89,11 @@ export async function importInventoryImages({
           cacheControl: "31536000",
           upsert: false,
         });
-      if (imageError) throw imageError;
+      if (imageError) {
+        throw new Error(
+          `No se pudo subir la foto ${originalFile.name}: ${describeImportError(imageError)}`,
+        );
+      }
       uploadedPaths.push(storagePath);
 
       const { error: thumbnailError } = await supabase.storage
@@ -82,7 +103,11 @@ export async function importInventoryImages({
           cacheControl: "31536000",
           upsert: false,
         });
-      if (thumbnailError) throw thumbnailError;
+      if (thumbnailError) {
+        throw new Error(
+          `No se pudo subir la miniatura de ${originalFile.name}: ${describeImportError(thumbnailError)}`,
+        );
+      }
       uploadedPaths.push(thumbnailPath);
 
       const storage = supabase.storage.from(INVENTORY_IMAGE_BUCKET);
@@ -107,7 +132,11 @@ export async function importInventoryImages({
       p_created_by: userId,
       p_rows: rows,
     });
-    if (error) throw error;
+    if (error) {
+      throw new Error(
+        `No se pudieron registrar las existencias: ${describeImportError(error)}`,
+      );
+    }
 
     return data;
   } catch (error) {
