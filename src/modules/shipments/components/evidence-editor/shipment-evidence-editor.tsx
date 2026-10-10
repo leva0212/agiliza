@@ -88,6 +88,7 @@ export function ShipmentEvidenceEditor({
   const analysisRerunRequestedRef = useRef(false);
   const cleanupTimerRef = useRef<number | null>(null);
   const insecureBarcodeWarningShownRef = useRef(false);
+  const thumbnailElementsRef = useRef(new Map<string, HTMLDivElement>());
 
   function revokeObjectUrlAfterRender(url: string) {
     window.requestAnimationFrame(() => {
@@ -122,6 +123,47 @@ export function ShipmentEvidenceEditor({
   const currentCropWidth = current?.cropWidth;
   const currentCropHeight = current?.cropHeight;
   const itemIdsKey = items.map((item) => item.id).join("|");
+
+  const duplicateColorsByEvidenceId = (() => {
+    const colors = [
+      "rgba(239, 68, 68, 0.58)",
+      "rgba(234, 179, 8, 0.58)",
+      "rgba(168, 85, 247, 0.58)",
+      "rgba(6, 182, 212, 0.58)",
+      "rgba(249, 115, 22, 0.58)",
+      "rgba(236, 72, 153, 0.58)",
+    ];
+    const evidenceIdsByBarcode = new Map<string, string[]>();
+
+    for (const item of items) {
+      const barcode = item.detectedBarcode?.trim();
+      if (!barcode) continue;
+      const evidenceIds = evidenceIdsByBarcode.get(barcode) ?? [];
+      evidenceIds.push(item.id);
+      evidenceIdsByBarcode.set(barcode, evidenceIds);
+    }
+
+    const colorByEvidenceId = new Map<string, string>();
+    let duplicateGroupIndex = 0;
+    for (const evidenceIds of evidenceIdsByBarcode.values()) {
+      if (evidenceIds.length < 2) continue;
+      const color = colors[duplicateGroupIndex % colors.length];
+      evidenceIds.forEach((evidenceId) => colorByEvidenceId.set(evidenceId, color));
+      duplicateGroupIndex += 1;
+    }
+
+    return colorByEvidenceId;
+  })();
+
+  useEffect(() => {
+    if (!open || !currentId) return;
+
+    thumbnailElementsRef.current.get(currentId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [currentId, open]);
 
   function normalizeBarcodeOptions(...groups: Array<Array<string | null | undefined>>) {
     const candidates = groups
@@ -764,6 +806,17 @@ export function ShipmentEvidenceEditor({
             type="button"
             onClick={() => {
               const evidenceId = current.id;
+              const stalePreviewUrl = activePreviewUrlRef.current;
+
+              activePreviewUrlRef.current = "";
+              setActivePreviewUrl("");
+              setActivePreviewLoading(true);
+              setFullscreenPreviewOpen(false);
+
+              if (stalePreviewUrl) {
+                revokeObjectUrlAfterRender(stalePreviewUrl);
+              }
+
               setItems((currentItems) => currentItems.map((item) =>
                 item.id === evidenceId
                   ? {
@@ -1120,6 +1173,13 @@ export function ShipmentEvidenceEditor({
           {items.map((evidence, i) => (
             <div
               key={evidence.id}
+              ref={(element) => {
+                if (element) {
+                  thumbnailElementsRef.current.set(evidence.id, element);
+                } else {
+                  thumbnailElementsRef.current.delete(evidence.id);
+                }
+              }}
               className="
         relative
         shrink-0
@@ -1235,8 +1295,28 @@ export function ShipmentEvidenceEditor({
                 </div>
               )}
 
+              {duplicateColorsByEvidenceId.has(evidence.id) && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-[5] rounded-lg"
+                  style={{
+                    backgroundColor: duplicateColorsByEvidenceId.get(evidence.id),
+                  }}
+                />
+              )}
+
               <button
                 type="button"
+                aria-label={`Mostrar imagen ${i + 1}${
+                  duplicateColorsByEvidenceId.has(evidence.id)
+                    ? ", código duplicado"
+                    : ""
+                }`}
+                title={
+                  duplicateColorsByEvidenceId.has(evidence.id)
+                    ? `Código duplicado: ${evidence.detectedBarcode?.trim()}`
+                    : `Imagen ${i + 1}`
+                }
                 onClick={() => {
                   setIndex(i);
                 }}
