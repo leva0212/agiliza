@@ -36,6 +36,7 @@ function getPageTitle(pathname: string, searchParams: Pick<URLSearchParams, "has
   if (/^\/dashboard\/products\/edit\/[^/]+$/.test(pathname)) return "Modificar producto";
   if (pathname === "/dashboard/inventory/list") return "Inventario";
   if (pathname === "/dashboard/inventory/movements") return "Movimientos de inventario";
+  if (pathname === "/dashboard/inventory/serialized") return "SIM importadas";
   if (pathname === "/dashboard/reports/dts-charges") return "Cobros a DTS";
   if (pathname === "/dashboard/reports/courier-payments") return "Pagos a mensajeros";
   if (pathname === "/dashboard/settlements/schedules") return "Cronogramas de liquidación";
@@ -68,6 +69,7 @@ function getPageCloseDestination(pathname: string) {
   if (pathname === "/dashboard/users/new" || /^\/dashboard\/users\/edit\/[^/]+$/.test(pathname)) {
     return "/dashboard/users/list";
   }
+  if (pathname === "/dashboard/inventory/serialized") return "/dashboard/inventory/list";
 
   return "/dashboard";
 }

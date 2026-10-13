@@ -38,6 +38,10 @@ export async function originalFor(item: Pick<PendingEvidence, "id" | "storedLoca
   return file;
 }
 
+export async function clearEditorAssets(ownerId: string) {
+  await evidenceDb.imageAssets.where("ownerId").equals(ownerId).delete();
+}
+
 export async function editorAsset(item: PendingEvidence, thumbnail = false): Promise<File> {
   const options = { hd: item.hd, rotation: item.rotation, flipX: item.flipX, flipY: item.flipY,
     cropX: item.cropX, cropY: item.cropY, cropWidth: item.cropWidth, cropHeight: item.cropHeight };
@@ -45,7 +49,23 @@ export async function editorAsset(item: PendingEvidence, thumbnail = false): Pro
   const cached = await evidenceDb.imageAssets.get(key);
   if (cached) return new File([cached.blob], "image.jpg", { type: "image/jpeg" });
   const source = await originalFor(item);
-  const file = thumbnail ? await generateThumbnail(source, 160) : await processImage(source, options);
+  let file: File;
+  if (thumbnail) {
+    const hasVisualEdits =
+      options.rotation !== 0 ||
+      options.flipX ||
+      options.flipY ||
+      (options.cropX ?? 0) !== 0 ||
+      (options.cropY ?? 0) !== 0 ||
+      (options.cropWidth ?? 0) !== 0 ||
+      (options.cropHeight ?? 0) !== 0;
+    const thumbnailSource = hasVisualEdits
+      ? await processImage(source, options)
+      : source;
+    file = await generateThumbnail(thumbnailSource, 160);
+  } else {
+    file = await processImage(source, options);
+  }
   await evidenceDb.imageAssets.put({ key, ownerId: item.id, blob: file });
   return file;
 }

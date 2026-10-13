@@ -14,7 +14,11 @@ import {
 import type { PendingEvidence } from "../../types/pending-evidence";
 import { EvidenceCropDialogCanvas } from "./crop-dialog/evidence-crop-dialog-canvas";
 import { processImage } from "@/shared/utils/process-image";
-import { editorAsset, originalFor } from "../../services/editor-image-assets";
+import {
+  clearEditorAssets,
+  editorAsset,
+  originalFor,
+} from "../../services/editor-image-assets";
 import { type EvidenceImageAnalysis } from "../../utils/analyze-evidence-image";
 import {
   scanSimpleBarcodeBatch,
@@ -79,8 +83,10 @@ export function ShipmentEvidenceEditor({
   const touchStartX = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activePreviewUrlRef = useRef("");
+  const activePreviewRequestRef = useRef(0);
   const thumbnailUrlsRef = useRef(new Set<string>());
   const thumbnailEvidenceIdsRef = useRef(new Set<string>());
+  const thumbnailRequestVersionsRef = useRef(new Map<string, number>());
   const removedEvidenceIdsRef = useRef(new Set<string>());
   const itemsRef = useRef<PendingEvidence[]>([]);
   const imageWorkQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -180,6 +186,47 @@ export function ShipmentEvidenceEditor({
     return options[0] ?? null;
   }
 
+  async function refreshThumbnail(item: PendingEvidence) {
+    const requestVersion =
+      (thumbnailRequestVersionsRef.current.get(item.id) ?? 0) + 1;
+    thumbnailRequestVersionsRef.current.set(item.id, requestVersion);
+
+    try {
+      const thumbnailTask = imageWorkQueueRef.current.then(() =>
+        editorAsset(item, true),
+      );
+      imageWorkQueueRef.current = thumbnailTask.then(
+        () => undefined,
+        () => undefined,
+      );
+      const thumbnail = await thumbnailTask;
+
+      if (
+        thumbnailRequestVersionsRef.current.get(item.id) !== requestVersion ||
+        removedEvidenceIdsRef.current.has(item.id)
+      ) return;
+
+      const thumbnailUrl = URL.createObjectURL(thumbnail);
+      const previousThumbnailUrl = item.thumbnailUrl;
+      thumbnailUrlsRef.current.add(thumbnailUrl);
+      thumbnailEvidenceIdsRef.current.add(item.id);
+      setItems((currentItems) => currentItems.map((currentItem) =>
+        currentItem.id === item.id
+          ? { ...currentItem, thumbnailUrl }
+          : currentItem,
+      ));
+
+      if (previousThumbnailUrl && previousThumbnailUrl !== thumbnailUrl) {
+        thumbnailUrlsRef.current.delete(previousThumbnailUrl);
+        revokeObjectUrlAfterRender(previousThumbnailUrl);
+      }
+    } catch (error) {
+      if (!removedEvidenceIdsRef.current.has(item.id)) {
+        console.error("[Evidence thumbnail refresh]", error);
+      }
+    }
+  }
+
   function applyBarcodeResult(
     metrics: BarcodeMetrics,
     preferNewResult = false,
@@ -223,6 +270,7 @@ export function ShipmentEvidenceEditor({
     }
 
     let cancelled = false;
+    const requestId = ++activePreviewRequestRef.current;
 
     async function loadActivePreview() {
       setActivePreviewLoading(true);
@@ -240,7 +288,11 @@ export function ShipmentEvidenceEditor({
 
         const nextUrl = URL.createObjectURL(processedFile);
 
-        if (cancelled || removedEvidenceIdsRef.current.has(currentId!)) {
+        if (
+          cancelled ||
+          requestId !== activePreviewRequestRef.current ||
+          removedEvidenceIdsRef.current.has(currentId!)
+        ) {
           URL.revokeObjectURL(nextUrl);
           return;
         }
@@ -253,11 +305,15 @@ export function ShipmentEvidenceEditor({
           revokeObjectUrlAfterRender(previousUrl);
         }
       } catch (error) {
-        if (!cancelled && !removedEvidenceIdsRef.current.has(currentId!)) {
+        if (
+          !cancelled &&
+          requestId === activePreviewRequestRef.current &&
+          !removedEvidenceIdsRef.current.has(currentId!)
+        ) {
           console.error("[Evidence lazy preview]", error);
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && requestId === activePreviewRequestRef.current) {
           setActivePreviewLoading(false);
         }
       }
@@ -778,12 +834,14 @@ export function ShipmentEvidenceEditor({
             onClick={() => {
               const copy = [...items];
 
-              copy[index] = {
+              const nextItem = {
                 ...copy[index],
                 hd: !copy[index].hd,
               };
+              copy[index] = nextItem;
 
               setItems(copy);
+              void refreshThumbnail(nextItem);
             }}
             className={`
         px-4
@@ -804,10 +862,13 @@ export function ShipmentEvidenceEditor({
 
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const evidenceId = current.id;
               const stalePreviewUrl = activePreviewUrlRef.current;
 
+              // Invalida cualquier trabajo anterior antes de cambiar el estado;
+              // una rotación/recorte lento no debe reaparecer tras restaurar.
+              activePreviewRequestRef.current += 1;
               activePreviewUrlRef.current = "";
               setActivePreviewUrl("");
               setActivePreviewLoading(true);
@@ -817,6 +878,24 @@ export function ShipmentEvidenceEditor({
                 revokeObjectUrlAfterRender(stalePreviewUrl);
               }
 
+              try {
+                await clearEditorAssets(evidenceId);
+              } catch (error) {
+                console.warn("[Evidence reset] No fue posible limpiar los derivados", error);
+              }
+
+              const restoredItem: PendingEvidence = {
+                ...current,
+                file: current.originalFile,
+                hd: false,
+                rotation: 0,
+                flipX: false,
+                flipY: false,
+                cropX: 0,
+                cropY: 0,
+                cropWidth: 0,
+                cropHeight: 0,
+              };
               setItems((currentItems) => currentItems.map((item) =>
                 item.id === evidenceId
                   ? {
@@ -836,6 +915,7 @@ export function ShipmentEvidenceEditor({
               // Force a fresh preview even when the original/base asset was
               // already cached before the crop was applied.
               setPreviewRevision((revision) => revision + 1);
+              void refreshThumbnail(restoredItem);
             }}
             className="
     w-10
@@ -1193,6 +1273,7 @@ export function ShipmentEvidenceEditor({
                   const nextItems = items.filter((x) => x.id !== evidence.id);
 
                   removedEvidenceIdsRef.current.add(evidence.id);
+                  thumbnailRequestVersionsRef.current.delete(evidence.id);
                   itemsRef.current = nextItems;
                   setItems(nextItems);
                   onRemoveEvidence?.(evidence.id);
@@ -1536,7 +1617,7 @@ export function ShipmentEvidenceEditor({
         onApply={(crop) => {
           const copy = [...items];
 
-          copy[index] = {
+          const nextItem = {
             ...copy[index],
             cropX: crop.x,
             cropY: crop.y,
@@ -1546,8 +1627,10 @@ export function ShipmentEvidenceEditor({
             flipX: crop.flipX,
             flipY: crop.flipY,
           };
+          copy[index] = nextItem;
 
           setItems(copy);
+          void refreshThumbnail(nextItem);
         }}
       />
       <BarcodeLiveScannerDialog

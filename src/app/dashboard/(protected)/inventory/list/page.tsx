@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { CircleHelp, ScanBarcode } from "lucide-react";
 
@@ -409,7 +410,7 @@ export default function InventoryListPage() {
       <div
         className="
     grid
-    grid-cols-3
+    grid-cols-2
     gap-2
     mb-4
     sm:flex
@@ -438,6 +439,9 @@ export default function InventoryListPage() {
         <button type="button" onClick={() => { setBarcodeLookupOpen(true); setBarcodeResult(null); }} className="min-h-20 rounded-lg border border-slate-300 px-2 py-2 text-sm font-medium dark:border-slate-600 sm:min-h-0 sm:px-4 sm:text-base">
           Buscar código
         </button>
+        <Link href="/dashboard/inventory/serialized" className="flex min-h-20 items-center justify-center rounded-lg border border-cyan-500 bg-cyan-50 px-2 py-2 text-center text-sm font-medium text-cyan-800 dark:bg-cyan-950/30 dark:text-cyan-200 sm:min-h-0 sm:px-4 sm:text-base">
+          Ver SIM importadas
+        </Link>
         <button
           type="button"
           onClick={() => setAssignOpen(true)}

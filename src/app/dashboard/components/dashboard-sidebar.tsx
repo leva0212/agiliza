@@ -351,7 +351,7 @@ export function DashboardSidebar({
 
           {isSuperAdmin && (
             <>
-              <SidebarSection title="Gestión operativa" expanded={expanded} collapsed={Boolean(collapsedSections.operationsManagement)} onToggle={() => toggleSection("operationsManagement")} className={menuSectionClassName} forceOpen={Boolean(normalizedNavigationFilter)} visible={sectionMatches("gestion operativa", "rutas", "ruta", "empresas", "productos", "inventario", "movimientos", "tarifas")}>
+              <SidebarSection title="Gestión operativa" expanded={expanded} collapsed={Boolean(collapsedSections.operationsManagement)} onToggle={() => toggleSection("operationsManagement")} className={menuSectionClassName} forceOpen={Boolean(normalizedNavigationFilter)} visible={sectionMatches("gestion operativa", "rutas", "ruta", "empresas", "productos", "inventario", "sim", "importadas", "movimientos", "tarifas")}>
               <SidebarNavLink prefetch={false}
                 href="/dashboard/routes/list"
                 className="block p-3 rounded-lg hover:bg-gray-800"
@@ -397,6 +397,9 @@ export function DashboardSidebar({
               </SidebarNavLink>
               <SidebarNavLink prefetch={false} href="/dashboard/inventory/movements" className="block p-3 rounded-lg hover:bg-gray-800">
                 {expanded ? "📜 Movimientos de inventario" : "📜"}
+              </SidebarNavLink>
+              <SidebarNavLink prefetch={false} href="/dashboard/inventory/serialized" className="block p-3 rounded-lg hover:bg-gray-800">
+                {expanded ? "📱 SIM importadas" : "📱"}
               </SidebarNavLink>
               <SidebarNavLink prefetch={false}
                 href="/dashboard/rates"
